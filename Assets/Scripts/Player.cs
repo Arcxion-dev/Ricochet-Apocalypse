@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class Enemy : Entity
+public class Player : Entity
 {
     protected override void DecreaseHP(int _amount)
     {
