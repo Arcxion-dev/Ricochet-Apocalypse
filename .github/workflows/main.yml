@@ -1,0 +1,95 @@
+name: Discord Push Notification with Code Summary
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate AI Code Summary
+        id: llm
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          COMMIT_MESSAGES: ${{ join(github.event.commits.*.message, ' / ') }}
+          BEFORE_SHA: ${{ github.event.before }}
+          AFTER_SHA: ${{ github.event.after }}
+        run: |
+          if [ "$BEFORE_SHA" = "0000000000000000000000000000000000000000" ]; then
+            DIFF_DATA=$(git show HEAD -- . ':(exclude)*lock*' ':(exclude)*.png' ':(exclude)*.jpg')
+          else
+            DIFF_DATA=$(git diff $BEFORE_SHA $AFTER_SHA -- . ':(exclude)*lock*' ':(exclude)*.png' ':(exclude)*.jpg')
+          fi
+          
+          TRUNCATED_DIFF="${DIFF_DATA:0:20000}"
+
+          cat << 'EOF' > prompt.txt
+          당신은 우리 팀의 시니어 개발자입니다. 다음은 방금 깃허브에 푸시된 '커밋 메시지'와 '실제 코드 변경사항(git diff)'입니다.
+          어떤 파일들이 추가/수정/삭제 되었고, 핵심적으로 어떤 기능이 구현되거나 변경되었는지 개발 및 일반 팀원들이 이해하기 쉽게 한국어로 3~4줄로 친절하게 요약해주세요.
+          (※ 코드의 지엽적인 부분보다는 전체적으로 '어떤 작업이 이루어졌는지' 흐름 위주로 요약할 것. 단 누락된 수정사항이 없도록 할것)
+          
+          [커밋 메시지]
+          EOF
+          
+          echo "$COMMIT_MESSAGES" >> prompt.txt
+          echo -e "\n[코드 변경사항 (git diff)]" >> prompt.txt
+          echo "$TRUNCATED_DIFF" >> prompt.txt
+
+          jq -n --rawfile text prompt.txt '{contents: [{parts: [{text: $text}]}]}' > payload.json
+
+          RESPONSE=$(curl -s -H "Content-Type: application/json" \
+               -X POST \
+               -d @payload.json \
+               "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=$GEMINI_API_KEY")
+          echo "=== GEMINI RESPONSE ===" 
+          echo "$RESPONSE"  # 이 줄 추가
+          SUMMARY=$(echo "$RESPONSE" | jq -r '.candidates[0].content.parts[0].text // empty')
+          
+          if [ -z "$SUMMARY" ]; then
+            SUMMARY="⚠️ AI 요약을 생성하지 못했습니다."
+          fi
+
+          EOF_MARKER=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+          echo "summary<<$EOF_MARKER" >> $GITHUB_OUTPUT
+          echo "$SUMMARY" >> $GITHUB_OUTPUT
+          echo "$EOF_MARKER" >> $GITHUB_OUTPUT
+
+      - name: Send Discord Notification
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          THREAD_ID: '1528330307693187143'
+          BRANCH_NAME: ${{ github.ref_name }}
+          REPO_NAME: ${{ github.repository }}
+          COMMIT_URL: ${{ github.event.head_commit.url }}
+          AUTHOR_NAME: ${{ github.event.head_commit.author.name }}
+          AI_SUMMARY: ${{ steps.llm.outputs.summary }}
+        run: |
+          PAYLOAD=$(jq -n \
+            --arg repo "$REPO_NAME" \
+            --arg branch "$BRANCH_NAME" \
+            --arg summary "$AI_SUMMARY" \
+            --arg url "$COMMIT_URL" \
+            --arg author "$AUTHOR_NAME" \
+            '{
+              content: "🚀 **\($repo)** 에 새로운 코드가 푸시되었습니다!",
+              embeds:[{
+                title: "✨ 코드 변경사항 요약 (by AI)",
+                description: "\($summary)\n\n[🔍 전체 코드 변경사항 보기](\($url))",
+                color: 5814783,
+                author: {
+                  name: $author
+                }
+              }]
+            }')
+
+          curl -H "Content-Type: application/json" \
+               -X POST \
+               -d "$PAYLOAD" \
+               "$DISCORD_WEBHOOK_URL?thread_id=$THREAD_ID"
