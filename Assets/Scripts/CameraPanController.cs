@@ -1,12 +1,13 @@
 using UnityEngine;
 
 /// <summary>
-/// 탑뷰(직교) 각도를 고정한 채 WASD(및 방향키)로 화면을 이동시키는 카메라 팬 컨트롤러.
+/// 탑뷰(직교) 각도를 고정한 채 방향키로 화면을 이동시키는 카메라 팬 컨트롤러.
 /// - 카메라 회전은 건드리지 않는다(탑뷰 유지).
 /// - XY 평면에서만 이동하고 Z(깊이)는 고정한다.
-/// - 저격수는 제자리에 고정이지만, 플레이어와 별개로 전장을 둘러볼 수 있게 화면만 움직인다.
+/// - 저격수(플레이어)는 제자리에 고정이지만, 플레이어와 별개로 전장을 둘러볼 수 있게 화면만 움직인다.
 ///
-/// 입력은 Legacy Input Manager 기준. Horizontal/Vertical 축이 WASD와 방향키를 모두 포함한다.
+/// 입력은 Legacy Input Manager 기준. 방향키만 카메라를 움직인다
+/// (WASD는 PlayerMovement가 플레이어 구체 이동에 사용).
 /// </summary>
 public class CameraPanController : MonoBehaviour
 {
@@ -44,8 +45,13 @@ public class CameraPanController : MonoBehaviour
 
     private void HandlePan()
     {
-        float x = Input.GetAxisRaw("Horizontal"); // A/D, ←/→
-        float y = Input.GetAxisRaw("Vertical");   // W/S, ↑/↓
+        // 방향키만 카메라를 움직인다(WASD는 플레이어 이동 전용).
+        float x = 0f;
+        float y = 0f;
+        if (Input.GetKey(KeyCode.LeftArrow)) x -= 1f;
+        if (Input.GetKey(KeyCode.RightArrow)) x += 1f;
+        if (Input.GetKey(KeyCode.DownArrow)) y -= 1f;
+        if (Input.GetKey(KeyCode.UpArrow)) y += 1f;
         if (x == 0f && y == 0f) return;
 
         Vector3 move = new Vector3(x, y, 0f).normalized * (_panSpeed * Time.deltaTime);

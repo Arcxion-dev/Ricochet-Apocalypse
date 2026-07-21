@@ -397,6 +397,7 @@ GameObject:
   - component: {fileID: 1937868037}
   - component: {fileID: 1937868036}
   - component: {fileID: 1937868039}
+  - component: {fileID: 1937868040}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -563,6 +564,19 @@ LineRenderer:
   m_UseWorldSpace: 1
   m_Loop: 0
   m_ApplyActiveColorSpace: 1
+--- !u!114 &1937868040
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1937868035}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3c8c560a79226c1438ad17760f46c3a1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerMovement
+  _moveSpeed: 3
 --- !u!1 &2047677248
 GameObject:
   m_ObjectHideFlags: 0
@@ -717,6 +731,9 @@ MonoBehaviour:
   _useBounds: 0
   _minBounds: {x: -20, y: -20}
   _maxBounds: {x: 20, y: 20}
+  _zoomSpeed: 5
+  _minZoom: 2
+  _maxZoom: 15
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
