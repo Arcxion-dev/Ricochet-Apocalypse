@@ -1,11 +1,13 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
 /// 플레이어의 사격 입력을 담당하는 컴포넌트. 플레이어는 고정 위치에서 마우스로 조준하고
 /// 좌클릭으로 발사한다.
 ///
-/// 이번 단계에서는 "총알을 실제로 발사하지 않고 Debug.Log로 방향/잔탄만 프린트"한다.
-/// 실제 총알 스폰(BulletController.Init)은 총알 담당 팀원이 FireBullet 훅에 연결한다.
+/// 발사는 "인벤토리 소비형": 인벤토리 Ammo 버킷에서 탄을 1발 꺼내(강화탄 우선, 없으면 기본탄)
+/// 그 <see cref="BulletSO"/> 로 실제 총알을 스폰(BulletController.Init)한다. 잔탄 = 인벤토리 보유량.
+/// 한 스테이지를 소수(1~5)의 고유 강화 탄환으로 클리어하는 설계와 직결된다.
 ///
 /// 입력은 Legacy Input Manager 기준(Input.mousePosition / Input.GetMouseButtonDown).
 ///
@@ -22,8 +24,10 @@ public class PlayerShooter : MonoBehaviour
     [SerializeField] private Camera _cam;
 
     [Header("탄환")]
-    [Tooltip("스테이지 시작 시 지급되는 탄환 수 (제한 탄환 컨셉).")]
-    [SerializeField] private int _maxAmmo = 5;
+    [Tooltip("스폰할 총알 프리팹(BulletController). Assets/Prefabs/BulletPrefab.")]
+    [SerializeField] private BulletController _bulletPrefab;
+    [Tooltip("스테이지 시작 시 인벤토리에 지급할 탄환 로드아웃(테스트/1~5발 컨셉).")]
+    [SerializeField] private List<BulletItemDefinition> _startingBullets = new List<BulletItemDefinition>();
 
     [Header("조준 레이저")]
     [Tooltip("레이저 길이 (월드 유닛).")]
@@ -36,19 +40,30 @@ public class PlayerShooter : MonoBehaviour
     [Tooltip("발사 강조가 유지되는 시간(초).")]
     [SerializeField] private float _laserFlashTime = 0.12f;
 
-    private int _ammo;
     private LineRenderer _laser;
     private float _flashTimer;
 
-    public int Ammo => _ammo;
-    public int MaxAmmo => _maxAmmo;
+    /// <summary>현재 발사 가능한 총 탄환 수(인벤토리 Ammo 버킷 합계).</summary>
+    public int RemainingAmmo =>
+        InventoryManager.Instance != null
+            ? InventoryManager.Instance.Inventory.GetTotalCount(ItemCategory.Ammo)
+            : 0;
 
     private void Awake()
     {
         if (_firePoint == null) _firePoint = transform;
         if (_cam == null) _cam = Camera.main;
-        _ammo = _maxAmmo;
         SetupLaser();
+    }
+
+    private void Start()
+    {
+        // 스테이지 시작 지급 로드아웃을 인벤토리에 넣는다.
+        if (InventoryManager.Instance == null) return;
+        foreach (var bullet in _startingBullets)
+        {
+            if (bullet != null) InventoryManager.Instance.Add(bullet, 1);
+        }
     }
 
     private void Update()
@@ -62,23 +77,54 @@ public class PlayerShooter : MonoBehaviour
         }
     }
 
-    /// <summary>발사를 시도한다. 탄환이 없으면 아무것도 하지 않는다.</summary>
+    /// <summary>발사를 시도한다. 인벤토리에 탄환이 없으면 아무것도 하지 않는다.</summary>
     private void TryFire(Vector2 dir)
     {
-        if (_ammo <= 0)
+        // 인벤토리에서 쏠 탄을 고른다(강화탄 우선, 없으면 기본탄).
+        BulletItemDefinition ammo = ResolveNextBullet();
+        if (ammo == null)
         {
             Debug.Log("[PlayerShooter] 탄환 없음 - 발사 불가");
             return;
         }
 
+        BulletSO data = ammo.bulletData;
+        if (data == null)
+        {
+            Debug.LogWarning($"[PlayerShooter] '{ammo.ResolvedName}' 에 BulletSO(bulletData)가 연결되지 않아 발사할 수 없습니다.");
+            return;
+        }
+
         _flashTimer = _laserFlashTime; // 발사 방향 강조
-        _ammo--;
         GameManager.Instance?.RegisterShot();
 
-        // === 이번 단계 핵심: 실제 발사 대신 프린트만 ===
-        Debug.Log($"[PlayerShooter] 발사! 방향={dir}, 남은 탄환={_ammo}/{_maxAmmo}");
+        FireBullet(data, dir);
 
-        FireBullet(dir);
+        // 발사한 탄을 인벤토리에서 1발 소비.
+        InventoryManager.Instance.Remove(ammo, 1);
+
+        Debug.Log($"[PlayerShooter] 발사! {ammo.ResolvedName}({data.name}) 방향={dir}, 남은 탄환={RemainingAmmo}");
+    }
+
+    /// <summary>인벤토리 Ammo 버킷에서 다음에 쏠 탄을 고른다(강화탄 우선, 없으면 기본탄).</summary>
+    private BulletItemDefinition ResolveNextBullet()
+    {
+        if (InventoryManager.Instance == null) return null;
+
+        var entries = InventoryManager.Instance.Inventory.GetEntries(ItemCategory.Ammo);
+        BulletItemDefinition basic = null;
+
+        foreach (var entry in entries)
+        {
+            if (entry.Quantity <= 0) continue;
+            if (entry.Definition is BulletItemDefinition bullet)
+            {
+                if (!bullet.isBasic) return bullet; // 강화탄 우선.
+                if (basic == null) basic = bullet;
+            }
+        }
+
+        return basic; // 강화탄이 없으면 기본탄(없으면 null).
     }
 
     /// <summary>마우스 위치를 기준으로 발사 방향(정규화)을 계산한다.</summary>
@@ -138,18 +184,17 @@ public class PlayerShooter : MonoBehaviour
         _laser.endWidth = width;
     }
 
-    /// <summary>
-    /// 실제 총알을 생성/발사할 진입점. 지금은 비어 있는 훅이다.
-    /// TODO: 총알 담당자 연결 지점 — 총알 프리팹 Instantiate 후 BulletController.Init(bulletSO, dir) 호출.
-    /// </summary>
-    private void FireBullet(Vector2 dir)
+    /// <summary>총알 프리팹을 스폰하고 BulletSO로 초기화해 실제로 발사한다.</summary>
+    private void FireBullet(BulletSO data, Vector2 dir)
     {
-        // 의도적으로 비워둠. 총알 시스템(BulletController/BulletSO) 연결 시 여기서 스폰한다.
-    }
+        if (_bulletPrefab == null)
+        {
+            Debug.LogWarning("[PlayerShooter] _bulletPrefab이 비어 있어 총알을 스폰할 수 없습니다.");
+            return;
+        }
 
-    /// <summary>탄환을 재충전한다 (상점/스테이지 시작 시 사용 예정).</summary>
-    public void Refill(int amount)
-    {
-        _ammo = Mathf.Clamp(_ammo + amount, 0, _maxAmmo);
+        Vector2 origin = _firePoint != null ? (Vector2)_firePoint.position : (Vector2)transform.position;
+        BulletController bullet = Instantiate(_bulletPrefab, origin, Quaternion.identity);
+        bullet.Init(data, dir);
     }
 }

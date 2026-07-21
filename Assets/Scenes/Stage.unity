@@ -419,7 +419,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerShooter
   _firePoint: {fileID: 0}
   _cam: {fileID: 0}
-  _maxAmmo: 5
+  _bulletPrefab: {fileID: 6349784675748445332, guid: 06062aa30aa212f4986b02c1514ec7eb, type: 3}
+  _startingBullets:
+  - {fileID: 11400000, guid: 7b06da7f08473524ab88281e57816706, type: 2}
+  - {fileID: 11400000, guid: 5c1b2fc3df245284ba2a7897b7125f8f, type: 2}
+  - {fileID: 11400000, guid: 1be1d78068529d54d95ab1f575d86789, type: 2}
   _laserLength: 20
   _laserColor: {r: 1, g: 0, b: 0, a: 1}
   _laserWidth: 0.05

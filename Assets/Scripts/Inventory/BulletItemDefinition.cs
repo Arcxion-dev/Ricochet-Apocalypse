@@ -31,9 +31,14 @@ public class BulletItemDefinition : ItemDefinition
         maxStack = isBasic ? 999 : 1;
     }
 
-    /// <summary>UI 표시용 능력 라벨(BulletSO 효과 이름 + 추가 라벨).</summary>
+    /// <summary>
+    /// UI 표시용 능력 라벨. 수동 <see cref="abilityLabels"/> 가 있으면 그것을 쓰고(깔끔한 한글),
+    /// 없으면 연결된 <see cref="bulletData"/> 의 효과 SO 이름에서 가져온다.
+    /// </summary>
     public IReadOnlyList<string> GetAbilityLabels()
     {
+        if (abilityLabels != null && abilityLabels.Count > 0) return abilityLabels;
+
         var labels = new List<string>();
         if (bulletData != null && bulletData.effects != null)
         {
@@ -42,7 +47,6 @@ public class BulletItemDefinition : ItemDefinition
                 if (effect != null) labels.Add(effect.name);
             }
         }
-        if (abilityLabels != null) labels.AddRange(abilityLabels);
         return labels;
     }
 

@@ -107,15 +107,29 @@ public class InventoryUI : MonoBehaviour
             ItemDefinition.CreateRuntime("part_grip", "반동 억제 그립", ItemCategory.GunPart),
             ItemDefinition.CreateRuntime("part_barrel", "롱 배럴", ItemCategory.GunPart),
         };
-        // 기본 탄환은 스택되는 흔한 탄, 강화 탄환은 여러 능력을 가진 "고유(1발)" 탄.
-        _basicBullet = BulletItemDefinition.CreateRuntime("bullet_basic", "기본 탄환", isBasic: true);
-        _enhancedBullets = new List<BulletItemDefinition>
+        // 탄환은 실제 BulletSO에 연결된 BulletItemDefinition 에셋(Resources/BulletItems)에서 로드한다.
+        // 에셋이 없으면 런타임 문자열 샘플로 폴백(자산 저작 전에도 UI 디버그가 되도록).
+        _enhancedBullets = new List<BulletItemDefinition>();
+        var loaded = Resources.LoadAll<BulletItemDefinition>("BulletItems");
+        foreach (var def in loaded)
         {
-            BulletItemDefinition.CreateRuntime("bullet_ap_homing", "관통 유도탄", false, "철갑", "유도"),
-            BulletItemDefinition.CreateRuntime("bullet_explo_split", "폭발 분열탄", false, "폭발", "분열"),
-            BulletItemDefinition.CreateRuntime("bullet_burn_chain", "화염 연쇄탄", false, "화상", "연쇄 번개"),
-            BulletItemDefinition.CreateRuntime("bullet_grav_frost", "중력 냉기탄", false, "중력", "냉기"),
-        };
+            if (def == null) continue;
+            if (def.isBasic) _basicBullet = def;
+            else _enhancedBullets.Add(def);
+        }
+
+        if (_basicBullet == null)
+        {
+            _basicBullet = BulletItemDefinition.CreateRuntime("bullet_basic", "기본 탄환", isBasic: true);
+        }
+        if (_enhancedBullets.Count == 0)
+        {
+            _enhancedBullets.Add(BulletItemDefinition.CreateRuntime("bullet_ap_homing", "관통 유도탄", false, "철갑", "유도"));
+            _enhancedBullets.Add(BulletItemDefinition.CreateRuntime("bullet_explo_split", "폭발 분열탄", false, "폭발", "분열"));
+            _enhancedBullets.Add(BulletItemDefinition.CreateRuntime("bullet_burn_chain", "화염 연쇄탄", false, "화상", "연쇄 번개"));
+            _enhancedBullets.Add(BulletItemDefinition.CreateRuntime("bullet_grav_frost", "중력 냉기탄", false, "중력", "냉기"));
+        }
+
         _gold = ItemDefinition.CreateRuntime("gold", "골드", ItemCategory.Currency, maxStack: 9_999_999);
     }
 

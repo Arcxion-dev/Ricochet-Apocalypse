@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7526ded4f5c2a86419f830c0009986f6, type: 3}
+  m_Name: BItem_3_Split
+  m_EditorClassIdentifier: Assembly-CSharp::BulletItemDefinition
+  id: bullet_split
+  displayName: "\uBD84\uC5F4\uD0C4"
+  category: 2
+  icon: {fileID: 0}
+  maxStack: 1
+  description: 
+  isBasic: 0
+  bulletData: {fileID: 11400000, guid: f873977490707aa44b304ff758906a8a, type: 2}
+  abilityLabels:
+  - "\uBD84\uC5F4"
