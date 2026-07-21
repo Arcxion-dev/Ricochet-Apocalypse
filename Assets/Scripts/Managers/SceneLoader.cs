@@ -51,6 +51,23 @@ public static class SceneLoader
         LoadScene(SceneNames.Stage);
     }
 
+    /// <summary>
+    /// 현재 스테이지를 초기화한다. 콘솔에 "초기화"를 출력하고,
+    /// GameManager 진행/스코어 상태를 리셋한 뒤 Stage 씬을 다시 로드한다.
+    /// (씬을 다시 로드하면 GameManager.OnSceneLoaded에서 상태가 한 번 더 초기화된다.)
+    /// </summary>
+    public static void ResetStage()
+    {
+        Debug.Log("초기화");
+
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.ResetStageState();
+        }
+
+        LoadScene(SceneNames.Stage);
+    }
+
     /// <summary>상점 씬으로 이동한다 (스테이지 클리어 후).</summary>
     public static void LoadShop()
     {
