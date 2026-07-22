@@ -18,8 +18,14 @@ public class GravityEffectSO : BulletEffectSO
     [Tooltip("최종 폭발 데미지")]
     public float finalExplosionDamage = 25f;
 
-    public override void OnBulletDestroyed(BulletController bullet)
+public override void OnBulletDestroyed(BulletController bullet)
     {
-        Debug.Log($"[중력자탄] 위치 {bullet.transform.position} 에서 반경 {pullRadius} 내 적 {pullDuration}초간 끌어모은 뒤 데미지 {finalExplosionDamage} 폭발 (적 시스템 미구현 - 실제 인력/폭발 로직 필요)");
+        Vector2 pos = bullet.transform.position;
+        var runnerGO = new GameObject("GravityWellRunner_Temp");
+        runnerGO.transform.position = pos;
+        var runner = runnerGO.AddComponent<GravityWellRunner>();
+        runner.Run(pos, pullRadius, pullForce, pullDuration, finalExplosionDamage, bullet.EnemyLayerMask);
+
+        Debug.Log($"[중력자탄] 위치 {pos}에서 반경 {pullRadius} 내 적 {pullDuration}초간 끌어모으기 시작");
     }
 }

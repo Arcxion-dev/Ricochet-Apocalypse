@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 5228209982369337930}
   - component: {fileID: 8843635767258345054}
   - component: {fileID: 6071198367822329535}
+  - component: {fileID: 3443932474700644745}
   m_Layer: 8
   m_Name: WallPrefab_Rock
   m_TagString: Rock
@@ -180,3 +181,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ObstacleTypeMarker
   targetType: 4
+--- !u!114 &3443932474700644745
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 388419532790388927}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 509e25f1082c4224c840c1fae3b4a6ee, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DestructibleObstacle
+  health: 50
+  damagePerHit: 10
+  onlyDestructibleByExplosion: 1

@@ -12,12 +12,14 @@ public class ArmorPiercingEffectSO : BulletEffectSO
     [Tooltip("철갑 적 대상 데미지 배율")]
     public float armoredEnemyDamageMultiplier = 1.5f;
 
-    public override void OnHitEnemy(BulletController bullet, Collider2D enemy)
+public override void OnHitEnemy(BulletController bullet, Collider2D enemy)
     {
-        Debug.Log($"[철갑탄] {enemy.name} 적중 - 철갑 여부 확인 및 데미지 배율({armoredEnemyDamageMultiplier}) 적용 필요 (적 시스템 미구현)");
+        var armored = enemy.GetComponent<IArmored>();
+        bool isArmored = armored != null && armored.IsArmored;
+        Debug.Log($"[철갑탄] {enemy.name} 적중 - 철갑 여부: {isArmored} (배율 {armoredEnemyDamageMultiplier}은 BulletController에서 적용됨)");
     }
 
-    public override void OnHitObstacle(BulletController bullet, Collider2D obstacle, BulletTargetType targetType)
+public override void OnHitObstacle(BulletController bullet, Collider2D obstacle, BulletTargetType targetType)
     {
         Debug.Log($"[철갑탄] {targetType} 충돌 - 관통 가능 여부는 BulletController에서 처리됨");
     }
