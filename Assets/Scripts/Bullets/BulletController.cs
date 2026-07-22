@@ -22,9 +22,14 @@ public class BulletController : MonoBehaviour
     public BulletSO Data { get; private set; }
     public Vector2 Direction { get; private set; }
     public Transform Target { get; private set; } // 유도탄 등에서 사용
+    public LayerMask EnemyLayerMask => enemyLayerMask;
+    public LayerMask WallLayerMask => wallLayerMask;
 
     /// <summary>화상탄/냉기탄처럼 "최초 1회 적중"을 추적해야 하는 효과들을 위한 공용 플래그.</summary>
     public bool HasTriggeredFirstZoneHit { get; set; }
+
+    /// <summary>분열탄이 자식 총알에 다시 분열 효과를 넣지 않도록 방지하는 플래그.</summary>
+    public bool IsSplitChild { get; set; }
 
     private Rigidbody2D _rb;
     private int _bounceCount;
@@ -139,6 +144,14 @@ public class BulletController : MonoBehaviour
     }
 
     /// <summary>
+    /// 유도탄의 자동 타겟 탐색 등 효과가 런타임에 타겟을 지정할 때 사용하는 API.
+    /// </summary>
+    public void SetTarget(Transform newTarget)
+    {
+        Target = newTarget;
+    }
+
+    /// <summary>
     /// 물리엔진(바람) 담당 시스템이 매 프레임 호출해서 힘을 더해줄 수 있는 진입점.
     /// (예: WindZone.OnTriggerStay2D -> bullet.ApplyExternalForce(windForce))
     /// </summary>
@@ -155,6 +168,16 @@ public class BulletController : MonoBehaviour
         _isNullified = nullified;
         Debug.Log($"[BulletController] 자력 등으로 총알 무효화 상태 변경: {nullified} (물리엔진 시스템 미구현 - 실제 트리거 필요)");
     }
+
+public BulletController SpawnChildBullet(BulletSO childData, Vector2 direction)
+    {
+        var childGO = Instantiate(gameObject, transform.position, Quaternion.identity);
+        var childController = childGO.GetComponent<BulletController>();
+        childController.IsSplitChild = true;
+        childController.Init(childData != null ? childData : Data, direction);
+        return childController;
+    }
+
 
     private void OnTriggerEnter2D(Collider2D other)
     {
@@ -201,23 +224,37 @@ public class BulletController : MonoBehaviour
         }
     }
 
-    private void HandleEnemyHit(Collider2D enemy)
+private void HandleEnemyHit(Collider2D enemy)
     {
-        Debug.Log($"[BulletController] 적 적중: {enemy.name} (적 시스템 미구현 - 데미지 적용 필요)");
+        bool hasArmorPiercing = Data.HasEffect<ArmorPiercingEffectSO>();
+
+        float finalDamage = Data.damage;
+        if (hasArmorPiercing)
+        {
+            var armorEffect = Data.GetEffect<ArmorPiercingEffectSO>();
+            var armored = enemy.GetComponent<IArmored>();
+            if (armored != null && armored.IsArmored)
+            {
+                finalDamage *= armorEffect.armoredEnemyDamageMultiplier;
+            }
+        }
+
+        BulletDamageDispatcher.ApplyDamage(enemy, finalDamage, Data.name);
 
         foreach (var effect in Data.effects)
         {
             if (effect != null) effect.OnHitEnemy(this, enemy);
         }
 
-        // 기본 동작: 적 시스템이 아직 없으므로 일단 소멸시킴 (담당자 협의 후 관통/유지 여부 조정 가능)
-        Die();
+        // 철갑탄은 적도 관통(계속 직진). 그 외 효과는 적중 시 소멸.
+        if (!hasArmorPiercing)
+        {
+            Die();
+        }
     }
 
-    private void HandleObstacleHit(Collider2D obstacle, BulletTargetType targetType)
+private void HandleObstacleHit(Collider2D obstacle, BulletTargetType targetType)
     {
-        // 민간인은 즉시 스테이지 실패로 이어지는 특수 케이스.
-        // 실제 스테이지 실패 처리는 게임 매니저 담당 영역이므로 이벤트/로그만 남김.
         if (targetType == BulletTargetType.Civilian)
         {
             Debug.LogWarning("[BulletController] 민간인 피격! 스테이지 실패 처리 필요 (게임 매니저 시스템 미구현)");
@@ -226,6 +263,24 @@ public class BulletController : MonoBehaviour
         }
 
         BulletHitResult result = DetermineHitResult(targetType);
+
+        // 파괴 가능한 장애물(나무/바위) 처리
+        var destructible = obstacle.GetComponent<DestructibleObstacle>();
+        if (destructible != null)
+        {
+            var explosiveEffect = Data.GetEffect<ExplosiveEffectSO>();
+            if (explosiveEffect != null)
+            {
+                if (explosiveEffect.canDestroyRock)
+                {
+                    destructible.ApplyExplosionDamage(explosiveEffect.explosionDamage);
+                }
+            }
+            else
+            {
+                destructible.ApplyBulletHit();
+            }
+        }
 
         foreach (var effect in Data.effects)
         {
@@ -236,7 +291,6 @@ public class BulletController : MonoBehaviour
         {
             case BulletHitResult.Penetrate:
                 Debug.Log($"[BulletController] {targetType} 관통 (철갑탄)");
-                // 관통이므로 소멸/반사 없이 그대로 진행.
                 break;
 
             case BulletHitResult.Bounce:
@@ -312,7 +366,7 @@ public class BulletController : MonoBehaviour
         Debug.Log($"[BulletController] 벽 튕김 ({_bounceCount}/{Data.maxBounceCount})");
     }
 
-    private void Die()
+private void Die()
     {
         if (_isDead) return;
         _isDead = true;
@@ -324,7 +378,7 @@ public class BulletController : MonoBehaviour
 
         if (Data.destroyVfxPrefab != null)
         {
-            Debug.Log("[BulletController] 소멸 VFX 스폰 필요: " + Data.destroyVfxPrefab.name);
+            Instantiate(Data.destroyVfxPrefab, transform.position, Quaternion.identity);
         }
 
         Destroy(gameObject);

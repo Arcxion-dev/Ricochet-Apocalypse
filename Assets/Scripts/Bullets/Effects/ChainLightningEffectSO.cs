@@ -16,8 +16,42 @@ public class ChainLightningEffectSO : BulletEffectSO
     [Range(0f, 1f)]
     public float damageFalloffPerChain = 0.8f;
 
-    public override void OnHitEnemy(BulletController bullet, Collider2D enemy)
+public override void OnHitEnemy(BulletController bullet, Collider2D enemy)
     {
-        Debug.Log($"[전력탄] {enemy.name} 시작으로 체인 최대 {maxChainCount}회, 탐색반경 {chainSearchRadius}, 감쇠율 {damageFalloffPerChain} (적 시스템 미구현 - 실제 체인 탐색/전이 로직 필요)");
+        var visited = new System.Collections.Generic.HashSet<Collider2D> { enemy };
+        Collider2D current = enemy;
+        float currentDamage = bullet.Data.damage;
+        int chainCount = 0;
+
+        Debug.Log($"[전력탄] {enemy.name} 시작으로 체인 발동");
+
+        while (chainCount < maxChainCount)
+        {
+            var hits = Physics2D.OverlapCircleAll(current.transform.position, chainSearchRadius, bullet.EnemyLayerMask);
+            Collider2D next = null;
+            float nearestDist = float.MaxValue;
+
+            foreach (var hit in hits)
+            {
+                if (visited.Contains(hit)) continue;
+                float d = Vector2.Distance(current.transform.position, hit.transform.position);
+                if (d < nearestDist)
+                {
+                    nearestDist = d;
+                    next = hit;
+                }
+            }
+
+            if (next == null) break;
+
+            currentDamage *= damageFalloffPerChain;
+            BulletDamageDispatcher.ApplyDamage(next, currentDamage, $"전력탄 체인 {chainCount + 1}");
+
+            visited.Add(next);
+            current = next;
+            chainCount++;
+        }
+
+        Debug.Log($"[전력탄] 체인 {chainCount}회 전이 완료");
     }
 }

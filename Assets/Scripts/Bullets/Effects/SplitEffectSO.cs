@@ -23,27 +23,58 @@ public class SplitEffectSO : BulletEffectSO
     [Tooltip("OnTimer 트리거 사용 시 분열까지 걸리는 시간(초)")]
     public float timerDuration = 1f;
 
-    public override void OnHitEnemy(BulletController bullet, Collider2D enemy)
+public override void OnHitEnemy(BulletController bullet, Collider2D enemy)
     {
+        if (bullet.IsSplitChild) return; // 무한 분열 방지
         if ((trigger & SplitTrigger.OnEnemyHit) != 0)
         {
-            Debug.Log($"[분열탄] 적 적중으로 분열 트리거 - {splitCount}발, 퍼짐각 {spreadAngle}도 (실제 스폰 로직 필요, 적 시스템 미구현)");
+            DoSplit(bullet, bullet.Direction);
         }
     }
 
-    public override void OnHitObstacle(BulletController bullet, Collider2D obstacle, BulletTargetType targetType)
+public override void OnHitObstacle(BulletController bullet, Collider2D obstacle, BulletTargetType targetType)
     {
+        if (bullet.IsSplitChild) return;
         if ((trigger & SplitTrigger.OnWallBounce) != 0)
         {
-            Debug.Log($"[분열탄] 벽 튕김({targetType})으로 분열 트리거 - {splitCount}발, 퍼짐각 {spreadAngle}도 (실제 스폰 로직 필요)");
+            DoSplit(bullet, bullet.Direction);
         }
     }
 
-    public override void OnInit(BulletController bullet)
+public override void OnInit(BulletController bullet)
     {
+        if (bullet.IsSplitChild) return;
         if ((trigger & SplitTrigger.OnTimer) != 0)
         {
-            Debug.Log($"[분열탄] 타이머 분열 예약됨 - {timerDuration}초 후 (실제 코루틴/스케줄링 필요)");
+            bullet.StartCoroutine(TimerSplitRoutine(bullet));
+        }
+    }
+
+
+private System.Collections.IEnumerator TimerSplitRoutine(BulletController bullet)
+    {
+        yield return new WaitForSeconds(timerDuration);
+        if (bullet != null)
+        {
+            DoSplit(bullet, bullet.Direction);
+        }
+    }
+
+    private void DoSplit(BulletController bullet, Vector2 baseDirection)
+    {
+        Debug.Log($"[분열탄] 분열 발동 - {splitCount}발, 퍼짐각 {spreadAngle}도");
+
+        if (splitCount <= 0) return;
+
+        float baseAngle = Mathf.Atan2(baseDirection.y, baseDirection.x) * Mathf.Rad2Deg;
+        float startAngle = baseAngle - spreadAngle * 0.5f;
+        float step = splitCount > 1 ? spreadAngle / (splitCount - 1) : 0f;
+
+        for (int i = 0; i < splitCount; i++)
+        {
+            float angle = splitCount > 1 ? startAngle + step * i : baseAngle;
+            Vector2 dir = new Vector2(Mathf.Cos(angle * Mathf.Deg2Rad), Mathf.Sin(angle * Mathf.Deg2Rad));
+            bullet.SpawnChildBullet(childBulletSO, dir);
         }
     }
 }
