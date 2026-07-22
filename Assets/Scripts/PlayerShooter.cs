@@ -11,7 +11,15 @@ using UnityEngine;
 ///
 /// 입력은 Legacy Input Manager 기준(Input.mousePosition / Input.GetMouseButtonDown).
 ///
-/// 조준 방향은 LineRenderer 레이저로 항상 표시한다(레이저 사이트). 발사 순간에는
+/// 사격은 "조준 → 호흡 → 격발" 3단계로 진행된다:
+/// 1) 조준(Free): 레이저가 마우스를 따라간다. 좌클릭하면 그 방향으로 조준을 고정한다.
+/// 2) 호흡(Breath): 조준이 고정되고 레이저가 기준 방향을 중심으로 유기적으로 살짝 흔들린다.
+///    이 상태에서 우클릭하면 발사 없이 조준으로 되돌아간다(취소).
+/// 3) 격발(Fire): 호흡 상태에서 다시 좌클릭하면 그 순간의 (흔들린) 방향으로 발사하고
+///    다시 조준(Free)으로 복귀한다.
+///
+/// 조준 방향은 LineRenderer 레이저로 항상 표시한다(레이저 사이트). 상태에 따라 색이 다르고,
+/// 발사 순간에는
 /// 레이저가 잠깐 굵어져 어느 방향으로 쐈는지 눈에 띄게 한다.
 /// </summary>
 [RequireComponent(typeof(LineRenderer))]
@@ -40,6 +48,25 @@ public class PlayerShooter : MonoBehaviour
     [Tooltip("발사 강조가 유지되는 시간(초).")]
     [SerializeField] private float _laserFlashTime = 0.12f;
 
+    [Header("호흡(격발 대기)")]
+    [Tooltip("호흡 중 조준선이 기준 방향에서 벗어나는 최대 각도(도).")]
+    [SerializeField] private float _breathAmplitudeDeg = 2.5f;
+    [Tooltip("호흡 흔들림 속도 배율. 클수록 빠르게 흔들린다.")]
+    [SerializeField] private float _breathSpeed = 1.2f;
+    [Tooltip("호흡(조준 고정) 상태일 때 레이저 색.")]
+    [SerializeField] private Color _breathColor = new Color(1f, 0.85f, 0.1f); // 노랑
+    [Tooltip("체크 시 호흡 중 카메라 팬/줌도 잠근다(화면 완전 고정).")]
+    [SerializeField] private bool _lockCameraDuringBreath = false;
+    [Tooltip("카메라 잠금에 사용할 팬 컨트롤러. 비우면 씬에서 자동으로 찾는다.")]
+    [SerializeField] private CameraPanController _cameraPan;
+
+    /// <summary>조준 단계. Free=마우스 추종, Breath=조준 고정+호흡 흔들림(격발 대기).</summary>
+    private enum AimPhase { Free, Breath }
+    private AimPhase _phase = AimPhase.Free;
+    private Vector2 _lockedDir = Vector2.right; // 호흡 중 흔들림의 기준 방향
+    private float _breathTime;                  // 호흡 누적 시간(속도 배율 반영)
+    private float _breathSeed;                  // Perlin noise 시드(격발마다 달라짐)
+
     private LineRenderer _laser;
     private float _flashTimer;
 
@@ -53,6 +80,7 @@ public class PlayerShooter : MonoBehaviour
     {
         if (_firePoint == null) _firePoint = transform;
         if (_cam == null) _cam = Camera.main;
+        if (_cameraPan == null) _cameraPan = FindObjectOfType<CameraPanController>();
         SetupLaser();
     }
 
@@ -68,13 +96,73 @@ public class PlayerShooter : MonoBehaviour
 
     private void Update()
     {
-        Vector2 dir = GetAimDirection();
-        UpdateLaser(dir);
-
-        if (Input.GetMouseButtonDown(0))
+        if (_phase == AimPhase.Free)
         {
-            TryFire(dir);
+            // 조준: 레이저가 마우스를 따라간다. 좌클릭 시 그 방향으로 조준을 고정(→호흡).
+            Vector2 dir = GetAimDirection();
+            UpdateLaser(dir, _laserColor);
+
+            if (Input.GetMouseButtonDown(0))
+            {
+                EnterBreath(dir);
+            }
         }
+        else // AimPhase.Breath
+        {
+            // 호흡: 조준이 고정되고 기준 방향을 중심으로 흔들린다.
+            Vector2 dir = ComputeBreathDir();
+            UpdateLaser(dir, _breathColor);
+
+            if (Input.GetMouseButtonDown(1))
+            {
+                ExitBreath(); // 우클릭 취소: 발사 없이 조준으로 복귀.
+            }
+            else if (Input.GetMouseButtonDown(0))
+            {
+                // 격발: 그 순간의 (흔들린) 방향으로 발사하고 조준으로 복귀.
+                TryFire(dir);
+                ExitBreath();
+            }
+        }
+    }
+
+    /// <summary>조준을 고정하고 호흡(격발 대기) 상태로 진입한다.</summary>
+    private void EnterBreath(Vector2 baseDir)
+    {
+        _lockedDir = baseDir.sqrMagnitude > 0.0001f ? baseDir.normalized : Vector2.right;
+        _breathTime = 0f;
+        _breathSeed = Random.value * 100f;
+        _phase = AimPhase.Breath;
+
+        if (_lockCameraDuringBreath && _cameraPan != null)
+            _cameraPan.ControlsEnabled = false; // 화면 완전 고정
+    }
+
+    /// <summary>호흡 상태를 벗어나 조준(Free)으로 복귀한다. 취소·격발 공통 경로.</summary>
+    private void ExitBreath()
+    {
+        _phase = AimPhase.Free;
+
+        if (_lockCameraDuringBreath && _cameraPan != null)
+            _cameraPan.ControlsEnabled = true; // 카메라 조작 복원
+    }
+
+    /// <summary>고정된 기준 방향에 유기적 호흡 흔들림을 더한 조준 방향을 계산한다.</summary>
+    private Vector2 ComputeBreathDir()
+    {
+        _breathTime += Time.deltaTime * _breathSpeed;
+        float t = _breathTime;
+
+        // 여러 주파수의 sine에 Perlin noise를 섞어 규칙적이지 않은 저격 호흡 흔들림을 만든다.
+        float sway = Mathf.Sin(t * 1.1f)
+                     + 0.5f * Mathf.Sin(t * 2.7f + 1.3f)
+                     + (Mathf.PerlinNoise(t * 0.8f, _breathSeed) - 0.5f) * 2f;
+        // 세 성분 합의 대략적 최대 크기(1 + 0.5 + 1)로 정규화해 진폭을 각도로 통제.
+        float offsetDeg = (sway / 2.5f) * _breathAmplitudeDeg;
+
+        float baseAngle = Mathf.Atan2(_lockedDir.y, _lockedDir.x);
+        float angle = baseAngle + offsetDeg * Mathf.Deg2Rad;
+        return new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
     }
 
     /// <summary>발사를 시도한다. 인벤토리에 탄환이 없으면 아무것도 하지 않는다.</summary>
@@ -164,14 +252,20 @@ public class PlayerShooter : MonoBehaviour
         _laser.endColor = endColor;
     }
 
-    /// <summary>매 프레임 조준 방향을 따라 레이저 위치/두께를 갱신한다.</summary>
-    private void UpdateLaser(Vector2 dir)
+    /// <summary>매 프레임 조준 방향을 따라 레이저 위치/두께/색을 갱신한다.</summary>
+    private void UpdateLaser(Vector2 dir, Color color)
     {
         if (_laser == null) return;
 
         Vector2 origin = _firePoint != null ? (Vector2)_firePoint.position : (Vector2)transform.position;
         _laser.SetPosition(0, origin);
         _laser.SetPosition(1, origin + dir * _laserLength);
+
+        // 상태에 따라 색을 바꾼다(자유 조준=빨강, 호흡=지정색). 끝으로 갈수록 옅어지는 느낌 유지.
+        _laser.startColor = color;
+        Color endColor = color;
+        endColor.a = 0.15f;
+        _laser.endColor = endColor;
 
         // 발사 순간에는 굵게, 시간이 지나면 평상시 두께로 복귀.
         float width = _laserWidth;

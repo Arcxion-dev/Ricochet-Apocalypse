@@ -31,6 +31,12 @@ public class CameraPanController : MonoBehaviour
 
     private Camera _cam;
 
+    /// <summary>
+    /// false면 이 프레임 팬/줌 입력을 무시한다. 저격 호흡(격발 대기) 중 화면을 완전히
+    /// 고정하고 싶을 때 PlayerShooter가 잠시 꺼준다.
+    /// </summary>
+    public bool ControlsEnabled = true;
+
     private void Awake()
     {
         _cam = GetComponent<Camera>();
@@ -39,6 +45,8 @@ public class CameraPanController : MonoBehaviour
 
     private void Update()
     {
+        if (!ControlsEnabled) return;
+
         HandlePan();
         HandleZoom();
     }
