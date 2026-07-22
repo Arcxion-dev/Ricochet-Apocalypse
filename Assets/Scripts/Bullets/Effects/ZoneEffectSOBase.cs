@@ -26,11 +26,30 @@ public abstract class ZoneEffectSOBase : BulletEffectSO
 
     protected abstract string EffectLabel { get; }
 
-    public override void OnHitEnemy(BulletController bullet, Collider2D enemy)
+public override void OnHitEnemy(BulletController bullet, Collider2D enemy)
     {
         if (bullet.HasTriggeredFirstZoneHit) return; // 최초 1회만 발동
         bullet.HasTriggeredFirstZoneHit = true;
 
-        Debug.Log($"[{EffectLabel}] {enemy.name} 최초 직격 - 위치 {enemy.transform.position} 기준 반경 {zoneRadius} 장판 생성, {zoneDuration}초간 틱당 {zoneTickDamage} 데미지 (적/장판 시스템 미구현 - 실제 스폰 필요)");
+        Vector2 spawnPos = enemy.transform.position;
+        GameObject zoneGO;
+
+        if (zonePrefab != null)
+        {
+            zoneGO = Object.Instantiate(zonePrefab, spawnPos, Quaternion.identity);
+        }
+        else
+        {
+            // 담당자가 아직 장판 프리팹을 만들지 않은 경우를 위한 임시 폴백 (콜라이더만 있는 빈 오브젝트)
+            zoneGO = new GameObject($"{EffectLabel}_ZoneTemp");
+            zoneGO.transform.position = spawnPos;
+            zoneGO.AddComponent<CircleCollider2D>();
+        }
+
+        var zone = zoneGO.GetComponent<DamageZone>();
+        if (zone == null) zone = zoneGO.AddComponent<DamageZone>();
+        zone.Setup(zoneRadius, zoneDuration, zoneTickDamage, bullet.EnemyLayerMask, EffectLabel);
+
+        Debug.Log($"[{EffectLabel}] {enemy.name} 최초 직격 - 위치 {spawnPos} 기준 반경 {zoneRadius} 장판 생성, {zoneDuration}초간 틱당 {zoneTickDamage} 데미지");
     }
 }

@@ -15,11 +15,20 @@ public class HomingEffectSO : BulletEffectSO
     [Tooltip("타겟이 없을 때 자동 탐색을 시도할 반경")]
     public float autoAcquireRadius = 10f;
 
-    public override void OnInit(BulletController bullet)
+public override void OnInit(BulletController bullet)
     {
         if (bullet.Target == null)
         {
-            Debug.Log($"[유도탄] 타겟 미지정 - 반경 {autoAcquireRadius} 내 자동 탐색 필요 (적 시스템 미구현)");
+            var found = FindNearestEnemy(bullet);
+            if (found != null)
+            {
+                bullet.SetTarget(found);
+                Debug.Log($"[유도탄] 자동 탐색 성공 - 타겟 {found.name}");
+            }
+            else
+            {
+                Debug.Log($"[유도탄] 반경 {autoAcquireRadius} 내 타겟 없음 - 직진 유지");
+            }
         }
         else
         {
@@ -41,5 +50,24 @@ public class HomingEffectSO : BulletEffectSO
 
         Vector2 newDir = new Vector2(Mathf.Cos(newAngle * Mathf.Deg2Rad), Mathf.Sin(newAngle * Mathf.Deg2Rad));
         bullet.SetDirection(newDir);
+    }
+
+
+private Transform FindNearestEnemy(BulletController bullet)
+    {
+        var hits = Physics2D.OverlapCircleAll(bullet.transform.position, autoAcquireRadius, bullet.EnemyLayerMask);
+        Transform nearest = null;
+        float nearestDist = float.MaxValue;
+
+        foreach (var hit in hits)
+        {
+            float d = Vector2.Distance(bullet.transform.position, hit.transform.position);
+            if (d < nearestDist)
+            {
+                nearestDist = d;
+                nearest = hit.transform;
+            }
+        }
+        return nearest;
     }
 }

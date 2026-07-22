@@ -13,8 +13,17 @@ public class SuppressionEffectSO : BulletEffectSO
     [Tooltip("이동속도 감소율 (1 = 완전 정지)")]
     public float slowRatio = 1f;
 
-    public override void OnHitEnemy(BulletController bullet, Collider2D enemy)
+public override void OnHitEnemy(BulletController bullet, Collider2D enemy)
     {
-        Debug.Log($"[저지탄] {enemy.name} 이동 저지 {slowRatio * 100}% , {suppressDuration}초간 (적 이동 시스템 미구현 - 실제 적용 필요)");
+        var suppressible = enemy.GetComponent<ISuppressible>();
+        if (suppressible != null)
+        {
+            suppressible.ApplySuppression(suppressDuration, slowRatio);
+            Debug.Log($"[저지탄] {enemy.name} 이동 저지 {slowRatio * 100}%, {suppressDuration}초간 적용됨");
+        }
+        else
+        {
+            Debug.Log($"[저지탄] {enemy.name}에 ISuppressible 구현체 없음 - 이동 저지 미적용 (적 이동 시스템 미구현)");
+        }
     }
 }
