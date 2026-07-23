@@ -17,7 +17,7 @@ public class InventoryUI : MonoBehaviour
 {
     [Header("토글")]
     [SerializeField] private KeyCode _toggleKey = KeyCode.I;
-    [SerializeField] private bool _startVisible = true;
+    [SerializeField] private bool _startVisible = false;
 
     [Header("배치")]
     [SerializeField] private bool _persistAcrossScenes = true;
@@ -25,6 +25,9 @@ public class InventoryUI : MonoBehaviour
     [SerializeField] private float _panelWidth = 360f;
 
     private static InventoryUI _instance;
+
+    /// <summary>인벤토리 패널이 현재 열려(보이는) 있는지. 열려 있으면 사격 입력을 막는 데 쓴다.</summary>
+    public static bool IsOpen => _instance != null && _instance._canvas != null && _instance._canvas.enabled;
 
     private Canvas _canvas;
     private RectTransform _contentRoot;

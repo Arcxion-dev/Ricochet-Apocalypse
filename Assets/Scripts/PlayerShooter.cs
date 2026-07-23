@@ -76,6 +76,36 @@ public class PlayerShooter : MonoBehaviour
             ? InventoryManager.Instance.Inventory.GetTotalCount(ItemCategory.Ammo)
             : 0;
 
+    // ───────────────────────── 탄환 선택(스위칭) ─────────────────────────
+
+    /// <summary>숫자키로 선택 가능한 최대 탄환 종류 수(1~5).</summary>
+    public const int MaxSelectableBullets = 5;
+
+    /// <summary>선택 가능한 한 종류의 탄환(정의 + 보유 수). 같은 종류는 하나로 묶는다.</summary>
+    public readonly struct BulletChoice
+    {
+        public readonly BulletItemDefinition Definition;
+        public readonly int Count;
+        public BulletChoice(BulletItemDefinition definition, int count)
+        {
+            Definition = definition;
+            Count = count;
+        }
+    }
+
+    private readonly List<BulletChoice> _choices = new List<BulletChoice>();
+    private int _selectedIndex;
+    private Inventory _inventory;
+
+    /// <summary>현재 선택된 탄환 슬롯 인덱스(0-based). 숫자키 1이 0번.</summary>
+    public int SelectedIndex => _selectedIndex;
+
+    /// <summary>선택 가능한 탄환 종류 목록(읽기 전용, 최대 <see cref="MaxSelectableBullets"/>종).</summary>
+    public IReadOnlyList<BulletChoice> Choices => _choices;
+
+    /// <summary>선택이 바뀌거나 탄환 목록이 재구성될 때 발생(HUD 갱신용).</summary>
+    public event System.Action SelectionChanged;
+
     private void Awake()
     {
         if (_firePoint == null) _firePoint = transform;
@@ -92,10 +122,25 @@ public class PlayerShooter : MonoBehaviour
         {
             if (bullet != null) InventoryManager.Instance.Add(bullet, 1);
         }
+
+        // 인벤토리 변경을 구독해 선택 가능한 탄환 목록을 항상 최신으로 유지한다.
+        _inventory = InventoryManager.Instance.Inventory;
+        _inventory.Changed += RebuildChoices;
+        RebuildChoices();
+    }
+
+    private void OnDestroy()
+    {
+        if (_inventory != null) _inventory.Changed -= RebuildChoices;
     }
 
     private void Update()
     {
+        HandleBulletSelectionInput();
+
+        // 인벤토리가 열려 있으면 조준-호흡-격발 입력을 받지 않는다(오조준/오발사 방지).
+        if (InventoryUI.IsOpen) return;
+
         if (_phase == AimPhase.Free)
         {
             // 조준: 레이저가 마우스를 따라간다. 좌클릭 시 그 방향으로 조준을 고정(→호흡).
@@ -165,11 +210,88 @@ public class PlayerShooter : MonoBehaviour
         return new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
     }
 
+    // ───────────────────────── 탄환 선택 입력/목록 ─────────────────────────
+
+    /// <summary>숫자키 1~5로 발사할 탄환 종류를 선택한다.</summary>
+    private void HandleBulletSelectionInput()
+    {
+        for (int i = 0; i < MaxSelectableBullets; i++)
+        {
+            if (Input.GetKeyDown(KeyCode.Alpha1 + i) || Input.GetKeyDown(KeyCode.Keypad1 + i))
+            {
+                SelectBullet(i);
+            }
+        }
+    }
+
+    /// <summary>탄환 슬롯을 선택한다(범위를 벗어나면 무시). HUD에서도 호출 가능.</summary>
+    public void SelectBullet(int index)
+    {
+        if (index < 0 || index >= _choices.Count) return;
+        if (index == _selectedIndex) return;
+
+        _selectedIndex = index;
+        SelectionChanged?.Invoke();
+        Debug.Log($"[PlayerShooter] 탄환 선택 → [{index + 1}] {_choices[index].Definition.ResolvedName}");
+    }
+
+    /// <summary>인벤토리 Ammo 버킷을 종류별로 묶어 선택 목록(최대 5종)을 다시 만든다.</summary>
+    private void RebuildChoices()
+    {
+        _choices.Clear();
+
+        if (_inventory != null)
+        {
+            var entries = _inventory.GetEntries(ItemCategory.Ammo);
+            foreach (var entry in entries)
+            {
+                if (entry.Quantity <= 0) continue;
+                if (!(entry.Definition is BulletItemDefinition bullet)) continue;
+
+                int idx = FindChoiceIndex(bullet);
+                if (idx >= 0)
+                {
+                    // 같은 종류는 수량을 합친다(기본탄 스택 + 동일 id 강화탄).
+                    _choices[idx] = new BulletChoice(_choices[idx].Definition, _choices[idx].Count + entry.Quantity);
+                }
+                else if (_choices.Count < MaxSelectableBullets)
+                {
+                    _choices.Add(new BulletChoice(bullet, entry.Quantity));
+                }
+            }
+        }
+
+        // 선택 인덱스를 유효 범위로 보정.
+        if (_selectedIndex >= _choices.Count) _selectedIndex = Mathf.Max(0, _choices.Count - 1);
+
+        SelectionChanged?.Invoke();
+    }
+
+    /// <summary>선택 목록에서 같은 종류(참조 또는 id 일치)의 인덱스를 찾는다. 없으면 -1.</summary>
+    private int FindChoiceIndex(BulletItemDefinition bullet)
+    {
+        for (int i = 0; i < _choices.Count; i++)
+        {
+            var def = _choices[i].Definition;
+            if (def == bullet) return i;
+            if (def != null && !string.IsNullOrEmpty(def.id) && def.id == bullet.id) return i;
+        }
+        return -1;
+    }
+
+    /// <summary>현재 선택된 탄을 반환한다. 선택 목록이 비어 있으면 기존 규칙으로 폴백.</summary>
+    private BulletItemDefinition ResolveSelectedBullet()
+    {
+        if (_selectedIndex >= 0 && _selectedIndex < _choices.Count)
+            return _choices[_selectedIndex].Definition;
+        return ResolveNextBullet();
+    }
+
     /// <summary>발사를 시도한다. 인벤토리에 탄환이 없으면 아무것도 하지 않는다.</summary>
     private void TryFire(Vector2 dir)
     {
-        // 인벤토리에서 쏠 탄을 고른다(강화탄 우선, 없으면 기본탄).
-        BulletItemDefinition ammo = ResolveNextBullet();
+        // 숫자키로 선택한 탄을 쏜다(선택 목록이 없으면 강화탄 우선 규칙으로 폴백).
+        BulletItemDefinition ammo = ResolveSelectedBullet();
         if (ammo == null)
         {
             Debug.Log("[PlayerShooter] 탄환 없음 - 발사 불가");
