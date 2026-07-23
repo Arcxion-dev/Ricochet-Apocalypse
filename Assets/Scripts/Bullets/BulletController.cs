@@ -257,7 +257,8 @@ private void HandleObstacleHit(Collider2D obstacle, BulletTargetType targetType)
     {
         if (targetType == BulletTargetType.Civilian)
         {
-            Debug.LogWarning("[BulletController] 민간인 피격! 스테이지 실패 처리 필요 (게임 매니저 시스템 미구현)");
+            Debug.LogWarning("[BulletController] 민간인 피격! 스테이지 실패 처리");
+            GameManager.Instance?.OnCivilianHit();
             Die();
             return;
         }

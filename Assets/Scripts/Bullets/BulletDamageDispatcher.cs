@@ -12,9 +12,18 @@ public static class BulletDamageDispatcher
 {
     public static void ApplyDamage(Collider2D enemyCollider, float damage, string sourceLabel)
     {
-        // TODO: Enemy에 public TakeDamage(int amount)가 추가되면 아래 로그 대신 실제 호출로 교체
-        // var enemy = enemyCollider.GetComponent<Enemy>();
-        // enemy?.TakeDamage(Mathf.RoundToInt(damage));
-        Debug.Log($"[BulletDamageDispatcher] ({sourceLabel}) {enemyCollider.name}에게 데미지 {damage} 적용 필요 (Enemy.TakeDamage public API 대기 중)");
+        // Entity.TakeDamage(int) 가 public으로 열려 있어 실제 데미지를 적용한다.
+        // 콜라이더가 자식에 있을 수 있어 부모까지 탐색한다.
+        var entity = enemyCollider.GetComponentInParent<Entity>();
+        if (entity != null)
+        {
+            int amount = Mathf.RoundToInt(damage);
+            entity.TakeDamage(amount);
+            Debug.Log($"[BulletDamageDispatcher] ({sourceLabel}) {enemyCollider.name}에게 데미지 {amount} 적용");
+        }
+        else
+        {
+            Debug.Log($"[BulletDamageDispatcher] ({sourceLabel}) {enemyCollider.name}: Entity가 없어 데미지 미적용");
+        }
     }
 }
