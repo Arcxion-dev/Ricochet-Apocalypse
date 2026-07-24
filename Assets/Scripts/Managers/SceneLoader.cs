@@ -4,8 +4,9 @@ using UnityEngine.SceneManagement;
 /// <summary>
 /// 씬 전환을 담당하는 정적 유틸리티. UnityEngine.SceneManagement.SceneManager를 래핑한다.
 /// - 실제 씬 에셋 이름은 SceneNames 상수로 참조한다 (플레이스홀더 씬, 추후 교체 가능).
-/// - 로그라이크 약 20스테이지는 데이터 주도로 확장 예정. 지금은 모든 스테이지가 동일한
-///   Stage 플레이스홀더 씬을 열고, 진행 인덱스(CurrentStageIndex)만 증가시키는 배관만 둔다.
+/// - 스테이지는 <see cref="SceneNames.Stages"/> 배열에 나열된 개별 씬 파일(Stage1/2/3…)이다.
+///   진행 인덱스(CurrentStageIndex)로 배열에서 씬 이름을 골라 로드하고, 클리어 시 다음 인덱스로
+///   넘어간다. 마지막 스테이지를 넘어서면 Result 씬으로 이동한다.
 ///
 /// 주의: 여기서 부르는 씬 이름들은 Build Settings에 등록되어 있어야 로드된다.
 /// </summary>
@@ -15,13 +16,31 @@ public static class SceneLoader
     public static class SceneNames
     {
         public const string Title = "Title";
-        public const string Stage = "Stage";
         public const string Shop = "Shop";
         public const string Result = "Result";
+
+        /// <summary>
+        /// 스테이지 씬 진행 순서. 인덱스(CurrentStageIndex)가 이 배열을 가리킨다.
+        /// 스테이지를 추가/재정렬하려면 여기에 씬 이름을 넣고 Build Settings에 등록하면 된다.
+        /// </summary>
+        public static readonly string[] Stages = { "Stage1", "Stage2", "Stage3" };
     }
 
     /// <summary>현재 스테이지 진행 인덱스 (0부터).</summary>
     public static int CurrentStageIndex { get; private set; }
+
+    /// <summary>등록된 전체 스테이지 수.</summary>
+    public static int StageCount => SceneNames.Stages.Length;
+
+    /// <summary>주어진 씬 이름이 스테이지 씬(Stage1/2/3…) 중 하나인지 여부.</summary>
+    public static bool IsStageScene(string sceneName)
+    {
+        for (int i = 0; i < SceneNames.Stages.Length; i++)
+        {
+            if (SceneNames.Stages[i] == sceneName) return true;
+        }
+        return false;
+    }
 
     /// <summary>타이틀로 이동하고 진행 인덱스를 초기화한다.</summary>
     public static void LoadTitle()
@@ -30,12 +49,25 @@ public static class SceneLoader
         LoadScene(SceneNames.Title);
     }
 
-    /// <summary>특정 스테이지 인덱스로 이동한다 (현재는 모두 동일한 Stage 씬을 로드).</summary>
+    /// <summary>
+    /// 특정 스테이지 인덱스로 이동한다. 인덱스가 마지막 스테이지를 넘으면
+    /// 모든 스테이지를 클리어한 것으로 보고 Result 씬으로 이동한다.
+    /// </summary>
     public static void LoadStage(int index)
     {
-        CurrentStageIndex = Mathf.Max(0, index);
-        Debug.Log($"[SceneLoader] 스테이지 {CurrentStageIndex} 로드");
-        LoadScene(SceneNames.Stage);
+        if (index < 0) index = 0;
+
+        if (index >= SceneNames.Stages.Length)
+        {
+            Debug.Log($"[SceneLoader] 마지막 스테이지까지 클리어 → 결과 씬으로 이동");
+            LoadResult();
+            return;
+        }
+
+        CurrentStageIndex = index;
+        string sceneName = SceneNames.Stages[CurrentStageIndex];
+        Debug.Log($"[SceneLoader] 스테이지 {CurrentStageIndex} ({sceneName}) 로드");
+        LoadScene(sceneName);
     }
 
     /// <summary>다음 스테이지로 이동한다.</summary>
@@ -47,8 +79,11 @@ public static class SceneLoader
     /// <summary>현재 스테이지를 재시도한다 (실패 시).</summary>
     public static void ReloadStage()
     {
-        Debug.Log($"[SceneLoader] 스테이지 {CurrentStageIndex} 재시도");
-        LoadScene(SceneNames.Stage);
+        string sceneName = CurrentStageIndex < SceneNames.Stages.Length
+            ? SceneNames.Stages[CurrentStageIndex]
+            : SceneNames.Stages[0];
+        Debug.Log($"[SceneLoader] 스테이지 {CurrentStageIndex} ({sceneName}) 재시도");
+        LoadScene(sceneName);
     }
 
     /// <summary>
@@ -65,7 +100,7 @@ public static class SceneLoader
             GameManager.Instance.ResetStageState();
         }
 
-        LoadScene(SceneNames.Stage);
+        ReloadStage();
     }
 
     /// <summary>상점 씬으로 이동한다 (스테이지 클리어 후).</summary>

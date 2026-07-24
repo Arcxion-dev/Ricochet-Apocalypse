@@ -47,6 +47,10 @@ public class EnemyAIModule : MonoBehaviour
 
         SyncSpeed();
 
+        // 스테이지 시작 직후에는 제자리 대기. 플레이어가 첫 발을 쏘고 추격 지연이 끝나야
+        // GameManager.EnemiesCanChase가 켜지고 그때부터 목적지를 갱신(추격)한다.
+        if (GameManager.Instance != null && !GameManager.Instance.EnemiesCanChase) return;
+
         repathTimer -= Time.deltaTime;
         if (repathTimer <= 0f)
         {

@@ -37,6 +37,14 @@ public class CameraPanController : MonoBehaviour
     /// </summary>
     public bool ControlsEnabled = true;
 
+    /// <summary>
+    /// 팬 위치 위에 얹는 외부 흔들림 오프셋(월드). <see cref="ChargeShotEffects"/>가 발사 시
+    /// 매 프레임 세팅하고 끝나면 0으로 되돌린다. 팬 base 위치와 싸우지 않도록 LateUpdate에서
+    /// 이전 프레임에 얹은 오프셋을 빼고 새 오프셋을 더하는 방식으로 반영한다.
+    /// </summary>
+    public Vector3 ExternalShakeOffset { get; set; }
+    private Vector3 _appliedShake;
+
     private void Awake()
     {
         _cam = GetComponent<Camera>();
@@ -49,6 +57,16 @@ public class CameraPanController : MonoBehaviour
 
         HandlePan();
         HandleZoom();
+    }
+
+    private void LateUpdate()
+    {
+        // 흔들림은 ControlsEnabled와 무관하게 항상 반영한다(발사 순간엔 조준 고정 중일 수 있음).
+        if (ExternalShakeOffset != _appliedShake)
+        {
+            transform.position += ExternalShakeOffset - _appliedShake;
+            _appliedShake = ExternalShakeOffset;
+        }
     }
 
     private void HandlePan()

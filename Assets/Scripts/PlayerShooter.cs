@@ -60,6 +60,10 @@ public class PlayerShooter : MonoBehaviour
     [Tooltip("카메라 잠금에 사용할 팬 컨트롤러. 비우면 씬에서 자동으로 찾는다.")]
     [SerializeField] private CameraPanController _cameraPan;
 
+    [Header("차징 사격 연출")]
+    [Tooltip("조준 고정/발사/취소 시 슬로우모션·확대·PP·흔들림 연출을 담당. 비우면 자동으로 찾는다.")]
+    [SerializeField] private ChargeShotEffects _effects;
+
     /// <summary>조준 단계. Free=마우스 추종, Breath=조준 고정+호흡 흔들림(격발 대기).</summary>
     private enum AimPhase { Free, Breath }
     private AimPhase _phase = AimPhase.Free;
@@ -111,6 +115,8 @@ public class PlayerShooter : MonoBehaviour
         if (_firePoint == null) _firePoint = transform;
         if (_cam == null) _cam = Camera.main;
         if (_cameraPan == null) _cameraPan = FindObjectOfType<CameraPanController>();
+        if (_effects == null) _effects = GetComponent<ChargeShotEffects>();
+        if (_effects == null) _effects = FindObjectOfType<ChargeShotEffects>();
         SetupLaser();
     }
 
@@ -160,13 +166,17 @@ public class PlayerShooter : MonoBehaviour
 
             if (Input.GetMouseButtonDown(1))
             {
-                ExitBreath(); // 우클릭 취소: 발사 없이 조준으로 복귀.
+                ExitBreath();     // 우클릭 취소: 발사 없이 조준으로 복귀.
+                _effects?.Cancel(); // 연출 원상 복귀(흔들림/오버슈트 없음).
             }
             else if (Input.GetMouseButtonDown(0))
             {
                 // 격발: 그 순간의 (흔들린) 방향으로 발사하고 조준으로 복귀.
-                TryFire(dir);
+                bool fired = TryFire(dir);
                 ExitBreath();
+                // 실제 발사됐으면 발사 연출(흔들림+오버슈트 복귀), 아니면(탄 없음) 그냥 복귀.
+                if (fired) _effects?.Fire();
+                else _effects?.Cancel();
             }
         }
     }
@@ -179,8 +189,12 @@ public class PlayerShooter : MonoBehaviour
         _breathSeed = Random.value * 100f;
         _phase = AimPhase.Breath;
 
-        if (_lockCameraDuringBreath && _cameraPan != null)
+        // 연출(확대)이 카메라 줌과 싸우지 않도록, 연출이 있으면 호흡 중 팬/줌을 잠근다.
+        if ((_lockCameraDuringBreath || _effects != null) && _cameraPan != null)
             _cameraPan.ControlsEnabled = false; // 화면 완전 고정
+
+        // 차징 연출 시작: 슬로우모션·확대·PP 상승. (조준선 흔들림은 ComputeBreathDir가 담당)
+        _effects?.BeginCharge();
     }
 
     /// <summary>호흡 상태를 벗어나 조준(Free)으로 복귀한다. 취소·격발 공통 경로.</summary>
@@ -188,7 +202,7 @@ public class PlayerShooter : MonoBehaviour
     {
         _phase = AimPhase.Free;
 
-        if (_lockCameraDuringBreath && _cameraPan != null)
+        if ((_lockCameraDuringBreath || _effects != null) && _cameraPan != null)
             _cameraPan.ControlsEnabled = true; // 카메라 조작 복원
     }
 
@@ -287,22 +301,22 @@ public class PlayerShooter : MonoBehaviour
         return ResolveNextBullet();
     }
 
-    /// <summary>발사를 시도한다. 인벤토리에 탄환이 없으면 아무것도 하지 않는다.</summary>
-    private void TryFire(Vector2 dir)
+    /// <summary>발사를 시도한다. 인벤토리에 탄환이 없으면 아무것도 하지 않는다. 실제 발사했으면 true.</summary>
+    private bool TryFire(Vector2 dir)
     {
         // 숫자키로 선택한 탄을 쏜다(선택 목록이 없으면 강화탄 우선 규칙으로 폴백).
         BulletItemDefinition ammo = ResolveSelectedBullet();
         if (ammo == null)
         {
             Debug.Log("[PlayerShooter] 탄환 없음 - 발사 불가");
-            return;
+            return false;
         }
 
         BulletSO data = ammo.bulletData;
         if (data == null)
         {
             Debug.LogWarning($"[PlayerShooter] '{ammo.ResolvedName}' 에 BulletSO(bulletData)가 연결되지 않아 발사할 수 없습니다.");
-            return;
+            return false;
         }
 
         _flashTimer = _laserFlashTime; // 발사 방향 강조
@@ -314,6 +328,7 @@ public class PlayerShooter : MonoBehaviour
         InventoryManager.Instance.Remove(ammo, 1);
 
         Debug.Log($"[PlayerShooter] 발사! {ammo.ResolvedName}({data.name}) 방향={dir}, 남은 탄환={RemainingAmmo}");
+        return true;
     }
 
     /// <summary>인벤토리 Ammo 버킷에서 다음에 쏠 탄을 고른다(강화탄 우선, 없으면 기본탄).</summary>
