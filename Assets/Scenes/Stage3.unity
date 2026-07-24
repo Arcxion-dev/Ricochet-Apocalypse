@@ -1906,11 +1906,20 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 7b06da7f08473524ab88281e57816706, type: 2}
   - {fileID: 11400000, guid: 5c1b2fc3df245284ba2a7897b7125f8f, type: 2}
   - {fileID: 11400000, guid: 1be1d78068529d54d95ab1f575d86789, type: 2}
-  _laserLength: 20
   _laserColor: {r: 1, g: 0, b: 0, a: 1}
   _laserWidth: 0.05
   _laserFireWidth: 0.15
   _laserFlashTime: 0.12
+  _guidelineMaxRange: 14
+  _wallLayerMask:
+    serializedVersion: 2
+    m_Bits: 0
+  _guidelineRadius: 0.1
+  _equippedParts:
+  - {fileID: 11400000, guid: 570539617c68ce94da61359359d801fc, type: 2}
+  - {fileID: 11400000, guid: 9642ba4e055325c49b2046644d440ec1, type: 2}
+  - {fileID: 11400000, guid: a9ffe8026af316d438dde4e893bfc7ef, type: 2}
+  - {fileID: 11400000, guid: e09bfcdc5c4731c498f65ac5a13acce6, type: 2}
   _breathAmplitudeDeg: 2.5
   _breathSpeed: 1.2
   _breathColor: {r: 1, g: 0.85, b: 0.1, a: 1}

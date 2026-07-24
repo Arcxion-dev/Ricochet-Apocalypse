@@ -65,6 +65,9 @@ public class ChargeShotEffects : MonoBehaviour
     private Bloom _bloom;
     private Vignette _vignette;
 
+    /// <summary>무기 파츠(네뷸라이저)가 거는 슬로우 강화 배율. 1=기본, 작을수록 더 느리게.</summary>
+    private float _slowScaleMultiplier = 1f;
+
     private float _baseFixedDelta;
     private float _baseOrthoSize;
     private bool _baseOrthoCaptured;
@@ -115,6 +118,18 @@ public class ChargeShotEffects : MonoBehaviour
 
     // ───────────────────────── 공개 API ─────────────────────────
 
+    /// <summary>
+    /// 무기 파츠(네뷸라이저)가 차징 슬로우를 강화/완화하는 배율을 설정한다.
+    /// 목표 타임스케일에 곱해지며, 값이 작을수록 더 느려진다. 다음 <see cref="BeginCharge"/>부터 반영된다.
+    /// </summary>
+    public void SetSlowScaleMultiplier(float multiplier)
+    {
+        _slowScaleMultiplier = Mathf.Clamp(multiplier, 0.05f, 4f);
+    }
+
+    /// <summary>파츠 배율까지 반영한 실제 차징 목표 타임스케일(0~1로 클램프).</summary>
+    private float EffectiveSlowScale => Mathf.Clamp(_slowScale * _slowScaleMultiplier, 0.02f, 1f);
+
     /// <summary>조준 고정(호흡) 진입: 슬로우모션·확대·PP 상승.</summary>
     public void BeginCharge()
     {
@@ -135,6 +150,19 @@ public class ChargeShotEffects : MonoBehaviour
         StartState(RampRestore());
     }
 
+    /// <summary>
+    /// 연출을 즉시(애니메이션 없이) 중단하고 타임스케일/화면/PP를 기본값으로 되돌린다.
+    /// UI 정지(타임스케일 0) 진입 등, 진행 중인 슬로우 코루틴이 타임스케일을 되돌려 놓으면
+    /// 안 되는 상황에서 호출한다.
+    /// </summary>
+    public void ForceStop()
+    {
+        if (_stateRoutine != null) { StopCoroutine(_stateRoutine); _stateRoutine = null; }
+        if (_shakeRoutine != null) { StopCoroutine(_shakeRoutine); _shakeRoutine = null; }
+        SetShakeOffset(Vector3.zero);
+        FinalizeToNormal();
+    }
+
     // ───────────────────────── 상태 전이 코루틴 ─────────────────────────
 
     private void StartState(IEnumerator routine)
@@ -146,7 +174,7 @@ public class ChargeShotEffects : MonoBehaviour
     private IEnumerator RampCharge()
     {
         float targetOrtho = _baseOrthoSize - _zoomDelta;
-        yield return LerpTo(_rampInTime, _slowScale, targetOrtho, _bloomTarget, _vignetteTarget);
+        yield return LerpTo(_rampInTime, EffectiveSlowScale, targetOrtho, _bloomTarget, _vignetteTarget);
         _stateRoutine = null;
     }
 

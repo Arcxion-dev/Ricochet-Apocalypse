@@ -38,8 +38,6 @@ public class PlayerShooter : MonoBehaviour
     [SerializeField] private List<BulletItemDefinition> _startingBullets = new List<BulletItemDefinition>();
 
     [Header("조준 레이저")]
-    [Tooltip("레이저 길이 (월드 유닛).")]
-    [SerializeField] private float _laserLength = 20f;
     [SerializeField] private Color _laserColor = Color.red;
     [Tooltip("평상시 레이저 두께.")]
     [SerializeField] private float _laserWidth = 0.05f;
@@ -47,6 +45,18 @@ public class PlayerShooter : MonoBehaviour
     [SerializeField] private float _laserFireWidth = 0.15f;
     [Tooltip("발사 강조가 유지되는 시간(초).")]
     [SerializeField] private float _laserFlashTime = 0.12f;
+
+    [Header("조준 가이드라인")]
+    [Tooltip("가이드라인 사정거리 상한(월드 유닛). 파츠 사정거리를 합산한 뒤 이 값으로 캡한다.")]
+    [SerializeField] private float _guidelineMaxRange = 14f;
+    [Tooltip("반사 궤적 예측에 쓸 벽 레이어. 비워두면 탄환 프리팹의 WallLayerMask를 자동으로 가져온다.")]
+    [SerializeField] private LayerMask _wallLayerMask;
+    [Tooltip("반사 예측 CircleCast 반지름(작을수록 얇은 틈도 통과 예측).")]
+    [SerializeField] private float _guidelineRadius = 0.1f;
+
+    [Header("무기 파츠")]
+    [Tooltip("장착된 무기 파츠 목록(손잡이/네뷸라이저/레이저/조준경). 인스펙터에서 끼우고 뺀다. 레이저·조준경이 없으면 가이드라인은 표시되지 않는다.")]
+    [SerializeField] private List<WeaponPartSO> _equippedParts = new List<WeaponPartSO>();
 
     [Header("호흡(격발 대기)")]
     [Tooltip("호흡 중 조준선이 기준 방향에서 벗어나는 최대 각도(도).")]
@@ -73,6 +83,15 @@ public class PlayerShooter : MonoBehaviour
 
     private LineRenderer _laser;
     private float _flashTimer;
+
+    /// <summary>장착 파츠를 집계한 조준/사격 스탯. <see cref="RecomputeParts"/>로 갱신.</summary>
+    private WeaponStats _stats = WeaponStats.Default;
+    /// <summary>가이드라인(반사 궤적) 점들을 매 프레임 재사용하는 버퍼.</summary>
+    private readonly List<Vector3> _guidePoints = new List<Vector3>();
+    /// <summary>UI(O키)로 비활성화한 파츠. 장착 리스트엔 남되 집계에서만 제외한다.</summary>
+    private readonly HashSet<WeaponPartSO> _disabledParts = new HashSet<WeaponPartSO>();
+    /// <summary>인벤토리/파츠 UI로 게임이 정지(타임스케일 0)된 상태인지.</summary>
+    private bool _uiPaused;
 
     /// <summary>현재 발사 가능한 총 탄환 수(인벤토리 Ammo 버킷 합계).</summary>
     public int RemainingAmmo =>
@@ -117,7 +136,37 @@ public class PlayerShooter : MonoBehaviour
         if (_cameraPan == null) _cameraPan = FindObjectOfType<CameraPanController>();
         if (_effects == null) _effects = GetComponent<ChargeShotEffects>();
         if (_effects == null) _effects = FindObjectOfType<ChargeShotEffects>();
+
+        // 가이드라인 반사 예측이 실제 탄환과 같은 벽 레이어를 쓰도록 탄환 프리팹에서 가져온다.
+        if (_wallLayerMask.value == 0 && _bulletPrefab != null)
+            _wallLayerMask = _bulletPrefab.WallLayerMask;
+
+        // 씬 전환 중 UI가 닫힌 채로 타임스케일이 0에 묶여 있으면 풀어준다(정지 상태로 씬이 시작되는 것 방지).
+        if (Time.timeScale == 0f && !InventoryUI.IsOpen && !WeaponPartsUI.IsOpen)
+            Time.timeScale = 1f;
+
         SetupLaser();
+        RecomputeParts();
+    }
+
+    /// <summary>인벤토리/파츠 UI가 열리면 게임을 완전히 멈추고(타임스케일 0), 닫히면 재개한다.</summary>
+    private void UpdateUiPause(bool uiOpen)
+    {
+        if (uiOpen && !_uiPaused)
+        {
+            // 차징(호흡) 중이었다면 연출을 즉시 중단하고 조준 상태를 되돌린 뒤 정지한다.
+            // (ForceStop이 타임스케일을 1로 되돌리므로 그 다음에 0으로 세팅해야 한다.)
+            if (_phase == AimPhase.Breath) ExitBreath();
+            _effects?.ForceStop();
+
+            _uiPaused = true;
+            Time.timeScale = 0f;
+        }
+        else if (!uiOpen && _uiPaused)
+        {
+            _uiPaused = false;
+            Time.timeScale = 1f;
+        }
     }
 
     private void Start()
@@ -144,8 +193,10 @@ public class PlayerShooter : MonoBehaviour
     {
         HandleBulletSelectionInput();
 
-        // 인벤토리가 열려 있으면 조준-호흡-격발 입력을 받지 않는다(오조준/오발사 방지).
-        if (InventoryUI.IsOpen) return;
+        // 인벤토리/파츠 UI가 열려 있으면 게임을 완전히 멈추고(타임스케일 0) 조준·격발 입력을 막는다.
+        bool uiOpen = InventoryUI.IsOpen || WeaponPartsUI.IsOpen;
+        UpdateUiPause(uiOpen);
+        if (uiOpen) return;
 
         if (_phase == AimPhase.Free)
         {
@@ -217,11 +268,63 @@ public class PlayerShooter : MonoBehaviour
                      + 0.5f * Mathf.Sin(t * 2.7f + 1.3f)
                      + (Mathf.PerlinNoise(t * 0.8f, _breathSeed) - 0.5f) * 2f;
         // 세 성분 합의 대략적 최대 크기(1 + 0.5 + 1)로 정규화해 진폭을 각도로 통제.
-        float offsetDeg = (sway / 2.5f) * _breathAmplitudeDeg;
+        // 손잡이 파츠가 있으면 흔들림 진폭을 그만큼 줄인다.
+        float amplitude = _breathAmplitudeDeg * _stats.swayMultiplier;
+        float offsetDeg = (sway / 2.5f) * amplitude;
 
         float baseAngle = Mathf.Atan2(_lockedDir.y, _lockedDir.x);
         float angle = baseAngle + offsetDeg * Mathf.Deg2Rad;
         return new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
+    }
+
+    // ───────────────────────── 무기 파츠 ─────────────────────────
+
+    /// <summary>장착된(그리고 활성인) 파츠들을 집계해 조준/사격 스탯(_stats)을 다시 계산하고 연출에 반영한다.</summary>
+    public void RecomputeParts()
+    {
+        _stats = WeaponStats.Default;
+        foreach (var part in _equippedParts)
+        {
+            if (part != null && !_disabledParts.Contains(part)) part.Contribute(ref _stats);
+        }
+
+        // 네뷸라이저의 슬로우 강화 배율을 차징 연출로 전달.
+        _effects?.SetSlowScaleMultiplier(_stats.slowScaleMultiplier);
+    }
+
+    /// <summary>장착된 파츠 목록(비활성 포함). UI(O키)에서 나열하는 데 쓴다.</summary>
+    public IReadOnlyList<WeaponPartSO> EquippedParts => _equippedParts;
+
+    /// <summary>해당 파츠가 현재 활성(효과 적용) 상태인지.</summary>
+    public bool IsPartActive(WeaponPartSO part) => part != null && !_disabledParts.Contains(part);
+
+    /// <summary>파츠의 활성/비활성을 설정한다(장착 리스트에서 빼지 않고 효과만 켜고 끈다).</summary>
+    public void SetPartActive(WeaponPartSO part, bool active)
+    {
+        if (part == null) return;
+        bool changed = active ? _disabledParts.Remove(part) : _disabledParts.Add(part);
+        if (changed) RecomputeParts();
+    }
+
+    /// <summary>파츠의 활성 상태를 토글한다(O키 UI 버튼용).</summary>
+    public void TogglePart(WeaponPartSO part) => SetPartActive(part, !IsPartActive(part));
+
+    /// <summary>런타임에 파츠를 장착한다(중복 무시). 이후 인벤토리(GunPart) 연동의 진입점.</summary>
+    public void EquipPart(WeaponPartSO part)
+    {
+        if (part == null || _equippedParts.Contains(part)) return;
+        _equippedParts.Add(part);
+        RecomputeParts();
+    }
+
+    /// <summary>런타임에 파츠를 해제한다.</summary>
+    public void UnequipPart(WeaponPartSO part)
+    {
+        if (_equippedParts.Remove(part))
+        {
+            _disabledParts.Remove(part);
+            RecomputeParts();
+        }
     }
 
     // ───────────────────────── 탄환 선택 입력/목록 ─────────────────────────
@@ -389,14 +492,31 @@ public class PlayerShooter : MonoBehaviour
         _laser.endColor = endColor;
     }
 
-    /// <summary>매 프레임 조준 방향을 따라 레이저 위치/두께/색을 갱신한다.</summary>
+    /// <summary>매 프레임 조준 방향을 따라 가이드라인(위치/두께/색)을 갱신한다.</summary>
     private void UpdateLaser(Vector2 dir, Color color)
     {
         if (_laser == null) return;
 
+        // 레이저/조준경 파츠가 하나도 없으면 가이드라인을 숨긴다("레이저도 파츠" 설계).
+        if (!_stats.laserEnabled)
+        {
+            if (_laser.enabled) _laser.enabled = false;
+            return;
+        }
+        if (!_laser.enabled) _laser.enabled = true;
+
         Vector2 origin = _firePoint != null ? (Vector2)_firePoint.position : (Vector2)transform.position;
-        _laser.SetPosition(0, origin);
-        _laser.SetPosition(1, origin + dir * _laserLength);
+
+        // 사정거리 = 레이저 + 조준경(합연산) → 상한(_guidelineMaxRange)으로 캡.
+        // 파츠에 거리 설정이 없으면 상한을 그대로 사용한다.
+        float range = _stats.laserRange + _stats.predictRange;
+        if (range <= 0.01f) range = _guidelineMaxRange;
+        range = Mathf.Min(range, _guidelineMaxRange);
+
+        BuildGuidelinePoints(origin, dir, range, _stats.predictBounces);
+        _laser.positionCount = _guidePoints.Count;
+        for (int i = 0; i < _guidePoints.Count; i++)
+            _laser.SetPosition(i, _guidePoints[i]);
 
         // 상태에 따라 색을 바꾼다(자유 조준=빨강, 호흡=지정색). 끝으로 갈수록 옅어지는 느낌 유지.
         _laser.startColor = color;
@@ -413,6 +533,44 @@ public class PlayerShooter : MonoBehaviour
         }
         _laser.startWidth = width;
         _laser.endWidth = width;
+    }
+
+    /// <summary>
+    /// 조준 방향에서 시작해 벽(<see cref="_wallLayerMask"/>) 반사를 <paramref name="maxBounces"/>회까지
+    /// 예측하며, 총 이동 거리가 <paramref name="maxRange"/>를 넘지 않는 꺾인 경로 점들을 만든다.
+    /// 실제 탄환(BulletController)과 같은 CircleCast + Vector2.Reflect 규칙을 사용한다.
+    /// maxBounces가 0이면 첫 벽에서 멈추는 단순 직선 가이드가 된다.
+    /// 결과는 재사용 버퍼 <see cref="_guidePoints"/>에 채운다.
+    /// </summary>
+    private void BuildGuidelinePoints(Vector2 origin, Vector2 dir, float maxRange, int maxBounces)
+    {
+        _guidePoints.Clear();
+        _guidePoints.Add(origin);
+
+        Vector2 pos = origin;
+        Vector2 d = dir.sqrMagnitude > 0.0001f ? dir.normalized : Vector2.right;
+        float remaining = maxRange;
+        int bounces = 0;
+
+        while (remaining > 0.001f)
+        {
+            RaycastHit2D hit = Physics2D.CircleCast(pos, _guidelineRadius, d, remaining, _wallLayerMask);
+            if (hit.collider == null)
+            {
+                _guidePoints.Add(pos + d * remaining); // 벽 없음 → 남은 사거리만큼 직진.
+                break;
+            }
+
+            Vector2 hitPos = pos + d * hit.distance;
+            _guidePoints.Add(hitPos);
+            remaining -= hit.distance;
+
+            if (bounces >= maxBounces) break; // 반사 예산 소진 → 벽에서 멈춤.
+
+            d = Vector2.Reflect(d, hit.normal).normalized;
+            pos = hitPos + d * 0.02f; // 방금 맞은 벽을 즉시 재감지하지 않도록 살짝 띄운다.
+            bounces++;
+        }
     }
 
     /// <summary>총알 프리팹을 스폰하고 BulletSO로 초기화해 실제로 발사한다.</summary>
