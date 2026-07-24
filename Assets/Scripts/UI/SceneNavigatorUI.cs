@@ -150,7 +150,7 @@ public class SceneNavigatorUI : MonoBehaviour
         {
             AddButton("스테이지 시작", () => SceneLoader.LoadStage(0));
         }
-        else if (sceneName == SceneLoader.SceneNames.Stage)
+        else if (SceneLoader.IsStageScene(sceneName))
         {
             AddButton("스테이지 초기화", () => SceneLoader.ResetStage());
             AddButton("다음 스테이지", () => SceneLoader.LoadNextStage());

@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -27,6 +28,14 @@ public class GameManager : MonoBehaviour
     [SerializeField] private int _rewardPerKill = 10;
     [SerializeField] private int _rewardPerCombo = 25;
     [SerializeField] private int _perfectBonus = 200;
+
+    [Header("적 추격 지연")]
+    [Tooltip("스테이지 시작 후 적은 제자리에 멈춰 있다가, 플레이어가 첫 발을 쏘면 이 시간(초) 뒤에 추격을 시작한다.")]
+    [SerializeField] private float _enemyChaseDelay = 1f;
+
+    /// <summary>true가 되면 적(EnemyAIModule)이 추격(SetDestination)을 시작한다. 스테이지 시작 시 false.</summary>
+    public bool EnemiesCanChase { get; private set; }
+    private Coroutine _chaseArmRoutine;
 
     // 살아있는 적 집합. Enemy가 등록/해제한다.
     private readonly HashSet<Enemy> _aliveEnemies = new HashSet<Enemy>();
@@ -82,6 +91,14 @@ public class GameManager : MonoBehaviour
         _bestCombo = 0;
         _totalKills = 0;
         _stageEnded = false;
+
+        // 새 스테이지는 "발사 전 정지" 상태로 시작한다(첫 발 전까지 적은 추격하지 않음).
+        EnemiesCanChase = false;
+        if (_chaseArmRoutine != null)
+        {
+            StopCoroutine(_chaseArmRoutine);
+            _chaseArmRoutine = null;
+        }
     }
 
     // ───────────────────────── 적 추적 (등록 방식) ─────────────────────────
@@ -121,6 +138,22 @@ public class GameManager : MonoBehaviour
         _shotsFired++;
         _currentBulletKills = 0;
         Debug.Log($"[GameManager] 발사 등록 (누적 발사={_shotsFired})");
+
+        // 첫 발을 쏘는 순간 추격 무장 타이머를 건다. 지연 후 적이 추격을 시작한다.
+        if (!EnemiesCanChase && _chaseArmRoutine == null)
+        {
+            _chaseArmRoutine = StartCoroutine(ArmChaseAfterDelay());
+        }
+    }
+
+    /// <summary>플레이어 첫 발 이후 <see cref="_enemyChaseDelay"/>초가 지나면 적 추격을 허용한다.</summary>
+    private IEnumerator ArmChaseAfterDelay()
+    {
+        // 발사 직후 슬로우모션 연출 구간에도 "N초"가 체감상 일정하도록 실시간 대기를 쓴다.
+        yield return new WaitForSecondsRealtime(_enemyChaseDelay);
+        EnemiesCanChase = true;
+        _chaseArmRoutine = null;
+        Debug.Log($"[GameManager] 적 추격 시작 (지연 {_enemyChaseDelay}s 경과)");
     }
 
     /// <summary>
