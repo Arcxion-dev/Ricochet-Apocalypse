@@ -264,6 +264,7 @@ public BulletController SpawnChildBullet(BulletSO childData, Vector2 direction)
 private void HandleEnemyHit(Collider2D enemy)
     {
         bool hasArmorPiercing = Data.HasEffect<ArmorPiercingEffectSO>();
+        EffectHandler.Instance.Play(EffectHandler.Instance.hitName[Random.Range(0, EffectHandler.Instance.hitName.Count)], transform.position);
 
         float finalDamage = Data.damage;
         if (hasArmorPiercing)
@@ -292,6 +293,8 @@ private void HandleEnemyHit(Collider2D enemy)
 
 private void HandleObstacleHit(Collider2D obstacle, BulletTargetType targetType, Vector2 normal, Vector2 contactPoint)
     {
+
+
         if (targetType == BulletTargetType.Civilian)
         {
             Debug.LogWarning("[BulletController] 민간인 피격! 스테이지 실패 처리");
@@ -302,6 +305,10 @@ private void HandleObstacleHit(Collider2D obstacle, BulletTargetType targetType,
 
         BulletHitResult result = DetermineHitResult(targetType);
 
+        EffectHandler.Instance.Play(EffectHandler.Instance.bounceName[Random.Range(0, EffectHandler.Instance.bounceName.Count)], transform.position);
+        // 파괴 가능한 장애물(나무/바위) 처리
+        var destructible = obstacle.GetComponent<DestructibleObstacle>();
+        if (destructible != null)
         // 관통형(총알이 통과하는) 벽은 스윕이 매 프레임 같은 벽을 다시 감지하므로,
         // 파괴/효과 훅은 "그 벽에 처음 닿았을 때" 1회만 실행한다(원래 트리거 1회 동작과 동일).
         bool isNewContact = obstacle != _lastPenetratedWall;
@@ -311,6 +318,8 @@ private void HandleObstacleHit(Collider2D obstacle, BulletTargetType targetType,
             var destructible = obstacle.GetComponent<DestructibleObstacle>();
             if (destructible != null)
             {
+                EffectHandler.Instance.Play(EffectHandler.Instance.explosionName[Random.Range(0, EffectHandler.Instance.explosionName.Count)], transform.position);
+                if (explosiveEffect.canDestroyRock)
                 var explosiveEffect = Data.GetEffect<ExplosiveEffectSO>();
                 if (explosiveEffect != null)
                 {

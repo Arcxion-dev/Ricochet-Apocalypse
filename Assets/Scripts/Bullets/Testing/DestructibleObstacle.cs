@@ -51,6 +51,8 @@ public class DestructibleObstacle : MonoBehaviour
         health -= Mathf.RoundToInt(damage);
         Debug.Log($"[DestructibleObstacle] {name} 폭발 피해 {damage}, 남은 체력: {health}");
 
+        EffectHandler.Instance.Play(EffectHandler.Instance.hitName[Random.Range(0, EffectHandler.Instance.hitName.Count)], transform.position);
+
         if (health <= 0) DestroyObstacle();
     }
 
