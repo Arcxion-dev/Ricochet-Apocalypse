@@ -38,7 +38,7 @@ private bool rebuildQueued;
     /// 바로 오브젝트를 생성하지 않고, 에디터에서는 delayCall로 안전한 시점까지 미룹니다.
     /// (그렇지 않으면 "SendMessage cannot be called during Awake..." 경고가 발생합니다)
     /// </summary>
-    private void QueueRebuild()
+private void QueueRebuild()
     {
         if (rebuildQueued) return;
         rebuildQueued = true;
@@ -54,8 +54,16 @@ private bool rebuildQueued;
             return;
         }
 #endif
-        rebuildQueued = false;
-        Rebuild();
+        // 플레이 모드에서는 Awake 단계와 겹치지 않도록 Start()까지 미룬다.
+    }
+
+    private void Start()
+    {
+        if (Application.isPlaying && rebuildQueued)
+        {
+            rebuildQueued = false;
+            Rebuild();
+        }
     }
 
 
