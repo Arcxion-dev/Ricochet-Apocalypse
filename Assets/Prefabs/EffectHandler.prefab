@@ -1,0 +1,121 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &650883841170164972
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3536114110021878067}
+  - component: {fileID: 1108067650576978564}
+  m_Layer: 0
+  m_Name: EffectHandler
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3536114110021878067
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 650883841170164972}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1108067650576978564
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 650883841170164972}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ed54591890e893d44ba194119bd759a1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EffectHandler
+  effectEntries:
+  - effectName: Bounce1
+    prefab: {fileID: 5571514534100186453, guid: 19513c8df6f3bbb45aa0e49678ce4ed7, type: 3}
+    poolSize: 20
+    allowGrow: 0
+  - effectName: Bounce2
+    prefab: {fileID: 7013652826446646038, guid: c67ee42bbc0cfa74eb9a33c06b1e0817, type: 3}
+    poolSize: 20
+    allowGrow: 0
+  - effectName: Bounce3
+    prefab: {fileID: 8933958219655375804, guid: a6c451d2f6c443947b853e05c766045b, type: 3}
+    poolSize: 20
+    allowGrow: 0
+  - effectName: Bounce4
+    prefab: {fileID: 3209977640644679093, guid: 081104fcbd357f14d882d338986e13dc, type: 3}
+    poolSize: 20
+    allowGrow: 0
+  - effectName: Bounce5
+    prefab: {fileID: 1837101913610358112, guid: e3ac3a05bbe914246a85b83ecebffcde, type: 3}
+    poolSize: 20
+    allowGrow: 0
+  - effectName: Bounce6
+    prefab: {fileID: 9023658459089788801, guid: 3a075a823a0ad66498bdede2328a7e1d, type: 3}
+    poolSize: 20
+    allowGrow: 0
+  - effectName: Explosion1
+    prefab: {fileID: 1290629233841001983, guid: 56ad1db50859c5b4c8794689eeb07eb7, type: 3}
+    poolSize: 5
+    allowGrow: 0
+  - effectName: Explosion2
+    prefab: {fileID: 5413453866758744875, guid: 4c8b09c003c53fd4d861de3a77b02c70, type: 3}
+    poolSize: 5
+    allowGrow: 0
+  - effectName: Explosion3
+    prefab: {fileID: 2094986851321340624, guid: 46bea205324bfbb499f37f93df8b6601, type: 3}
+    poolSize: 5
+    allowGrow: 0
+  - effectName: Explosion4
+    prefab: {fileID: 3693944464878566351, guid: 2ec548b0c5fe1f6489b0a1c991fef45b, type: 3}
+    poolSize: 5
+    allowGrow: 0
+  - effectName: Hit1
+    prefab: {fileID: 2816757893574457339, guid: 0125d2898f458e849a4ac0187fea9aec, type: 3}
+    poolSize: 10
+    allowGrow: 0
+  - effectName: Hit2
+    prefab: {fileID: 4565916214703353192, guid: 969f1013ad7289f4f894dd7b6b6827ba, type: 3}
+    poolSize: 10
+    allowGrow: 0
+  - effectName: Hit3
+    prefab: {fileID: 3282938336618295545, guid: c6b5b52bf514d15498e85fe0cb4746bb, type: 3}
+    poolSize: 10
+    allowGrow: 0
+  - effectName: Hit4
+    prefab: {fileID: 8384912026208084613, guid: 91ebebaadcb336044b5a3b2f153a2154, type: 3}
+    poolSize: 10
+    allowGrow: 0
+  poolRoot: {fileID: 3536114110021878067}
+  hitName:
+  - Hit1
+  - Hit2
+  - Hit3
+  - Hit4
+  bounceName:
+  - Bounce1
+  - Bounce2
+  - Bounce3
+  - Bounce4
+  - Bounce5
+  - Bounce6
+  explosionName:
+  - Explosion1
+  - Explosion2
+  - Explosion3
+  - Explosion4

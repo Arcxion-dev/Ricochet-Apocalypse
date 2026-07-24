@@ -261,10 +261,31 @@ public BulletController SpawnChildBullet(BulletSO childData, Vector2 direction)
         }
     }
 
+    /// <summary>EffectHandler 이펙트 카테고리(피격/튕김/폭발).</summary>
+    private enum EffectKind { Hit, Bounce, Explosion }
+
+    /// <summary>
+    /// EffectHandler가 씬에 있으면 해당 카테고리의 무작위 이펙트를 현재 위치에 재생한다.
+    /// EffectHandler가 없거나 목록이 비어 있으면 조용히 무시(씬에 EffectHandler가 없어도 안전).
+    /// </summary>
+    private void PlayHitEffect(EffectKind kind)
+    {
+        var handler = EffectHandler.Instance;
+        if (handler == null) return;
+
+        System.Collections.Generic.List<string> names =
+            kind == EffectKind.Hit ? handler.hitName :
+            kind == EffectKind.Bounce ? handler.bounceName :
+            handler.explosionName;
+
+        if (names == null || names.Count == 0) return;
+        handler.Play(names[Random.Range(0, names.Count)], transform.position);
+    }
+
 private void HandleEnemyHit(Collider2D enemy)
     {
         bool hasArmorPiercing = Data.HasEffect<ArmorPiercingEffectSO>();
-        EffectHandler.Instance.Play(EffectHandler.Instance.hitName[Random.Range(0, EffectHandler.Instance.hitName.Count)], transform.position);
+        PlayHitEffect(EffectKind.Hit); // 적 피격 이펙트 (Effect 담당자 EffectHandler 연동)
 
         float finalDamage = Data.damage;
         if (hasArmorPiercing)
@@ -305,21 +326,21 @@ private void HandleObstacleHit(Collider2D obstacle, BulletTargetType targetType,
 
         BulletHitResult result = DetermineHitResult(targetType);
 
-        EffectHandler.Instance.Play(EffectHandler.Instance.bounceName[Random.Range(0, EffectHandler.Instance.bounceName.Count)], transform.position);
-        // 파괴 가능한 장애물(나무/바위) 처리
-        var destructible = obstacle.GetComponent<DestructibleObstacle>();
-        if (destructible != null)
         // 관통형(총알이 통과하는) 벽은 스윕이 매 프레임 같은 벽을 다시 감지하므로,
         // 파괴/효과 훅은 "그 벽에 처음 닿았을 때" 1회만 실행한다(원래 트리거 1회 동작과 동일).
         bool isNewContact = obstacle != _lastPenetratedWall;
         if (result != BulletHitResult.Penetrate || isNewContact)
         {
+            // 벽 충돌/튕김 이펙트 재생 (Effect 담당자 EffectHandler 연동)
+            PlayHitEffect(EffectKind.Bounce);
+
             // 파괴 가능한 장애물(나무/바위) 처리
             var destructible = obstacle.GetComponent<DestructibleObstacle>();
             if (destructible != null)
             {
-                EffectHandler.Instance.Play(EffectHandler.Instance.explosionName[Random.Range(0, EffectHandler.Instance.explosionName.Count)], transform.position);
-                if (explosiveEffect.canDestroyRock)
+                // 파괴 이펙트 재생
+                PlayHitEffect(EffectKind.Explosion);
+
                 var explosiveEffect = Data.GetEffect<ExplosiveEffectSO>();
                 if (explosiveEffect != null)
                 {
