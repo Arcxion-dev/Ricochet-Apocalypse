@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Effect_Burn
   m_EditorClassIdentifier: Assembly-CSharp::BurnEffectSO
   description: 
-  zonePrefab: {fileID: 0}
+  zonePrefab: {fileID: 5849954623844090088, guid: 8a3d87695e445ff47a524fca5f6abbed, type: 3}
   zoneRadius: 2.5
   zoneDuration: 3
   zoneTickDamage: 2

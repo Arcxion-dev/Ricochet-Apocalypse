@@ -227,6 +227,7 @@ public BulletController SpawnChildBullet(BulletSO childData, Vector2 direction)
 private void HandleEnemyHit(Collider2D enemy)
     {
         bool hasArmorPiercing = Data.HasEffect<ArmorPiercingEffectSO>();
+        EffectHandler.Instance.Play(EffectHandler.Instance.hitName[Random.Range(0, EffectHandler.Instance.hitName.Count)], transform.position);
 
         float finalDamage = Data.damage;
         if (hasArmorPiercing)
@@ -255,6 +256,8 @@ private void HandleEnemyHit(Collider2D enemy)
 
 private void HandleObstacleHit(Collider2D obstacle, BulletTargetType targetType)
     {
+
+
         if (targetType == BulletTargetType.Civilian)
         {
             Debug.LogWarning("[BulletController] 민간인 피격! 스테이지 실패 처리");
@@ -265,6 +268,7 @@ private void HandleObstacleHit(Collider2D obstacle, BulletTargetType targetType)
 
         BulletHitResult result = DetermineHitResult(targetType);
 
+        EffectHandler.Instance.Play(EffectHandler.Instance.bounceName[Random.Range(0, EffectHandler.Instance.bounceName.Count)], transform.position);
         // 파괴 가능한 장애물(나무/바위) 처리
         var destructible = obstacle.GetComponent<DestructibleObstacle>();
         if (destructible != null)
@@ -272,6 +276,7 @@ private void HandleObstacleHit(Collider2D obstacle, BulletTargetType targetType)
             var explosiveEffect = Data.GetEffect<ExplosiveEffectSO>();
             if (explosiveEffect != null)
             {
+                EffectHandler.Instance.Play(EffectHandler.Instance.explosionName[Random.Range(0, EffectHandler.Instance.explosionName.Count)], transform.position);
                 if (explosiveEffect.canDestroyRock)
                 {
                     destructible.ApplyExplosionDamage(explosiveEffect.explosionDamage);
