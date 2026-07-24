@@ -32,7 +32,9 @@ public class BulletController : MonoBehaviour
     public bool IsSplitChild { get; set; }
 
     private Rigidbody2D _rb;
+    private Collider2D _col;
     private int _bounceCount;
+    private Collider2D _lastPenetratedWall; // 관통형 벽을 매 프레임 중복 처리하지 않기 위한 표시
     private float _elapsedLife;
     private bool _isDead;
 
@@ -44,7 +46,12 @@ public class BulletController : MonoBehaviour
     private void Awake()
     {
         _rb = GetComponent<Rigidbody2D>();
+        _col = GetComponent<Collider2D>();
         _rb.gravityScale = 0f; // 탑다운 2D 슈터 기준
+
+        // 고속 총알이 얇은 벽을 뚫고 지나가는(터널링) 것을 막기 위해 연속 충돌 감지를 켠다.
+        _rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+        _rb.interpolation = RigidbodyInterpolation2D.Interpolate;
     }
 
     /// <summary>
@@ -121,6 +128,42 @@ public class BulletController : MonoBehaviour
             // 외력이 없으면 지정된 방향/속도를 유지 (직선 이동 기본 동작)
             ApplyVelocity();
         }
+
+        // 이번 스텝에 이동할 경로를 미리 스윕(CircleCast)해서 벽을 감지한다.
+        // 트리거(OnTriggerEnter2D)만으로는 고속 총알이 벽을 뚫고 지나가거나(터널링),
+        // 감지가 늦어 반대편으로 튀어나가는 문제가 있어 벽 충돌은 스윕으로 처리한다.
+        SweepWalls();
+    }
+
+    /// <summary>
+    /// 현재 위치에서 이번 물리 스텝 이동 거리만큼 앞을 CircleCast로 훑어 벽을 감지한다.
+    /// 벽을 만나면 정확한 접점/법선으로 처리(튕김 시 접점으로 위치 보정 → 관통·오버슈트 방지).
+    /// </summary>
+    private void SweepWalls()
+    {
+        Vector2 vel = _rb.linearVelocity;
+        float stepDist = vel.magnitude * Time.fixedDeltaTime;
+        if (stepDist <= 0.0001f) return;
+
+        Vector2 dir = vel.normalized;
+        float radius = GetBulletRadius();
+        RaycastHit2D hit = Physics2D.CircleCast(_rb.position, radius, dir, stepDist + 0.02f, wallLayerMask);
+        if (hit.collider == null)
+        {
+            _lastPenetratedWall = null; // 벽에서 벗어남
+            return;
+        }
+
+        BulletTargetType targetType = ResolveTargetType(hit.collider);
+        HandleObstacleHit(hit.collider, targetType, hit.normal, hit.centroid);
+    }
+
+    /// <summary>총알 콜라이더를 근사한 스윕용 반지름(회전 무관하게 안전한 값).</summary>
+    private float GetBulletRadius()
+    {
+        if (_col == null) return 0.45f;
+        Vector3 ext = _col.bounds.extents;
+        return Mathf.Max(0.05f, Mathf.Min(ext.x, ext.y) - 0.02f);
     }
 
     private void ApplyVelocity()
@@ -189,14 +232,8 @@ public BulletController SpawnChildBullet(BulletSO childData, Vector2 direction)
             return;
         }
 
-        if (IsInLayerMask(other.gameObject.layer, wallLayerMask))
-        {
-            // 실제 장애물 타입 판정은 장애물 담당 시스템이 IObstacle 등을 통해 제공해야 함.
-            // 여기서는 컴포넌트가 있으면 사용하고, 없으면 기본 Wall로 취급하는 스텁을 둔다.
-            BulletTargetType targetType = ResolveTargetType(other);
-            HandleObstacleHit(other, targetType);
-            return;
-        }
+        // 벽(Wall) 충돌은 트리거가 아니라 FixedUpdate의 SweepWalls()에서 처리한다.
+        // (고속 총알 터널링/늦은 감지로 인한 관통 방지)
     }
 
     /// <summary>
@@ -253,7 +290,7 @@ private void HandleEnemyHit(Collider2D enemy)
         }
     }
 
-private void HandleObstacleHit(Collider2D obstacle, BulletTargetType targetType)
+private void HandleObstacleHit(Collider2D obstacle, BulletTargetType targetType, Vector2 normal, Vector2 contactPoint)
     {
         if (targetType == BulletTargetType.Civilian)
         {
@@ -265,37 +302,44 @@ private void HandleObstacleHit(Collider2D obstacle, BulletTargetType targetType)
 
         BulletHitResult result = DetermineHitResult(targetType);
 
-        // 파괴 가능한 장애물(나무/바위) 처리
-        var destructible = obstacle.GetComponent<DestructibleObstacle>();
-        if (destructible != null)
+        // 관통형(총알이 통과하는) 벽은 스윕이 매 프레임 같은 벽을 다시 감지하므로,
+        // 파괴/효과 훅은 "그 벽에 처음 닿았을 때" 1회만 실행한다(원래 트리거 1회 동작과 동일).
+        bool isNewContact = obstacle != _lastPenetratedWall;
+        if (result != BulletHitResult.Penetrate || isNewContact)
         {
-            var explosiveEffect = Data.GetEffect<ExplosiveEffectSO>();
-            if (explosiveEffect != null)
+            // 파괴 가능한 장애물(나무/바위) 처리
+            var destructible = obstacle.GetComponent<DestructibleObstacle>();
+            if (destructible != null)
             {
-                if (explosiveEffect.canDestroyRock)
+                var explosiveEffect = Data.GetEffect<ExplosiveEffectSO>();
+                if (explosiveEffect != null)
                 {
-                    destructible.ApplyExplosionDamage(explosiveEffect.explosionDamage);
+                    if (explosiveEffect.canDestroyRock)
+                    {
+                        destructible.ApplyExplosionDamage(explosiveEffect.explosionDamage);
+                    }
+                }
+                else
+                {
+                    destructible.ApplyBulletHit();
                 }
             }
-            else
-            {
-                destructible.ApplyBulletHit();
-            }
-        }
 
-        foreach (var effect in Data.effects)
-        {
-            if (effect != null) effect.OnHitObstacle(this, obstacle, targetType);
+            foreach (var effect in Data.effects)
+            {
+                if (effect != null) effect.OnHitObstacle(this, obstacle, targetType);
+            }
         }
 
         switch (result)
         {
             case BulletHitResult.Penetrate:
-                Debug.Log($"[BulletController] {targetType} 관통 (철갑탄)");
+                _lastPenetratedWall = obstacle; // 통과 중인 벽 기억(중복 처리 방지)
                 break;
 
             case BulletHitResult.Bounce:
-                Bounce(obstacle);
+                _lastPenetratedWall = null;
+                Bounce(normal, contactPoint);
                 break;
 
             case BulletHitResult.Destroy:
@@ -341,7 +385,12 @@ private void HandleObstacleHit(Collider2D obstacle, BulletTargetType targetType)
         }
     }
 
-    private void Bounce(Collider2D obstacle)
+    /// <summary>
+    /// 스윕이 알려준 정확한 접점/법선으로 튕긴다. 총알을 접점으로 옮겨(오버슈트로 벽에 파고들지
+    /// 않게) 벽 표면 법선 기준으로 반사시킨다. 스윕은 벽에 닿기 "전"에 감지하므로 총알 중심이
+    /// 벽 반대편으로 넘어가는 일이 없어 통과가 구조적으로 발생하지 않는다.
+    /// </summary>
+    private void Bounce(Vector2 normal, Vector2 contactPoint)
     {
         if (_bounceCount >= Data.maxBounceCount)
         {
@@ -351,16 +400,13 @@ private void HandleObstacleHit(Collider2D obstacle, BulletTargetType targetType)
 
         _bounceCount++;
 
-        // 충돌 지점의 법선 벡터를 이용한 반사. 정확한 법선은 Raycast/Contact가 더 정밀하지만,
-        // 여기서는 총알 위치 -> 장애물 중심 벡터의 역방향을 근사 법선으로 사용하는 간단한 버전.
-        Vector2 approxNormal = ((Vector2)transform.position - (Vector2)obstacle.bounds.ClosestPoint(transform.position));
-        if (approxNormal == Vector2.zero)
-        {
-            approxNormal = -Direction; // 폴백: 정반대 방향
-        }
-        approxNormal.Normalize();
+        if (normal == Vector2.zero) normal = -Direction; // 폴백
+        normal.Normalize();
 
-        Vector2 reflected = Vector2.Reflect(Direction, approxNormal);
+        // 접점(총알 콜라이더가 벽에 막 닿는 위치)으로 보정 → 벽을 파고들지 않음.
+        _rb.position = contactPoint;
+
+        Vector2 reflected = Vector2.Reflect(Direction, normal);
         SetDirection(reflected);
         ApplyVelocity();
 
