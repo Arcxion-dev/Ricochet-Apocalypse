@@ -284,11 +284,8 @@ private void HandleEnemyHit(Collider2D enemy)
             if (effect != null) effect.OnHitEnemy(this, enemy);
         }
 
-        // 철갑탄은 적도 관통(계속 직진). 그 외 효과는 적중 시 소멸.
-        if (!hasArmorPiercing)
-        {
-            Die();
-        }
+        // 모든 총알은 적을 관통합니다 (적 충돌로는 소멸하지 않음).
+        // 총알의 소멸은 벽 튕김 횟수 초과, 생존시간 만료 등 다른 조건에서만 발생합니다.
     }
 
 private void HandleObstacleHit(Collider2D obstacle, BulletTargetType targetType, Vector2 normal, Vector2 contactPoint)
