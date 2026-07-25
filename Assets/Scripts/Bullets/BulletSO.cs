@@ -22,6 +22,9 @@ public class BulletSO : ScriptableObject
     [Tooltip("벽에 튕길 수 있는 최대 횟수. 0이면 첫 벽 충돌 시 바로 소멸")]
     public int maxBounceCount = 1;
 
+    [Tooltip("총알의 속성. 적 AttributeModule의 속성별 취약 배수 계산에 사용됩니다. None이면 배수 1배.")]
+    public ElementType element = ElementType.None;
+
     [Header("스프라이트/이펙트 (선택)")]
     public Sprite bulletSprite;
     public GameObject hitVfxPrefab;

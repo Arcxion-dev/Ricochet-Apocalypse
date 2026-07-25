@@ -287,18 +287,30 @@ private void HandleEnemyHit(Collider2D enemy)
         bool hasArmorPiercing = Data.HasEffect<ArmorPiercingEffectSO>();
         PlayHitEffect(EffectKind.Hit); // 적 피격 이펙트 (Effect 담당자 EffectHandler 연동)
 
-        float finalDamage = Data.damage;
-        if (hasArmorPiercing)
+        // 적에 EnemyController가 있으면 그쪽 파이프라인(방어 무적 -> 헤드샷 -> 속성 취약 배수 ->
+        // 장갑 배수 -> Entity.TakeDamage)으로 라우팅한다. 총알 속성(Data.element)과 철갑탄 여부를 넘겨
+        // AttributeModule/ArmorModule/HeadshotModule/DefenseModule이 실제로 작동하게 한다.
+        var enemyController = enemy.GetComponentInParent<EnemyController>();
+        if (enemyController != null)
         {
-            var armorEffect = Data.GetEffect<ArmorPiercingEffectSO>();
-            var armored = enemy.GetComponent<IArmored>();
-            if (armored != null && armored.IsArmored)
-            {
-                finalDamage *= armorEffect.armoredEnemyDamageMultiplier;
-            }
+            enemyController.OnBulletHit(Data.damage, Data.element, hasArmorPiercing);
         }
+        else
+        {
+            // EnemyController가 없는 적: 기존 경로(철갑탄 IArmored 배수 + 직접 Entity 대미지) 폴백.
+            float finalDamage = Data.damage;
+            if (hasArmorPiercing)
+            {
+                var armorEffect = Data.GetEffect<ArmorPiercingEffectSO>();
+                var armored = enemy.GetComponent<IArmored>();
+                if (armored != null && armored.IsArmored)
+                {
+                    finalDamage *= armorEffect.armoredEnemyDamageMultiplier;
+                }
+            }
 
-        BulletDamageDispatcher.ApplyDamage(enemy, finalDamage, Data.name);
+            BulletDamageDispatcher.ApplyDamage(enemy, finalDamage, Data.name);
+        }
 
         foreach (var effect in Data.effects)
         {
