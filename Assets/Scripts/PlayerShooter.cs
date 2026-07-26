@@ -595,12 +595,14 @@ public class PlayerShooter : MonoBehaviour
     /// <summary>탄환/아이템 변경·조준 모드를 처리한다. 활성이면 true(일반 조준/격발을 대체).</summary>
     private bool HandleItemModes()
     {
-        // 모드 진입은 일반 조준(Free) 상태에서만.
+        // 모드 진입은 일반 조준(Free) 상태에서만. 진입한 프레임에는 즉시 반환해,
+        // 같은 프레임의 GetKeyDown(같은 키)이 아래 종료 조건(WantsExitChange)에 걸려
+        // 곧바로 빠져나오는(=모드가 유지되지 않는) 문제를 막는다.
         if (_mode == InputMode.Normal && _phase == AimPhase.Free)
         {
-            if (Input.GetKeyDown(_bulletChangeKey)) EnterMode(InputMode.BulletChange);
-            else if (Input.GetKeyDown(_itemChangeKey)) EnterMode(InputMode.ItemChange);
-            else if (Input.GetKeyDown(_itemUseKey)) TryEnterItemAim();
+            if (Input.GetKeyDown(_bulletChangeKey)) { EnterMode(InputMode.BulletChange); return true; }
+            if (Input.GetKeyDown(_itemChangeKey)) { EnterMode(InputMode.ItemChange); return true; }
+            if (Input.GetKeyDown(_itemUseKey)) { TryEnterItemAim(); return _mode != InputMode.Normal; }
         }
 
         switch (_mode)

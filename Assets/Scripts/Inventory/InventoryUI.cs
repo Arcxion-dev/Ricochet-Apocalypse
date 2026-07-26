@@ -44,7 +44,6 @@ public class InventoryUI : MonoBehaviour
     private List<BulletItemDefinition> _enhancedBullets;
     private ItemDefinition _gold;
     private int _partCursor;
-    private int _bulletCursor;
 
     /// <summary>
     /// 첫 씬 로드 전에 디버그 UI가 없으면 하나 만든다. 씬 편집 없이 어느 씬에서 Play해도
@@ -213,7 +212,15 @@ public class InventoryUI : MonoBehaviour
         AddButton(panel, "＋ 섬광탄", () => InventoryManager.Instance.Add(_itemFlashbang, 1));
         AddButton(panel, "＋ 총기 파츠(순차)", AddNextPart);
         AddButton(panel, "＋ 기본 탄환", () => InventoryManager.Instance.Add(_basicBullet, 1));
-        AddButton(panel, "＋ 강화 탄환(순차)", AddNextBullet);
+
+        // 강화 탄환은 종류별로 골라서 지급(랜덤/순차 대신 원하는 탄을 콕 집어 추가).
+        foreach (var bullet in _enhancedBullets)
+        {
+            if (bullet == null) continue;
+            var def = bullet; // 클로저 캡처용 지역 복사
+            AddButton(panel, $"＋ {def.ResolvedName}", () => InventoryManager.Instance.Add(def, 1));
+        }
+
         AddButton(panel, "＋ 재화 ×100", () => InventoryManager.Instance.Add(_gold, 100));
         AddButton(panel, "전체 비우기", () => InventoryManager.Instance.Clear());
 
@@ -226,14 +233,6 @@ public class InventoryUI : MonoBehaviour
         var part = _parts[_partCursor % _parts.Count];
         _partCursor++;
         InventoryManager.Instance.Add(part, 1);
-    }
-
-    private void AddNextBullet()
-    {
-        // 강화 탄환은 고유(1발)라 클릭할 때마다 개별 슬롯으로 쌓인다.
-        var bullet = _enhancedBullets[_bulletCursor % _enhancedBullets.Count];
-        _bulletCursor++;
-        InventoryManager.Instance.Add(bullet, 1);
     }
 
     // ───────────────────────── 목록 갱신 ─────────────────────────
