@@ -61,6 +61,17 @@ public class GridModule : MonoBehaviour
 
     public void ClearAllOccupants() => occupants.Clear();
 
+    /// <summary>개발자 모드 등에서 그리드 크기를 런타임에 통째로 바꿀 때 사용합니다. 기존 점유 정보는 모두 비워집니다.</summary>
+    public void Configure(int newColumns, int newRows, float newCellSize, Vector2 newOrigin)
+    {
+        columns = Mathf.Max(1, newColumns);
+        rows = Mathf.Max(1, newRows);
+        cellSize = newCellSize > 0f ? newCellSize : cellSize;
+        origin = newOrigin;
+        ClearAllOccupants();
+    }
+
+
     private void OnDrawGizmos()
     {
         Gizmos.color = new Color(1f, 1f, 1f, 0.25f);

@@ -93,6 +93,10 @@ public class PlayerShooter : MonoBehaviour
     /// <summary>인벤토리/파츠 UI로 게임이 정지(타임스케일 0)된 상태인지.</summary>
     private bool _uiPaused;
 
+    /// <summary>외부 시스템(개발자 모드 배치 도구 등)이 조준·격발 입력을 일시적으로 차단하고 싶을 때 true로 설정한다.
+    /// 기본값은 false이며, 아무도 설정하지 않으면 기존 동작과 완전히 동일하다.</summary>
+    public static bool ExternalInputBlocked = false;
+
     /// <summary>현재 발사 가능한 총 탄환 수(인벤토리 Ammo 버킷 합계).</summary>
     public int RemainingAmmo =>
         InventoryManager.Instance != null
@@ -198,6 +202,15 @@ public class PlayerShooter : MonoBehaviour
         UpdateUiPause(uiOpen);
         if (uiOpen) return;
 
+        // 마우스 커서가 UI(버튼/패널) 위에 있으면 조준·격발 입력을 무시한다.
+        // (개발자 모드 등에서 UI 버튼을 클릭했을 때 총알이 함께 나가는 것을 방지)
+        bool overUI = UnityEngine.EventSystems.EventSystem.current != null
+                      && UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject();
+        if (overUI) return;
+
+        // 외부 시스템(개발자 모드에서 장애물/몬스터를 커서에 든 상태 등)이 입력을 막고 있으면 무시.
+        if (ExternalInputBlocked) return;
+
         if (_phase == AimPhase.Free)
         {
             // 조준: 레이저가 마우스를 따라간다. 좌클릭 시 그 방향으로 조준을 고정(→호흡).
@@ -231,6 +244,8 @@ public class PlayerShooter : MonoBehaviour
             }
         }
     }
+
+
 
     /// <summary>조준을 고정하고 호흡(격발 대기) 상태로 진입한다.</summary>
     private void EnterBreath(Vector2 baseDir)
