@@ -25,7 +25,10 @@ private void Awake()
         healthModule = GetComponent<HealthModule>();
         attributeModule = GetComponent<AttributeModule>();
         defenseModule = GetComponent<DefenseModule>();
+        // 헤드샷(확률) 시스템은 모든 적에 적용되도록 모듈이 없으면 자동 부착한다.
+        // (기본값 30%/2배는 HeadshotModule 기본; 밸런스는 이후 튜닝 가능.)
         headshotModule = GetComponent<HeadshotModule>();
+        if (headshotModule == null) headshotModule = gameObject.AddComponent<HeadshotModule>();
         armorModule = GetComponent<ArmorModule>();
         traitModule = GetComponent<TraitModule>();
         speedModule = GetComponent<SpeedModule>();
@@ -64,17 +67,34 @@ private void Awake()
     /// </summary>
     /// <param name="baseDamage">총알의 기본 데미지 (BulletSO.damage)</param>
     /// <param name="bulletElement">총알의 속성 (아직 총알 쪽에 속성 필드가 없다면 ElementType.None 전달)</param>
-public void OnBulletHit(float baseDamage, ElementType bulletElement, bool isArmorPiercingBullet = false)
+    /// <param name="isArmorPiercingBullet">철갑탄 여부(ArmorModule 배수 계산용).</param>
+    /// <param name="headshotMultiplierBonus">조준경 등 무기 파츠가 더하는 헤드샷 배수 추가 비율(배수 ×(1+bonus)).</param>
+    /// <param name="forceHeadshot">텅스텐 확정 헤드샷 등으로 확률 판정 없이 헤드샷을 강제할지 여부.</param>
+    /// <returns>이번 명중이 헤드샷이었는지 여부(무적으로 무시된 경우 false).</returns>
+public bool OnBulletHit(float baseDamage, ElementType bulletElement, bool isArmorPiercingBullet = false,
+        float headshotMultiplierBonus = 0f, bool forceHeadshot = false)
     {
         if (defenseModule != null && defenseModule.TryBlockHit())
-            return; // 무적 판정으로 피해 무시
+            return false; // 무적 판정으로 피해 무시
 
         float finalDamage = baseDamage;
 
         bool isHeadshot = false;
         if (headshotModule != null)
         {
-            finalDamage *= headshotModule.RollDamageMultiplier(out isHeadshot);
+            float mult;
+            if (forceHeadshot)
+            {
+                isHeadshot = true;
+                mult = headshotModule.HeadshotMultiplier;
+            }
+            else
+            {
+                mult = headshotModule.RollDamageMultiplier(out isHeadshot);
+            }
+
+            if (isHeadshot) mult *= (1f + headshotMultiplierBonus); // 조준경 헤드샷 배율 증가
+            finalDamage *= mult;
         }
 
         if (attributeModule != null)
@@ -89,7 +109,7 @@ public void OnBulletHit(float baseDamage, ElementType bulletElement, bool isArmo
 
         if (isHeadshot)
         {
-            Debug.Log($"{name}: 헤드샷! 최종 대미지 {finalDamage}");
+            Debug.Log($"{name}: {(forceHeadshot ? "확정 " : "")}헤드샷! 최종 대미지 {finalDamage}");
         }
 
         if (entity != null)
@@ -100,5 +120,7 @@ public void OnBulletHit(float baseDamage, ElementType bulletElement, bool isArmo
         {
             healthModule.TakeDamage(finalDamage);
         }
+
+        return isHeadshot;
     }
 }

@@ -36,7 +36,9 @@ public class InventoryUI : MonoBehaviour
 
     // 디버그용 샘플 정의(에셋 아님, 런타임 인메모리).
     private ItemDefinition _potion;
-    private ItemDefinition _grenade;
+    private UsableItemSO _itemGrenade;
+    private UsableItemSO _itemAirstrike;
+    private UsableItemSO _itemFlashbang;
     private List<ItemDefinition> _parts;
     private BulletItemDefinition _basicBullet;
     private List<BulletItemDefinition> _enhancedBullets;
@@ -103,7 +105,10 @@ public class InventoryUI : MonoBehaviour
     private void BuildSamples()
     {
         _potion = ItemDefinition.CreateRuntime("potion_hp", "체력 물약", ItemCategory.Item, maxStack: 99);
-        _grenade = ItemDefinition.CreateRuntime("grenade", "수류탄", ItemCategory.Item, maxStack: 5);
+
+        // 사용 아이템(수류탄/폭격지원/섬광탄): 에셋(Resources/UsableItems)이 있으면 로드, 없으면 런타임 폴백.
+        LoadUsableItems();
+
         _parts = new List<ItemDefinition>
         {
             ItemDefinition.CreateRuntime("part_mag", "확장 탄창", ItemCategory.GunPart),
@@ -134,6 +139,32 @@ public class InventoryUI : MonoBehaviour
         }
 
         _gold = ItemDefinition.CreateRuntime("gold", "골드", ItemCategory.Currency, maxStack: 9_999_999);
+    }
+
+    /// <summary>사용 아이템 3종을 Resources에서 로드하고, 없는 종류는 런타임 정의로 폴백 생성한다.</summary>
+    private void LoadUsableItems()
+    {
+        var loaded = Resources.LoadAll<UsableItemSO>("UsableItems");
+        foreach (var def in loaded)
+        {
+            if (def == null) continue;
+            switch (def.kind)
+            {
+                case UsableItemKind.Grenade: _itemGrenade = def; break;
+                case UsableItemKind.Airstrike: _itemAirstrike = def; break;
+                case UsableItemKind.Flashbang: _itemFlashbang = def; break;
+            }
+        }
+
+        if (_itemGrenade == null)
+            _itemGrenade = UsableItemSO.CreateRuntime("item_grenade", "수류탄", UsableItemKind.Grenade,
+                maxRange: 5f, effectRadius: 2f, damage: 40f, suppressDuration: 0f);
+        if (_itemAirstrike == null)
+            _itemAirstrike = UsableItemSO.CreateRuntime("item_airstrike", "폭격지원", UsableItemKind.Airstrike,
+                maxRange: 12f, effectRadius: 3.5f, damage: 60f, suppressDuration: 0f);
+        if (_itemFlashbang == null)
+            _itemFlashbang = UsableItemSO.CreateRuntime("item_flashbang", "섬광탄", UsableItemKind.Flashbang,
+                maxRange: 6f, effectRadius: 3f, damage: 0f, suppressDuration: 3f);
     }
 
     // ───────────────────────── UI 구성 ─────────────────────────
@@ -177,7 +208,9 @@ public class InventoryUI : MonoBehaviour
 
         // 디버그 추가 버튼(한 번만 생성).
         AddButton(panel, "＋ 체력 물약", () => InventoryManager.Instance.Add(_potion, 1));
-        AddButton(panel, "＋ 수류탄", () => InventoryManager.Instance.Add(_grenade, 1));
+        AddButton(panel, "＋ 수류탄", () => InventoryManager.Instance.Add(_itemGrenade, 1));
+        AddButton(panel, "＋ 폭격지원", () => InventoryManager.Instance.Add(_itemAirstrike, 1));
+        AddButton(panel, "＋ 섬광탄", () => InventoryManager.Instance.Add(_itemFlashbang, 1));
         AddButton(panel, "＋ 총기 파츠(순차)", AddNextPart);
         AddButton(panel, "＋ 기본 탄환", () => InventoryManager.Instance.Add(_basicBullet, 1));
         AddButton(panel, "＋ 강화 탄환(순차)", AddNextBullet);

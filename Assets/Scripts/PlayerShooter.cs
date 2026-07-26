@@ -55,8 +55,16 @@ public class PlayerShooter : MonoBehaviour
     [SerializeField] private float _guidelineRadius = 0.1f;
 
     [Header("무기 파츠")]
-    [Tooltip("장착된 무기 파츠 목록(손잡이/네뷸라이저/레이저/조준경). 인스펙터에서 끼우고 뺀다. 레이저·조준경이 없으면 가이드라인은 표시되지 않는다.")]
+    [Tooltip("장착된 무기 파츠 목록(손잡이/네뷸라이저/레이저/조준경/텅스텐). 인스펙터에서 끼우고 뺀다. 직선 레이저는 파츠와 무관하게 기본 표시된다.")]
     [SerializeField] private List<WeaponPartSO> _equippedParts = new List<WeaponPartSO>();
+
+    [Header("아이템/선택 입력")]
+    [Tooltip("탄환 변경 모드 진입 키. 누르면 마우스 휠/좌클릭으로 탄환을 순환한다.")]
+    [SerializeField] private KeyCode _bulletChangeKey = KeyCode.Q;
+    [Tooltip("아이템 변경 모드 진입 키. 누르면 마우스 휠/좌클릭으로 아이템을 순환한다.")]
+    [SerializeField] private KeyCode _itemChangeKey = KeyCode.E;
+    [Tooltip("선택 아이템 사용 키. 누르면 조준(범위 표시원) 후 좌클릭으로 타격 확정, 우클릭 취소.")]
+    [SerializeField] private KeyCode _itemUseKey = KeyCode.F;
 
     [Header("호흡(격발 대기)")]
     [Tooltip("호흡 중 조준선이 기준 방향에서 벗어나는 최대 각도(도).")]
@@ -83,6 +91,29 @@ public class PlayerShooter : MonoBehaviour
 
     private LineRenderer _laser;
     private float _flashTimer;
+
+    /// <summary>현재 씬에서 활성인 사수. 총알(BulletController)이 헤드샷 보너스/확정 상태를 조회하는 진입점.</summary>
+    public static PlayerShooter Active { get; private set; }
+
+    /// <summary>조준경 파츠가 더한 헤드샷 배수 추가 비율(헤드샷 배수 ×(1+이 값)).</summary>
+    public float HeadshotMultiplierBonus => _stats.headshotMultiplierBonus;
+
+    /// <summary>텅스텐 탄환 파츠 장착(확정 헤드샷 연쇄) 여부.</summary>
+    public bool GuaranteedHeadshotChain => _stats.guaranteedHeadshotChain;
+
+    /// <summary>다음 적 명중을 확정 헤드샷으로 처리할지(텅스텐이 자연 헤드샷 후 예약).</summary>
+    private bool _nextHitGuaranteed;
+
+    /// <summary>다음 명중을 확정 헤드샷으로 예약한다(자연 헤드샷 발생 시 텅스텐이 호출).</summary>
+    public void ArmGuaranteedHeadshot() => _nextHitGuaranteed = true;
+
+    /// <summary>예약된 확정 헤드샷을 1회 소모한다(예약돼 있었으면 true 반환 후 해제).</summary>
+    public bool ConsumeGuaranteedHeadshot()
+    {
+        bool armed = _nextHitGuaranteed;
+        _nextHitGuaranteed = false;
+        return armed;
+    }
 
     /// <summary>장착 파츠를 집계한 조준/사격 스탯. <see cref="RecomputeParts"/>로 갱신.</summary>
     private WeaponStats _stats = WeaponStats.Default;
@@ -149,6 +180,16 @@ public class PlayerShooter : MonoBehaviour
         RecomputeParts();
     }
 
+    private void OnDisable()
+    {
+        if (Active == this) Active = null;
+    }
+
+    private void OnEnable()
+    {
+        Active = this;
+    }
+
     /// <summary>인벤토리/파츠 UI가 열리면 게임을 완전히 멈추고(타임스케일 0), 닫히면 재개한다.</summary>
     private void UpdateUiPause(bool uiOpen)
     {
@@ -178,15 +219,21 @@ public class PlayerShooter : MonoBehaviour
             if (bullet != null) InventoryManager.Instance.Add(bullet, 1);
         }
 
-        // 인벤토리 변경을 구독해 선택 가능한 탄환 목록을 항상 최신으로 유지한다.
+        // 인벤토리 변경을 구독해 선택 가능한 탄환/아이템 목록을 항상 최신으로 유지한다.
         _inventory = InventoryManager.Instance.Inventory;
         _inventory.Changed += RebuildChoices;
+        _inventory.Changed += RebuildItemChoices;
         RebuildChoices();
+        RebuildItemChoices();
     }
 
     private void OnDestroy()
     {
-        if (_inventory != null) _inventory.Changed -= RebuildChoices;
+        if (_inventory != null)
+        {
+            _inventory.Changed -= RebuildChoices;
+            _inventory.Changed -= RebuildItemChoices;
+        }
     }
 
     private void Update()
@@ -196,7 +243,14 @@ public class PlayerShooter : MonoBehaviour
         // 인벤토리/파츠 UI가 열려 있으면 게임을 완전히 멈추고(타임스케일 0) 조준·격발 입력을 막는다.
         bool uiOpen = InventoryUI.IsOpen || WeaponPartsUI.IsOpen;
         UpdateUiPause(uiOpen);
-        if (uiOpen) return;
+        if (uiOpen)
+        {
+            if (_mode != InputMode.Normal) ExitMode();
+            return;
+        }
+
+        // 탄환/아이템 변경 모드 또는 아이템 조준 모드가 활성이면, 일반 조준/격발 대신 그 처리를 한다.
+        if (HandleItemModes()) return;
 
         if (_phase == AimPhase.Free)
         {
@@ -455,6 +509,313 @@ public class PlayerShooter : MonoBehaviour
         return basic; // 강화탄이 없으면 기본탄(없으면 null).
     }
 
+    // ───────────────────────── 아이템 선택/사용 ─────────────────────────
+
+    /// <summary>선택 가능한 한 종류의 사용 아이템(정의 + 보유 수).</summary>
+    public readonly struct ItemChoice
+    {
+        public readonly UsableItemSO Definition;
+        public readonly int Count;
+        public ItemChoice(UsableItemSO definition, int count)
+        {
+            Definition = definition;
+            Count = count;
+        }
+    }
+
+    /// <summary>입력 모드. Normal=일반 조준/격발, BulletChange/ItemChange=휠·클릭 순환, ItemAim=아이템 조준.</summary>
+    private enum InputMode { Normal, BulletChange, ItemChange, ItemAim }
+    private InputMode _mode = InputMode.Normal;
+
+    private readonly List<ItemChoice> _itemChoices = new List<ItemChoice>();
+    private int _selectedItemIndex;
+
+    /// <summary>선택 가능한 사용 아이템 목록(읽기 전용).</summary>
+    public IReadOnlyList<ItemChoice> ItemChoices => _itemChoices;
+    /// <summary>현재 선택된 아이템 슬롯 인덱스(0-based).</summary>
+    public int SelectedItemIndex => _selectedItemIndex;
+    /// <summary>아이템 선택/목록이 바뀔 때 발생(HUD 갱신용).</summary>
+    public event System.Action ItemSelectionChanged;
+
+    /// <summary>현재 활성 입력 모드의 한글 라벨(HUD 표시용). Normal이면 빈 문자열.</summary>
+    public string ActiveModeLabel
+    {
+        get
+        {
+            switch (_mode)
+            {
+                case InputMode.BulletChange: return "탄환 변경 (휠/클릭)";
+                case InputMode.ItemChange: return "아이템 변경 (휠/클릭)";
+                case InputMode.ItemAim: return "아이템 조준 (좌클릭 사용 / 우클릭 취소)";
+                default: return string.Empty;
+            }
+        }
+    }
+
+    private LineRenderer _itemIndicator; // 아이템 조준 시 효과 반경을 보여주는 원.
+    private Vector2 _itemAimPoint;
+
+    /// <summary>탄환/아이템 변경·조준 모드를 처리한다. 활성이면 true(일반 조준/격발을 대체).</summary>
+    private bool HandleItemModes()
+    {
+        // 모드 진입은 일반 조준(Free) 상태에서만.
+        if (_mode == InputMode.Normal && _phase == AimPhase.Free)
+        {
+            if (Input.GetKeyDown(_bulletChangeKey)) EnterMode(InputMode.BulletChange);
+            else if (Input.GetKeyDown(_itemChangeKey)) EnterMode(InputMode.ItemChange);
+            else if (Input.GetKeyDown(_itemUseKey)) TryEnterItemAim();
+        }
+
+        switch (_mode)
+        {
+            case InputMode.BulletChange:
+                if (WantsExitChange(_bulletChangeKey)) { ExitMode(); break; }
+                int bdir = CycleDir();
+                if (bdir != 0) CycleBullet(bdir);
+                UpdateLaser(GetAimDirection(), _laserColor); // 조준선은 참고용으로 계속 표시.
+                return true;
+
+            case InputMode.ItemChange:
+                if (WantsExitChange(_itemChangeKey)) { ExitMode(); break; }
+                int idir = CycleDir();
+                if (idir != 0) CycleItem(idir);
+                UpdateLaser(GetAimDirection(), _laserColor);
+                return true;
+
+            case InputMode.ItemAim:
+                HandleItemAim();
+                return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>변경 모드 종료 조건(같은 키 다시/ESC/우클릭).</summary>
+    private bool WantsExitChange(KeyCode toggleKey) =>
+        Input.GetKeyDown(toggleKey) || Input.GetKeyDown(KeyCode.Escape) || Input.GetMouseButtonDown(1);
+
+    /// <summary>휠 또는 좌클릭으로 순환 방향을 얻는다(+1 다음, -1 이전, 0 없음).</summary>
+    private int CycleDir()
+    {
+        if (Input.GetMouseButtonDown(0)) return +1; // 클릭 = 다음
+        float scroll = Input.GetAxis("Mouse ScrollWheel");
+        if (scroll > 0.01f) return +1;
+        if (scroll < -0.01f) return -1;
+        return 0;
+    }
+
+    private void CycleBullet(int dir)
+    {
+        if (_choices.Count == 0) return;
+        int idx = ((_selectedIndex + dir) % _choices.Count + _choices.Count) % _choices.Count;
+        SelectBullet(idx);
+    }
+
+    private void CycleItem(int dir)
+    {
+        if (_itemChoices.Count == 0) return;
+        int idx = ((_selectedItemIndex + dir) % _itemChoices.Count + _itemChoices.Count) % _itemChoices.Count;
+        SelectItem(idx);
+    }
+
+    private void EnterMode(InputMode mode)
+    {
+        _mode = mode;
+        // 변경/조준 중엔 카메라 팬·휠 줌을 잠가(휠이 선택 순환에 쓰이므로) 화면을 고정한다.
+        if (_cameraPan != null) _cameraPan.ControlsEnabled = false;
+    }
+
+    private void ExitMode()
+    {
+        _mode = InputMode.Normal;
+        if (_itemIndicator != null) _itemIndicator.enabled = false;
+        if (_cameraPan != null) _cameraPan.ControlsEnabled = true;
+    }
+
+    /// <summary>선택된 아이템이 있으면 조준 모드로 진입한다.</summary>
+    private void TryEnterItemAim()
+    {
+        var item = ResolveSelectedItem();
+        if (item == null)
+        {
+            Debug.Log("[PlayerShooter] 사용할 아이템이 없습니다.");
+            return;
+        }
+        EnterMode(InputMode.ItemAim);
+        if (_laser != null) _laser.enabled = false; // 조준선 숨기고 범위 원만 표시.
+    }
+
+    /// <summary>아이템 조준 모드: 범위 원을 마우스(사거리 클램프) 지점에 표시하고, 좌클릭 확정/우클릭 취소.</summary>
+    private void HandleItemAim()
+    {
+        var item = ResolveSelectedItem();
+        if (item == null) { ExitMode(); return; }
+
+        Vector2 origin = _firePoint != null ? (Vector2)_firePoint.position : (Vector2)transform.position;
+        Vector2 mouse = _cam != null ? (Vector2)_cam.ScreenToWorldPoint(Input.mousePosition) : origin;
+        Vector2 to = mouse - origin;
+        float dist = to.magnitude;
+        if (dist > item.maxRange) mouse = origin + to.normalized * item.maxRange; // 사거리 밖은 클램프.
+        _itemAimPoint = mouse;
+
+        UpdateItemIndicator(_itemAimPoint, item.effectRadius, ColorForItem(item.kind));
+
+        if (Input.GetMouseButtonDown(1)) { ExitMode(); return; }        // 취소
+        if (Input.GetMouseButtonDown(0)) { UseItemAt(item, _itemAimPoint); ExitMode(); } // 확정
+    }
+
+    /// <summary>아이템 효과를 지점에 적용하고 1개 소비한다.</summary>
+    private void UseItemAt(UsableItemSO item, Vector2 point)
+    {
+        LayerMask enemyMask = _bulletPrefab != null ? _bulletPrefab.EnemyLayerMask : ~0;
+        var hits = Physics2D.OverlapCircleAll(point, item.effectRadius, enemyMask);
+
+        if (item.kind == UsableItemKind.Flashbang)
+        {
+            int stopped = 0;
+            var done = new HashSet<Object>();
+            foreach (var h in hits)
+            {
+                var s = h.GetComponentInParent<ISuppressible>();
+                if (s is Object o) { if (!done.Add(o)) continue; }
+                if (s != null) { s.ApplySuppression(item.suppressDuration, 1f); stopped++; }
+            }
+            PlayItemVfx(point);
+            Debug.Log($"[PlayerShooter] 섬광탄! {point} 반경 {item.effectRadius} → {stopped}체 {item.suppressDuration}초 저지");
+        }
+        else
+        {
+            int damaged = 0;
+            var done = new HashSet<Object>();
+            foreach (var h in hits)
+            {
+                var ec = h.GetComponentInParent<EnemyController>();
+                if (ec != null)
+                {
+                    if (!done.Add(ec)) continue;
+                    ec.OnBulletHit(item.damage, ElementType.None);
+                    damaged++;
+                }
+                else
+                {
+                    var ent = h.GetComponentInParent<Entity>();
+                    if (ent != null && done.Add(ent))
+                    {
+                        BulletDamageDispatcher.ApplyDamage(h, item.damage, item.ResolvedName);
+                        damaged++;
+                    }
+                }
+            }
+            PlayItemVfx(point);
+            Debug.Log($"[PlayerShooter] {item.KindLabel}! {point} 반경 {item.effectRadius} 피해 {item.damage} → {damaged}체 적중");
+        }
+
+        InventoryManager.Instance?.Remove(item, 1);
+    }
+
+    /// <summary>폭발/섬광 이펙트를 지점에 재생(EffectHandler 있으면).</summary>
+    private void PlayItemVfx(Vector2 point)
+    {
+        var handler = EffectHandler.Instance;
+        if (handler == null) return;
+        var names = handler.explosionName;
+        if (names == null || names.Count == 0) return;
+        handler.Play(names[Random.Range(0, names.Count)], point);
+    }
+
+    private static Color ColorForItem(UsableItemKind kind)
+    {
+        switch (kind)
+        {
+            case UsableItemKind.Grenade: return new Color(1f, 0.55f, 0.1f);   // 주황
+            case UsableItemKind.Airstrike: return new Color(1f, 0.25f, 0.2f); // 붉은
+            case UsableItemKind.Flashbang: return new Color(0.4f, 0.9f, 1f);  // 하늘
+            default: return Color.white;
+        }
+    }
+
+    private void UpdateItemIndicator(Vector2 center, float radius, Color color)
+    {
+        if (_itemIndicator == null)
+        {
+            var go = new GameObject("ItemAimIndicator");
+            go.transform.SetParent(transform, false);
+            _itemIndicator = go.AddComponent<LineRenderer>();
+            _itemIndicator.useWorldSpace = true;
+            _itemIndicator.loop = true;
+            _itemIndicator.numCornerVertices = 2;
+            var shader = Shader.Find("Sprites/Default");
+            if (shader != null) _itemIndicator.material = new Material(shader);
+            _itemIndicator.widthMultiplier = 0.08f;
+            _itemIndicator.positionCount = 48;
+        }
+
+        _itemIndicator.enabled = true;
+        _itemIndicator.startColor = color;
+        _itemIndicator.endColor = color;
+
+        int n = _itemIndicator.positionCount;
+        for (int i = 0; i < n; i++)
+        {
+            float a = (i / (float)n) * Mathf.PI * 2f;
+            _itemIndicator.SetPosition(i, new Vector3(center.x + Mathf.Cos(a) * radius, center.y + Mathf.Sin(a) * radius, 0f));
+        }
+    }
+
+    /// <summary>인벤토리 Item 버킷에서 사용 아이템(UsableItemSO)을 종류별로 묶어 선택 목록을 만든다.</summary>
+    private void RebuildItemChoices()
+    {
+        _itemChoices.Clear();
+
+        if (_inventory != null)
+        {
+            var entries = _inventory.GetEntries(ItemCategory.Item);
+            foreach (var entry in entries)
+            {
+                if (entry.Quantity <= 0) continue;
+                if (!(entry.Definition is UsableItemSO usable)) continue;
+
+                int idx = FindItemChoiceIndex(usable);
+                if (idx >= 0)
+                    _itemChoices[idx] = new ItemChoice(_itemChoices[idx].Definition, _itemChoices[idx].Count + entry.Quantity);
+                else
+                    _itemChoices.Add(new ItemChoice(usable, entry.Quantity));
+            }
+        }
+
+        if (_selectedItemIndex >= _itemChoices.Count) _selectedItemIndex = Mathf.Max(0, _itemChoices.Count - 1);
+        ItemSelectionChanged?.Invoke();
+    }
+
+    private int FindItemChoiceIndex(UsableItemSO item)
+    {
+        for (int i = 0; i < _itemChoices.Count; i++)
+        {
+            var def = _itemChoices[i].Definition;
+            if (def == item) return i;
+            if (def != null && !string.IsNullOrEmpty(def.id) && def.id == item.id) return i;
+        }
+        return -1;
+    }
+
+    /// <summary>아이템 슬롯을 선택한다(범위를 벗어나면 무시). HUD에서도 호출 가능.</summary>
+    public void SelectItem(int index)
+    {
+        if (index < 0 || index >= _itemChoices.Count) return;
+        if (index == _selectedItemIndex) return;
+        _selectedItemIndex = index;
+        ItemSelectionChanged?.Invoke();
+        Debug.Log($"[PlayerShooter] 아이템 선택 → [{index + 1}] {_itemChoices[index].Definition.ResolvedName}");
+    }
+
+    /// <summary>현재 선택된 사용 아이템을 반환한다(없으면 null).</summary>
+    private UsableItemSO ResolveSelectedItem()
+    {
+        if (_selectedItemIndex >= 0 && _selectedItemIndex < _itemChoices.Count)
+            return _itemChoices[_selectedItemIndex].Definition;
+        return null;
+    }
+
     /// <summary>마우스 위치를 기준으로 발사 방향(정규화)을 계산한다.</summary>
     private Vector2 GetAimDirection()
     {
@@ -497,17 +858,12 @@ public class PlayerShooter : MonoBehaviour
     {
         if (_laser == null) return;
 
-        // 레이저/조준경 파츠가 하나도 없으면 가이드라인을 숨긴다("레이저도 파츠" 설계).
-        if (!_stats.laserEnabled)
-        {
-            if (_laser.enabled) _laser.enabled = false;
-            return;
-        }
+        // 직선 레이저포인터는 기본 상시 표시(파츠 불필요). 레이저 파츠를 끼우면 사거리/반사가 추가된다.
         if (!_laser.enabled) _laser.enabled = true;
 
         Vector2 origin = _firePoint != null ? (Vector2)_firePoint.position : (Vector2)transform.position;
 
-        // 사정거리 = 레이저 + 조준경(합연산) → 상한(_guidelineMaxRange)으로 캡.
+        // 사정거리 = 기본 + 레이저 파츠(합연산) → 상한(_guidelineMaxRange)으로 캡.
         // 파츠에 거리 설정이 없으면 상한을 그대로 사용한다.
         float range = _stats.laserRange + _stats.predictRange;
         if (range <= 0.01f) range = _guidelineMaxRange;

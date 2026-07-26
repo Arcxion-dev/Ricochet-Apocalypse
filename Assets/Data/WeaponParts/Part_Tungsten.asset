@@ -9,8 +9,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ac710c1f7224edc4a9ea81aebe346926, type: 3}
-  m_Name: Part_Scope
-  m_EditorClassIdentifier: Assembly-CSharp::ScopePartSO
-  partName: "\uC870\uC900\uACBD"
-  headshotBonus: 0.2
+  m_Script: {fileID: 11500000, guid: cc0ae15c03e40c3449b32bd31b04fd57, type: 3}
+  m_Name: Part_Tungsten
+  m_EditorClassIdentifier: Assembly-CSharp::TungstenPartSO
+  partName: "\uD145\uC2A4\uD150 \uD0C4\uD658"

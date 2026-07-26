@@ -11,7 +11,7 @@ using UnityEngine.AI;
 /// - 이 오브젝트에는 NavMeshAgent가 자동으로 추가됨 (RequireComponent)
 /// </summary>
 [RequireComponent(typeof(NavMeshAgent))]
-public class EnemyAIModule : MonoBehaviour
+public class EnemyAIModule : MonoBehaviour, ISuppressible
 {
     [Header("타겟 / 탐색 설정")]
     [Tooltip("비워두면 Awake 시 tag가 Player인 오브젝트를 자동으로 찾습니다.")]
@@ -23,14 +23,42 @@ public class EnemyAIModule : MonoBehaviour
     private SpeedModule speedModule;
     private float repathTimer;
 
+    /// <summary>"Civilian" 태그가 붙은 대상은 스테이지 내내 제자리에 가만히 있고 절대 추격하지 않는다.</summary>
+    private bool isCivilian;
+
+    /// <summary>이동 저지(섬광탄/저지탄) 남은 시간(초). 0보다 크면 저지 중.</summary>
+    private float suppressTimer;
+    /// <summary>저지 중 이동속도 감소율(1 = 완전 정지).</summary>
+    private float suppressSlow;
+
+    /// <summary>ISuppressible: 지정 시간 동안 이동을 저지한다(더 강하거나 더 긴 저지가 우선).</summary>
+    public void ApplySuppression(float duration, float slowRatio)
+    {
+        suppressTimer = Mathf.Max(suppressTimer, duration);
+        suppressSlow = Mathf.Max(suppressSlow, Mathf.Clamp01(slowRatio));
+    }
+
     private void Awake()
     {
+        isCivilian = CompareTag("Civilian");
+
         speedModule = GetComponent<SpeedModule>();
 
         agent = GetComponent<NavMeshAgent>();
         agent.updateRotation = false; // 2D 스프라이트가 3D 회전을 따라가지 않도록
         agent.updateUpAxis = false;   // NavMeshPlus로 XY 평면에 구운 메시 기준
         agent.stoppingDistance = stoppingDistance;
+
+        if (isCivilian)
+        {
+            // 민간인: 목적지를 절대 설정하지 않아 제자리 고정. 에이전트도 멈춰둔다(navmesh 위일 때만 안전하게).
+            if (agent.isOnNavMesh)
+            {
+                agent.ResetPath();
+                agent.isStopped = true;
+            }
+            return; // 타겟 탐색/속도 동기화 불필요.
+        }
 
         if (target == null)
         {
@@ -43,9 +71,29 @@ public class EnemyAIModule : MonoBehaviour
 
     private void Update()
     {
-        if (target == null || agent == null || !agent.isOnNavMesh) return;
+        if (isCivilian) return; // 민간인은 절대 추격하지 않는다(제자리 고정).
 
-        SyncSpeed();
+        if (agent == null || !agent.isOnNavMesh) return;
+
+        // 이동 저지(섬광탄/저지탄): 타이머를 깎고, 완전 저지면 이 프레임 이동을 멈춘다.
+        bool fullyStopped = false;
+        if (suppressTimer > 0f)
+        {
+            suppressTimer -= Time.deltaTime;
+            if (suppressTimer <= 0f) suppressSlow = 0f;      // 저지 종료 → 감속 해제
+            else fullyStopped = suppressSlow >= 0.999f;       // 완전 정지 여부
+        }
+
+        SyncSpeed(); // 부분 감속(slowRatio<1)도 매 프레임 반영
+
+        if (fullyStopped)
+        {
+            if (!agent.isStopped) agent.isStopped = true;
+            return; // 완전 저지 중엔 목적지를 갱신하지 않는다.
+        }
+        if (agent.isStopped) agent.isStopped = false;
+
+        if (target == null) return;
 
         // 스테이지 시작 직후에는 제자리 대기. 플레이어가 첫 발을 쏘고 추격 지연이 끝나야
         // GameManager.EnemiesCanChase가 켜지고 그때부터 목적지를 갱신(추격)한다.
@@ -66,7 +114,8 @@ public class EnemyAIModule : MonoBehaviour
     private void SyncSpeed()
     {
         if (speedModule == null || agent == null) return;
-        agent.speed = speedModule.CurrentSpeed;
+        float mult = suppressTimer > 0f ? Mathf.Clamp01(1f - suppressSlow) : 1f;
+        agent.speed = speedModule.CurrentSpeed * mult;
     }
 
     public void SetTarget(Transform newTarget) => target = newTarget;

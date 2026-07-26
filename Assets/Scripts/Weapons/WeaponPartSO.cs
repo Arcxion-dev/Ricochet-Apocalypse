@@ -22,10 +22,16 @@ public struct WeaponStats
     /// <summary>예측할 벽 반사 횟수. 조준경 파츠가 더한다(가이드선 증가).</summary>
     public int predictBounces;
 
-    /// <summary>반사 궤적 예측 사정거리 추가분(월드 유닛). 조준경이 더하며 레이저 사정거리와 합연산된다.</summary>
+    /// <summary>반사 궤적 예측 사정거리 추가분(월드 유닛). 레이저 파츠가 더하며 기본 사정거리와 합연산된다.</summary>
     public float predictRange;
 
-    /// <summary>파츠가 하나도 없을 때의 기본값(배율 1, 가이드 꺼짐).</summary>
+    /// <summary>헤드샷 배수에 곱해질 추가 비율. 0=기본. 조준경 파츠가 0.2(=+20%)를 더한다(배수 ×(1+bonus)).</summary>
+    public float headshotMultiplierBonus;
+
+    /// <summary>텅스텐 탄환: 자연 헤드샷 명중 시 다음에 맞을 상대를 확정 헤드샷으로 만드는 연쇄 활성 여부.</summary>
+    public bool guaranteedHeadshotChain;
+
+    /// <summary>파츠가 하나도 없을 때의 기본값(배율 1). 직선 레이저는 기본 상시 표시라 게이팅과 무관.</summary>
     public static WeaponStats Default => new WeaponStats
     {
         swayMultiplier = 1f,
@@ -34,6 +40,8 @@ public struct WeaponStats
         laserRange = 0f,
         predictBounces = 0,
         predictRange = 0f,
+        headshotMultiplierBonus = 0f,
+        guaranteedHeadshotChain = false,
     };
 }
 

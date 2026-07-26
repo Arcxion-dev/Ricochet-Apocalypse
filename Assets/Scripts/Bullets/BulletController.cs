@@ -293,7 +293,16 @@ private void HandleEnemyHit(Collider2D enemy)
         var enemyController = enemy.GetComponentInParent<EnemyController>();
         if (enemyController != null)
         {
-            enemyController.OnBulletHit(Data.damage, Data.element, hasArmorPiercing);
+            // 무기 파츠(조준경/텅스텐) 상태를 현재 사수에서 읽어 헤드샷 보너스/확정 처리를 넘긴다.
+            var shooter = PlayerShooter.Active;
+            float headshotBonus = shooter != null ? shooter.HeadshotMultiplierBonus : 0f;
+            bool tungsten = shooter != null && shooter.GuaranteedHeadshotChain;
+            bool force = tungsten && shooter.ConsumeGuaranteedHeadshot();
+
+            bool wasHeadshot = enemyController.OnBulletHit(Data.damage, Data.element, hasArmorPiercing, headshotBonus, force);
+
+            // 텅스텐: 자연(비확정) 헤드샷일 때만 다음 명중을 확정 헤드샷으로 예약(무한 연쇄 방지).
+            if (wasHeadshot && !force && tungsten) shooter.ArmGuaranteedHeadshot();
         }
         else
         {
