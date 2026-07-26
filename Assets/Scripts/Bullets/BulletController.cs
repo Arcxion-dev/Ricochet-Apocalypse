@@ -158,11 +158,31 @@ public class BulletController : MonoBehaviour
         HandleObstacleHit(hit.collider, targetType, hit.normal, hit.centroid);
     }
 
-    /// <summary>총알 콜라이더를 근사한 스윕용 반지름(회전 무관하게 안전한 값).</summary>
-    private float GetBulletRadius()
+    /// <summary>이 총알의 스윕용 반지름. <see cref="ComputeCollisionRadius"/>를 콜라이더에 적용한다.</summary>
+    private float GetBulletRadius() => ComputeCollisionRadius(_col);
+
+    /// <summary>
+    /// 콜라이더 크기(로컬 size × lossyScale)로 스윕/반사 예측용 반지름을 구한다.
+    /// <see cref="Collider2D.bounds"/>(회전된 AABB)를 쓰지 않아 <b>총알 회전과 무관하게 일정</b>하며,
+    /// 씬에 스폰하지 않은 프리팹에서도 계산된다. 조준선 예측(<see cref="PlayerShooter"/>)이 실제 탄환과
+    /// 정확히 같은 반지름으로 벽 반사를 예측하도록 양쪽이 이 메서드를 공유한다.
+    /// </summary>
+    public static float ComputeCollisionRadius(Collider2D col)
     {
-        if (_col == null) return 0.45f;
-        Vector3 ext = _col.bounds.extents;
+        if (col == null) return 0.45f;
+        Vector2 lossy = col.transform.lossyScale;
+        Vector2 ext;
+        if (col is BoxCollider2D box)
+            ext = new Vector2(box.size.x * 0.5f * Mathf.Abs(lossy.x), box.size.y * 0.5f * Mathf.Abs(lossy.y));
+        else if (col is CircleCollider2D circ)
+        {
+            float r = circ.radius * Mathf.Max(Mathf.Abs(lossy.x), Mathf.Abs(lossy.y));
+            ext = new Vector2(r, r);
+        }
+        else if (col is CapsuleCollider2D cap)
+            ext = new Vector2(cap.size.x * 0.5f * Mathf.Abs(lossy.x), cap.size.y * 0.5f * Mathf.Abs(lossy.y));
+        else
+            ext = col.bounds.extents; // 기타 콜라이더 폴백
         return Mathf.Max(0.05f, Mathf.Min(ext.x, ext.y) - 0.02f);
     }
 
@@ -241,7 +261,7 @@ public BulletController SpawnChildBullet(BulletSO childData, Vector2 direction)
     /// 장애물 담당자가 IBulletObstacle 같은 인터페이스를 구현하면 그쪽 값을 우선 사용하도록
     /// 확장 지점을 열어두었습니다. 지금은 태그 기반 임시 판정 + 기본값(Wall)입니다.
     /// </summary>
-    private BulletTargetType ResolveTargetType(Collider2D other)
+    public static BulletTargetType ResolveTargetType(Collider2D other)
     {
         var provider = other.GetComponent<IBulletObstacleInfoProvider>();
         if (provider != null) return provider.TargetType;
@@ -408,9 +428,14 @@ private void HandleObstacleHit(Collider2D obstacle, BulletTargetType targetType,
     /// - 전자 패널: 일단 벽처럼 튕김 처리 (기믹 상호작용은 별도 시스템)
     /// </summary>
     private BulletHitResult DetermineHitResult(BulletTargetType targetType)
-    {
-        bool hasArmorPiercing = Data.HasEffect<ArmorPiercingEffectSO>();
+        => DetermineHitResult(targetType, Data != null && Data.HasEffect<ArmorPiercingEffectSO>());
 
+    /// <summary>
+    /// 장애물 타입 + 철갑탄 여부로 총알 반응(튕김/관통/파괴)을 결정하는 공용 규칙(static).
+    /// 조준선 예측(<see cref="PlayerShooter"/>)이 실제 탄환과 동일하게 판정하도록 이 메서드를 공유한다.
+    /// </summary>
+    public static BulletHitResult DetermineHitResult(BulletTargetType targetType, bool hasArmorPiercing)
+    {
         switch (targetType)
         {
             case BulletTargetType.Wall:

@@ -172,6 +172,14 @@ public class PlayerShooter : MonoBehaviour
         if (_wallLayerMask.value == 0 && _bulletPrefab != null)
             _wallLayerMask = _bulletPrefab.WallLayerMask;
 
+        // 조준선 반사 예측이 실제 탄환과 "같은 반지름"으로 튕기도록, 탄환 프리팹 콜라이더에서 반지름을 맞춘다.
+        // (콜라이더 크기 차이로 조준선과 실제 탄환의 튕김 위치가 어긋나던 문제 해결)
+        if (_bulletPrefab != null)
+        {
+            var bulletCol = _bulletPrefab.GetComponent<Collider2D>();
+            if (bulletCol != null) _guidelineRadius = BulletController.ComputeCollisionRadius(bulletCol);
+        }
+
         // 씬 전환 중 UI가 닫힌 채로 타임스케일이 0에 묶여 있으면 풀어준다(정지 상태로 씬이 시작되는 것 방지).
         if (Time.timeScale == 0f && !InventoryUI.IsOpen && !WeaponPartsUI.IsOpen)
             Time.timeScale = 1f;
@@ -932,12 +940,19 @@ public class PlayerShooter : MonoBehaviour
         _guidePoints.Clear();
         _guidePoints.Add(origin);
 
+        // 선택 탄환 정보를 반영해 "실제 탄환과 동일한" 반응(튕김/관통/파괴 + 바운스 한도)을 예측한다.
+        BulletSO bullet = ResolveSelectedBullet()?.bulletData;
+        bool hasArmorPiercing = bullet != null && bullet.HasEffect<ArmorPiercingEffectSO>();
+        // 반사 예측 예산 = 파츠 예측치와 실제 탄환의 최대 튕김 수 중 작은 값(둘 다 넘지 않게).
+        int bounceBudget = bullet != null ? Mathf.Min(maxBounces, bullet.maxBounceCount) : maxBounces;
+
         Vector2 pos = origin;
         Vector2 d = dir.sqrMagnitude > 0.0001f ? dir.normalized : Vector2.right;
         float remaining = maxRange;
         int bounces = 0;
+        int guard = 0; // 관통 반복 등으로 인한 무한루프 방지
 
-        while (remaining > 0.001f)
+        while (remaining > 0.001f && guard++ < 64)
         {
             RaycastHit2D hit = Physics2D.CircleCast(pos, _guidelineRadius, d, remaining, _wallLayerMask);
             if (hit.collider == null)
@@ -947,15 +962,57 @@ public class PlayerShooter : MonoBehaviour
             }
 
             Vector2 hitPos = pos + d * hit.distance;
+            BulletTargetType type = BulletController.ResolveTargetType(hit.collider);
+
+            // 민간인: 실제 탄환은 여기서 소멸(스테이지 실패) → 조준선도 멈춘다.
+            if (type == BulletTargetType.Civilian)
+            {
+                _guidePoints.Add(hitPos);
+                break;
+            }
+
+            BulletHitResult result = BulletController.DetermineHitResult(type, hasArmorPiercing);
+
+            if (result == BulletHitResult.Penetrate)
+            {
+                // 관통(풀숲/모래·아지랑이, 또는 철갑탄+벽): 반사가 아니므로 방향 유지하고 장애물을 지나 계속.
+                float exit = RayBoxExitDistance(hitPos, d, hit.collider.bounds);
+                float advance = hit.distance + exit + 0.02f;
+                if (advance >= remaining) { _guidePoints.Add(pos + d * remaining); break; }
+                pos += d * advance;
+                remaining -= advance;
+                continue;
+            }
+
+            // 튕김/파괴: 맞은 지점을 궤적에 추가.
             _guidePoints.Add(hitPos);
             remaining -= hit.distance;
 
-            if (bounces >= maxBounces) break; // 반사 예산 소진 → 벽에서 멈춤.
+            if (result == BulletHitResult.Destroy) break; // 파괴형은 여기서 소멸.
 
+            // 튕김: 반사 예산이 남았을 때만 반사(없으면 이 벽에서 멈춤 = 실제 탄환이 소멸/예측 한계).
+            if (bounces >= bounceBudget) break;
             d = Vector2.Reflect(d, hit.normal).normalized;
-            pos = hitPos + d * 0.02f; // 방금 맞은 벽을 즉시 재감지하지 않도록 살짝 띄운다.
+            pos = hitPos + d * 0.02f;
             bounces++;
         }
+    }
+
+    /// <summary>점 p에서 방향 d로 나아갈 때 축정렬 박스(bounds)를 빠져나가는 거리(AABB far 교점). 관통 장애물 스킵용.</summary>
+    private static float RayBoxExitDistance(Vector2 p, Vector2 d, Bounds b)
+    {
+        float tExit = float.PositiveInfinity;
+        if (Mathf.Abs(d.x) > 1e-6f)
+        {
+            float t1 = (b.min.x - p.x) / d.x, t2 = (b.max.x - p.x) / d.x;
+            tExit = Mathf.Min(tExit, Mathf.Max(t1, t2));
+        }
+        if (Mathf.Abs(d.y) > 1e-6f)
+        {
+            float t1 = (b.min.y - p.y) / d.y, t2 = (b.max.y - p.y) / d.y;
+            tExit = Mathf.Min(tExit, Mathf.Max(t1, t2));
+        }
+        return (tExit > 0f && !float.IsInfinity(tExit)) ? tExit : 0f;
     }
 
     /// <summary>총알 프리팹을 스폰하고 BulletSO로 초기화해 실제로 발사한다.</summary>
