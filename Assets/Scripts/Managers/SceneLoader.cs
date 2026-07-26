@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -20,10 +21,34 @@ public static class SceneLoader
         public const string Result = "Result";
 
         /// <summary>
-        /// 스테이지 씬 진행 순서. 인덱스(CurrentStageIndex)가 이 배열을 가리킨다.
-        /// 스테이지를 추가/재정렬하려면 여기에 씬 이름을 넣고 Build Settings에 등록하면 된다.
+        /// 스테이지 씬 진행 순서. **Build Settings에 등록된 "Stage{숫자}" 씬들을 번호순으로** 자동 구성한다.
+        /// 새 스테이지를 추가하려면 그 씬을 Build Settings에 등록하기만 하면 된다(맵 에디터 '스테이지 복제'가 자동 등록).
+        /// 하나도 없으면 기본값(Stage1~3)으로 폴백한다. (소스 수정 불필요)
         /// </summary>
-        public static readonly string[] Stages = { "Stage1", "Stage2", "Stage3" };
+        public static string[] Stages => ResolveStagesFromBuildSettings();
+
+        private static readonly System.Text.RegularExpressions.Regex StageNameRegex =
+            new System.Text.RegularExpressions.Regex(@"^Stage(\d+)$");
+
+        private static string[] ResolveStagesFromBuildSettings()
+        {
+            var found = new List<KeyValuePair<int, string>>();
+            int count = SceneManager.sceneCountInBuildSettings;
+            for (int i = 0; i < count; i++)
+            {
+                string path = SceneUtility.GetScenePathByBuildIndex(i);
+                string name = System.IO.Path.GetFileNameWithoutExtension(path);
+                var m = StageNameRegex.Match(name);
+                if (m.Success && int.TryParse(m.Groups[1].Value, out int n))
+                    found.Add(new KeyValuePair<int, string>(n, name));
+            }
+            found.Sort((a, b) => a.Key.CompareTo(b.Key));
+
+            if (found.Count == 0) return new[] { "Stage1", "Stage2", "Stage3" };
+            var arr = new string[found.Count];
+            for (int i = 0; i < found.Count; i++) arr[i] = found[i].Value;
+            return arr;
+        }
     }
 
     /// <summary>현재 스테이지 진행 인덱스 (0부터).</summary>

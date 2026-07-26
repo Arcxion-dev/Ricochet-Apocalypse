@@ -1,5 +1,7 @@
 using System.Collections.Generic;
+using System.IO;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -36,6 +38,14 @@ public class MapEditorWindow : EditorWindow
     private GameObject _brush;
     private Vector2 _scroll;
 
+    // 편의 기능 상태
+    private GameObject _perimeterPrefab;
+    private int _gridCols = 9, _gridRows = 12;
+    private float _gridCell = 1f;
+    private bool _recenter = true;
+    private bool _gridFieldsInit;
+    private bool _showConvenience = true;
+
     [MenuItem("Tools/Ricochet/맵 에디터")]
     private static void Open()
     {
@@ -46,6 +56,8 @@ public class MapEditorWindow : EditorWindow
     private void OnEnable()
     {
         ReloadPalette();
+        if (_perimeterPrefab == null)
+            _perimeterPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Obstacles/WallPrefab_Basic.prefab");
         SceneView.duringSceneGui += OnSceneGUI;
     }
 
@@ -131,6 +143,8 @@ public class MapEditorWindow : EditorWindow
                 : "활성 씬에 GridModule이 없어 배치할 수 없습니다. 맵 씬을 열어주세요.",
             grid != null ? MessageType.Info : MessageType.Warning);
 
+        DrawConvenience(grid);
+
         EditorGUILayout.LabelField("팔레트", EditorStyles.boldLabel);
         if (_palette.Count == 0)
             EditorGUILayout.HelpBox("팔레트가 비었습니다. Assets/Prefabs/Obstacles·Enemies 확인 후 '팔레트 새로고침'.", MessageType.Info);
@@ -154,6 +168,194 @@ public class MapEditorWindow : EditorWindow
         EditorGUILayout.EndScrollView();
 
         EditorGUILayout.LabelField("현재 브러시", _brush != null ? _brush.name : "(없음)");
+    }
+
+    // ───────────────────────── 편의 기능 ─────────────────────────
+
+    private void DrawConvenience(GridModule grid)
+    {
+        _showConvenience = EditorGUILayout.BeginFoldoutHeaderGroup(_showConvenience, "편의 기능");
+        if (_showConvenience)
+        {
+            using (new EditorGUI.DisabledScope(grid == null))
+            {
+                // 1) 바깥 외벽 설치
+                EditorGUILayout.LabelField("바깥 외벽", EditorStyles.miniBoldLabel);
+                _perimeterPrefab = (GameObject)EditorGUILayout.ObjectField("외벽 프리팹", _perimeterPrefab, typeof(GameObject), false);
+                using (new EditorGUILayout.HorizontalScope())
+                {
+                    if (GUILayout.Button("바깥 외벽 설치")) InstallPerimeter(grid);
+                    if (GUILayout.Button("외벽 제거")) RemovePerimeter(grid);
+                }
+
+                EditorGUILayout.Space(4);
+
+                // 2) 그리드 크기 변경
+                EditorGUILayout.LabelField("그리드 크기", EditorStyles.miniBoldLabel);
+                if (!_gridFieldsInit && grid != null)
+                {
+                    _gridCols = grid.Columns; _gridRows = grid.Rows; _gridCell = grid.CellSize; _gridFieldsInit = true;
+                }
+                _gridCols = Mathf.Max(1, EditorGUILayout.IntField("가로 칸(Columns)", _gridCols));
+                _gridRows = Mathf.Max(1, EditorGUILayout.IntField("세로 칸(Rows)", _gridRows));
+                _gridCell = Mathf.Max(0.01f, EditorGUILayout.FloatField("칸 크기(Cell)", _gridCell));
+                _recenter = EditorGUILayout.ToggleLeft("원점을 (0,0) 중심으로 재정렬", _recenter);
+                using (new EditorGUILayout.HorizontalScope())
+                {
+                    if (GUILayout.Button("그리드 크기 적용")) ApplyGridSize(grid);
+                    if (GUILayout.Button("현재값 불러오기")) { _gridCols = grid.Columns; _gridRows = grid.Rows; _gridCell = grid.CellSize; }
+                }
+            }
+
+            EditorGUILayout.Space(4);
+
+            // 3) 스테이지 복제(기본 세팅만)
+            EditorGUILayout.LabelField("스테이지 복제", EditorStyles.miniBoldLabel);
+            EditorGUILayout.HelpBox("현재 씬을 복제해 배치물(장애물/적/스폰)을 비운 '기본 세팅만' 새 스테이지를 만들고 엽니다. Build Settings/SceneLoader에도 등록.", MessageType.None);
+            if (GUILayout.Button("기본 세팅만 새 스테이지 생성")) DuplicateStageBaseOnly();
+        }
+        EditorGUILayout.EndFoldoutHeaderGroup();
+        EditorGUILayout.Space(4);
+    }
+
+    /// <summary>그리드 테두리 칸을 외벽 프리팹으로 채운다(이미 점유된 칸은 건너뜀).</summary>
+    private void InstallPerimeter(GridModule grid)
+    {
+        if (grid == null || _perimeterPrefab == null)
+        {
+            Debug.LogWarning("[MapEditor] 외벽 프리팹 또는 GridModule이 없습니다.");
+            return;
+        }
+        var root = GetOrCreateRoot(grid);
+        int group = Undo.GetCurrentGroup();
+        Undo.SetCurrentGroupName("바깥 외벽 설치");
+
+        int placed = 0;
+        for (int x = 0; x < grid.Columns; x++)
+        {
+            for (int y = 0; y < grid.Rows; y++)
+            {
+                bool border = x == 0 || x == grid.Columns - 1 || y == 0 || y == grid.Rows - 1;
+                if (!border) continue;
+                var cell = new Vector2Int(x, y);
+                if (FindOccupant(grid, root, cell) != null) continue;
+
+                var inst = (GameObject)PrefabUtility.InstantiatePrefab(_perimeterPrefab);
+                Undo.RegisterCreatedObjectUndo(inst, "바깥 외벽 설치");
+                inst.transform.SetParent(root, true);
+                Vector2 c = grid.CellToWorld(cell);
+                inst.transform.position = new Vector3(c.x, c.y, 0f);
+                placed++;
+            }
+        }
+        Undo.CollapseUndoOperations(group);
+        EditorSceneManager.MarkSceneDirty(grid.gameObject.scene);
+        Debug.Log($"[MapEditor] 바깥 외벽 {placed}칸 설치. 배치 후 'NavMesh 재베이크' 권장.");
+    }
+
+    /// <summary>그리드 테두리 칸에 있는 배치물을 제거한다.</summary>
+    private void RemovePerimeter(GridModule grid)
+    {
+        var root = FindRoot(grid);
+        if (grid == null || root == null) return;
+        int group = Undo.GetCurrentGroup();
+        Undo.SetCurrentGroupName("외벽 제거");
+
+        int removed = 0;
+        for (int i = root.childCount - 1; i >= 0; i--)
+        {
+            var ch = root.GetChild(i);
+            var cell = grid.WorldToCell(ch.position);
+            bool border = cell.x == 0 || cell.x == grid.Columns - 1 || cell.y == 0 || cell.y == grid.Rows - 1;
+            if (border && grid.IsInsideGrid(cell)) { Undo.DestroyObjectImmediate(ch.gameObject); removed++; }
+        }
+        Undo.CollapseUndoOperations(group);
+        EditorSceneManager.MarkSceneDirty(grid.gameObject.scene);
+        Debug.Log($"[MapEditor] 외벽 {removed}칸 제거.");
+    }
+
+    /// <summary>그리드 칸 수/크기를 바꾸고(선택 시 원점 재정렬) 격자선을 다시 그린다.</summary>
+    private void ApplyGridSize(GridModule grid)
+    {
+        if (grid == null) return;
+        Undo.RecordObject(grid, "그리드 크기 변경");
+
+        Vector2 origin = _recenter
+            ? new Vector2(-_gridCols * _gridCell * 0.5f, -_gridRows * _gridCell * 0.5f)
+            : grid.Origin;
+        grid.Configure(_gridCols, _gridRows, _gridCell, origin);
+        EditorUtility.SetDirty(grid);
+
+        var vis = grid.GetComponent<MapGridVisualizer>();
+        if (vis != null) vis.Rebuild();
+
+        EditorSceneManager.MarkSceneDirty(grid.gameObject.scene);
+        Debug.Log($"[MapEditor] 그리드 → {_gridCols}×{_gridRows}, cell {_gridCell}, origin {origin}");
+    }
+
+    /// <summary>현재 씬을 복제해 배치물을 비운 '기본 세팅만' 새 스테이지를 만들고 연다.</summary>
+    private void DuplicateStageBaseOnly()
+    {
+        var cur = EditorSceneManager.GetActiveScene();
+        if (string.IsNullOrEmpty(cur.path))
+        {
+            EditorUtility.DisplayDialog("스테이지 복제", "현재 씬이 아직 에셋으로 저장되지 않았습니다. 먼저 씬을 저장하세요.", "확인");
+            return;
+        }
+
+        string newName = NextStageName();
+        string newPath = "Assets/Scenes/" + newName + ".unity";
+
+        // 현재 씬 저장 후 복제(디스크 복사).
+        EditorSceneManager.SaveScene(cur);
+        if (!AssetDatabase.CopyAsset(cur.path, newPath))
+        {
+            Debug.LogError($"[MapEditor] 씬 복제 실패: {cur.path} → {newPath}");
+            return;
+        }
+        AssetDatabase.Refresh();
+
+        var newScene = EditorSceneManager.OpenScene(newPath, OpenSceneMode.Single);
+        StripToBase();
+        EditorSceneManager.MarkSceneDirty(newScene);
+        EditorSceneManager.SaveScene(newScene);
+
+        AddSceneToBuildSettings(newPath);
+
+        Debug.Log($"[MapEditor] 새 스테이지 '{newName}' 생성 완료(기본 세팅만). Build Settings 등록됨(SceneLoader가 번호순 자동 인식). 이 씬에서 맵을 제작하세요.");
+    }
+
+    private static string NextStageName()
+    {
+        int max = 0;
+        var rx = new Regex(@"^Stage(\d+)$");
+        foreach (var guid in AssetDatabase.FindAssets("t:Scene", new[] { "Assets/Scenes" }))
+        {
+            string name = Path.GetFileNameWithoutExtension(AssetDatabase.GUIDToAssetPath(guid));
+            var m = rx.Match(name);
+            if (m.Success && int.TryParse(m.Groups[1].Value, out int n) && n > max) max = n;
+        }
+        return "Stage" + (max + 1);
+    }
+
+    /// <summary>배치물(MapObjects 루트/장애물/적/스폰마커)을 지워 기본 세팅만 남긴다.</summary>
+    private static void StripToBase()
+    {
+        var scene = EditorSceneManager.GetActiveScene();
+        foreach (var go in scene.GetRootGameObjects())
+            if (go.name == MapRootName) Object.DestroyImmediate(go);
+
+        foreach (var m in Object.FindObjectsOfType<ObstacleTypeMarker>()) if (m) Object.DestroyImmediate(m.gameObject);
+        foreach (var e in Object.FindObjectsOfType<EnemyController>()) if (e) Object.DestroyImmediate(e.gameObject);
+        foreach (var s in Object.FindObjectsOfType<PlayerSpawnMarker>()) if (s) Object.DestroyImmediate(s.gameObject);
+    }
+
+    private static void AddSceneToBuildSettings(string path)
+    {
+        var list = new List<EditorBuildSettingsScene>(EditorBuildSettings.scenes);
+        foreach (var s in list) if (s.path == path) return; // 이미 등록됨
+        list.Add(new EditorBuildSettingsScene(path, true));
+        EditorBuildSettings.scenes = list.ToArray();
     }
 
     // ───────────────────────── Scene 뷰 상호작용 ─────────────────────────

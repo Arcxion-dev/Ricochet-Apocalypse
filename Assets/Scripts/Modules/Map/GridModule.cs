@@ -53,6 +53,16 @@ public class GridModule : MonoBehaviour
 
     public void ReleaseCell(Vector2Int cell) => occupants.Remove(cell);
 
+    /// <summary>그리드 칸 수/크기/원점을 한 번에 설정한다(맵 에디터의 그리드 크기 변경용). 점유 정보는 초기화한다.</summary>
+    public void Configure(int newColumns, int newRows, float newCellSize, Vector2 newOrigin)
+    {
+        columns = Mathf.Max(1, newColumns);
+        rows = Mathf.Max(1, newRows);
+        cellSize = Mathf.Max(0.01f, newCellSize);
+        origin = newOrigin;
+        occupants.Clear();
+    }
+
     public GameObject GetOccupant(Vector2Int cell)
     {
         occupants.TryGetValue(cell, out var occupant);
