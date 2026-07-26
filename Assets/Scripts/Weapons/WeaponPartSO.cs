@@ -31,6 +31,9 @@ public struct WeaponStats
     /// <summary>텅스텐 탄환: 자연 헤드샷 명중 시 다음에 맞을 상대를 확정 헤드샷으로 만드는 연쇄 활성 여부.</summary>
     public bool guaranteedHeadshotChain;
 
+    /// <summary>탄환 기본 대미지에 곱해질 배율. 1=기본. 강선 파츠가 강화도(레벨)당 +25%씩 올린다.</summary>
+    public float damageMultiplier;
+
     /// <summary>파츠가 하나도 없을 때의 기본값(배율 1). 직선 레이저는 기본 상시 표시라 게이팅과 무관.</summary>
     public static WeaponStats Default => new WeaponStats
     {
@@ -42,6 +45,7 @@ public struct WeaponStats
         predictRange = 0f,
         headshotMultiplierBonus = 0f,
         guaranteedHeadshotChain = false,
+        damageMultiplier = 1f,
     };
 }
 
@@ -58,8 +62,8 @@ public abstract class WeaponPartSO : ScriptableObject
     [Tooltip("파츠 표시 이름(디버그/HUD용). 비워도 동작에는 영향 없음.")]
     public string partName;
 
-    /// <summary>UI 표시용 이름. partName이 비어 있으면 에셋 이름을 사용한다.</summary>
-    public string DisplayName => string.IsNullOrEmpty(partName) ? name : partName;
+    /// <summary>UI 표시용 이름. partName이 비어 있으면 에셋 이름을 사용한다. (강선 등은 레벨을 붙여 override)</summary>
+    public virtual string DisplayName => string.IsNullOrEmpty(partName) ? name : partName;
 
     /// <summary>이 파츠의 효과를 집계 스탯에 더한다(합연산/배율은 각 파츠가 결정).</summary>
     public abstract void Contribute(ref WeaponStats stats);

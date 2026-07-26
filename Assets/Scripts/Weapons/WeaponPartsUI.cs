@@ -140,6 +140,17 @@ public class WeaponPartsUI : MonoBehaviour
             if (part == null) continue;
             AddPartRow(part);
         }
+
+        // 강선 강화(디버그): 현재 강화도/대미지 배율 표시 + 강화 버튼.
+        AddText(_contentRoot,
+            $"강선 강화도: +{_shooter.RiflingLevel}  (대미지 ×{_shooter.DamageMultiplier:0.##})",
+            16, new Color(1f, 0.8f, 0.4f), FontStyle.Bold);
+        var upgradeBtn = AddButton(_contentRoot, "＋ 강선 강화 (+25%)", new Color(0.20f, 0.28f, 0.40f, 0.95f));
+        upgradeBtn.onClick.AddListener(() =>
+        {
+            _shooter.UpgradeRifling();
+            Refresh(); // 강화도/배율 라벨 즉시 갱신.
+        });
     }
 
     /// <summary>파츠 한 개의 ON/OFF 토글 버튼을 만든다.</summary>

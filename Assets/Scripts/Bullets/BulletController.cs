@@ -290,16 +290,19 @@ private void HandleEnemyHit(Collider2D enemy)
         // 적에 EnemyController가 있으면 그쪽 파이프라인(방어 무적 -> 헤드샷 -> 속성 취약 배수 ->
         // 장갑 배수 -> Entity.TakeDamage)으로 라우팅한다. 총알 속성(Data.element)과 철갑탄 여부를 넘겨
         // AttributeModule/ArmorModule/HeadshotModule/DefenseModule이 실제로 작동하게 한다.
+        // 무기 파츠(강선/조준경/텅스텐) 상태를 현재 사수에서 읽는다. 강선 강화는 기본 대미지에 곱한다.
+        var shooter = PlayerShooter.Active;
+        float damageMul = shooter != null ? shooter.DamageMultiplier : 1f;
+        float baseDamage = Data.damage * damageMul;
+
         var enemyController = enemy.GetComponentInParent<EnemyController>();
         if (enemyController != null)
         {
-            // 무기 파츠(조준경/텅스텐) 상태를 현재 사수에서 읽어 헤드샷 보너스/확정 처리를 넘긴다.
-            var shooter = PlayerShooter.Active;
             float headshotBonus = shooter != null ? shooter.HeadshotMultiplierBonus : 0f;
             bool tungsten = shooter != null && shooter.GuaranteedHeadshotChain;
             bool force = tungsten && shooter.ConsumeGuaranteedHeadshot();
 
-            bool wasHeadshot = enemyController.OnBulletHit(Data.damage, Data.element, hasArmorPiercing, headshotBonus, force);
+            bool wasHeadshot = enemyController.OnBulletHit(baseDamage, Data.element, hasArmorPiercing, headshotBonus, force);
 
             // 텅스텐: 자연(비확정) 헤드샷일 때만 다음 명중을 확정 헤드샷으로 예약(무한 연쇄 방지).
             if (wasHeadshot && !force && tungsten) shooter.ArmGuaranteedHeadshot();
@@ -307,7 +310,7 @@ private void HandleEnemyHit(Collider2D enemy)
         else
         {
             // EnemyController가 없는 적: 기존 경로(철갑탄 IArmored 배수 + 직접 Entity 대미지) 폴백.
-            float finalDamage = Data.damage;
+            float finalDamage = baseDamage;
             if (hasArmorPiercing)
             {
                 var armorEffect = Data.GetEffect<ArmorPiercingEffectSO>();

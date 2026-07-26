@@ -3781,6 +3781,10 @@ MonoBehaviour:
   - {fileID: 11400000, guid: a9ffe8026af316d438dde4e893bfc7ef, type: 2}
   - {fileID: 11400000, guid: e09bfcdc5c4731c498f65ac5a13acce6, type: 2}
   - {fileID: 11400000, guid: 25d9ca74917ae994090b4453c7b9f524, type: 2}
+  - {fileID: 11400000, guid: fb151c4f4b3b03a498223ac5fe517a68, type: 2}
+  _bulletChangeKey: 113
+  _itemChangeKey: 101
+  _itemUseKey: 102
   _breathAmplitudeDeg: 2.5
   _breathSpeed: 2
   _breathColor: {r: 1, g: 0.85, b: 0.1, a: 1}

@@ -381,6 +381,35 @@ public class PlayerShooter : MonoBehaviour
         }
     }
 
+    /// <summary>강선 강화 등이 반영된 탄환 대미지 배율(×). BulletController가 명중 시 곱한다.</summary>
+    public float DamageMultiplier => _stats.damageMultiplier;
+
+    /// <summary>장착된 강선 파츠를 찾는다(활성/비활성 무관, 없으면 null).</summary>
+    private RiflingPartSO FindRifling()
+    {
+        foreach (var part in _equippedParts)
+            if (part is RiflingPartSO rifling) return rifling;
+        return null;
+    }
+
+    /// <summary>현재 강선 강화도(레벨). 강선이 없으면 0.</summary>
+    public int RiflingLevel => FindRifling() is RiflingPartSO r ? r.upgradeLevel : 0;
+
+    /// <summary>강선을 1단계 강화한다(대미지 +25%씩). 강선 파츠가 있어야 동작. 새 레벨을 반환(-1=강선 없음).</summary>
+    public int UpgradeRifling()
+    {
+        var rifling = FindRifling();
+        if (rifling == null)
+        {
+            Debug.LogWarning("[PlayerShooter] 강선 파츠가 장착되어 있지 않아 강화할 수 없습니다.");
+            return -1;
+        }
+        rifling.Upgrade();
+        RecomputeParts();
+        Debug.Log($"[PlayerShooter] 강선 강화 → +{rifling.upgradeLevel} (대미지 배율 ×{_stats.damageMultiplier:0.##})");
+        return rifling.upgradeLevel;
+    }
+
     // ───────────────────────── 탄환 선택 입력/목록 ─────────────────────────
 
     /// <summary>숫자키 1~5로 발사할 탄환 종류를 선택한다.</summary>
