@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 3981109615275867581}
   - component: {fileID: 932868365808131936}
   - component: {fileID: 4914834373692913660}
+  - component: {fileID: 8932452133521218473}
   m_Layer: 8
   m_Name: WallPrefab_ElectricPanel
   m_TagString: ElectricPanel
@@ -180,3 +181,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ObstacleTypeMarker
   targetType: 7
+--- !u!114 &8932452133521218473
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6037003178910352468}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9809bf1345abc5648af68b3a82653f08, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: NavMeshPlus::NavMeshPlus.Components.NavMeshModifier
+  m_OverrideArea: 1
+  m_Area: 1
+  m_IgnoreFromBuild: 0
+  m_AffectedAgents: ffffffff

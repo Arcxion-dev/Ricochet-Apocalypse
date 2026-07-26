@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 6048345987531993045}
   - component: {fileID: 3235967257198025952}
   - component: {fileID: 3509270211551019930}
+  - component: {fileID: 1664644589425090709}
   m_Layer: 8
   m_Name: WallPrefab_Tree
   m_TagString: Tree
@@ -196,3 +197,19 @@ MonoBehaviour:
   health: 30
   damagePerHit: 10
   onlyDestructibleByExplosion: 0
+--- !u!114 &1664644589425090709
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7792567785797442803}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9809bf1345abc5648af68b3a82653f08, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: NavMeshPlus::NavMeshPlus.Components.NavMeshModifier
+  m_OverrideArea: 1
+  m_Area: 1
+  m_IgnoreFromBuild: 0
+  m_AffectedAgents: ffffffff
