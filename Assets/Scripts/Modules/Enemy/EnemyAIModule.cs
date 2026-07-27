@@ -20,6 +20,7 @@ public class EnemyAIModule : MonoBehaviour, ISuppressible
     [SerializeField] private float stoppingDistance = 0.1f;
 
     private NavMeshAgent agent;
+    private GridModule gridModule; // 맵 경계(플레이어 방향 변)를 계산하기 위한 참조
     private SpeedModule speedModule;
     private float repathTimer;
 
@@ -66,7 +67,8 @@ public class EnemyAIModule : MonoBehaviour, ISuppressible
             if (playerGo != null) target = playerGo.transform;
         }
 
-        SyncSpeed();
+        gridModule = FindObjectOfType<GridModule>(); // 맵 경계 참조 캐싱(목표 면 계산용)
+SyncSpeed();
     }
 
     private void Update()
@@ -103,7 +105,7 @@ public class EnemyAIModule : MonoBehaviour, ISuppressible
         if (repathTimer <= 0f)
         {
             repathTimer = repathInterval;
-            agent.SetDestination(target.position);
+            agent.SetDestination(GetPlayerSideTarget());
         }
     }
 
@@ -118,5 +120,40 @@ public class EnemyAIModule : MonoBehaviour, ISuppressible
         agent.speed = speedModule.CurrentSpeed * mult;
     }
 
-    public void SetTarget(Transform newTarget) => target = newTarget;
+    /// <summary>
+    /// 플레이어를 직접 조준하는 대신, 맵 경계 사각형(충전포트면과 같은 네 변) 중
+    /// 플레이어에서 가장 가까운 변을 적의 새 목표로 삼습니다.
+    /// 적 자신의 직교축 좌표(좌우 변이면 y, 상하 변이면 x)는 그대로 유지해
+    /// 각 적이 그 변 위에서 자기 위치에 맞는 지점까지만 직선으로 접근합니다.
+    /// </summary>
+    private Vector3 GetPlayerSideTarget()
+    {
+        // GridModule이 없으면(미연결/테스트 씨 등) 기존 방식대로 플레이어 좌표를 그대로 사용한다.
+        if (gridModule == null) return target.position;
+
+        Vector2 min = gridModule.Origin;
+        Vector2 max = gridModule.Origin + gridModule.GridWorldSize;
+
+        // 플레이어와 네 경계선 사이의 거리를 비교해 "플레이어가 속한 변"을 찾는다.
+        float distLeft = target.position.x - min.x;
+        float distRight = max.x - target.position.x;
+        float distBottom = target.position.y - min.y;
+        float distTop = max.y - target.position.y;
+
+        float minDist = Mathf.Min(Mathf.Min(distLeft, distRight), Mathf.Min(distBottom, distTop));
+
+        Vector3 myPos = transform.position;
+
+        if (minDist == distLeft)
+            return new Vector3(min.x, Mathf.Clamp(myPos.y, min.y, max.y), myPos.z);
+        if (minDist == distRight)
+            return new Vector3(max.x, Mathf.Clamp(myPos.y, min.y, max.y), myPos.z);
+        if (minDist == distBottom)
+            return new Vector3(Mathf.Clamp(myPos.x, min.x, max.x), min.y, myPos.z);
+
+        // top
+        return new Vector3(Mathf.Clamp(myPos.x, min.x, max.x), max.y, myPos.z);
+    }
+
+        public void SetTarget(Transform newTarget) => target = newTarget;
 }

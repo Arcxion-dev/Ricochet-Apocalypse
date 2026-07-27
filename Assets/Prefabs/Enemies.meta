@@ -1,5 +1,9 @@
 fileFormatVersion: 2
+<<<<<<< HEAD
 guid: c4adce1f785790a46bca50239edca136
+=======
+guid: b7b295d3a2ed6ed4980c2803ae4c5077
+>>>>>>> maptest4
 folderAsset: yes
 DefaultImporter:
   externalObjects: {}
