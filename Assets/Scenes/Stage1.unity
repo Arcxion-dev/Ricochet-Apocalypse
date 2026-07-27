@@ -280,6 +280,7 @@ MonoBehaviour:
   target: {fileID: 0}
   repathInterval: 0.3
   stoppingDistance: 0.1
+  navMeshSampleRadius: 2
 --- !u!195 &161491563
 NavMeshAgent:
   m_ObjectHideFlags: 0
@@ -566,6 +567,7 @@ MonoBehaviour:
   target: {fileID: 0}
   repathInterval: 0.3
   stoppingDistance: 0.1
+  navMeshSampleRadius: 2
 --- !u!195 &209402489
 NavMeshAgent:
   m_ObjectHideFlags: 0
@@ -1069,6 +1071,59 @@ MonoBehaviour:
   m_Area: 1
   m_IgnoreFromBuild: 0
   m_AffectedAgents: ffffffff
+--- !u!1 &419403234
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 419403236}
+  - component: {fileID: 419403235}
+  m_Layer: 0
+  m_Name: SoundManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &419403235
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 419403234}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 89584d8e06f59da4b9e2a5ddc7899cc1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SoundManager
+  _sfxSounds:
+  - id: Hit
+    clip: {fileID: 8300000, guid: 632845b82affc3e4b885ee430f9212b1, type: 3}
+    volume: 0.78
+    loop: 0
+  _sfxPoolSize: 8
+  _sfxVolume: 1
+  _musicSounds: []
+  _musicVolume: 1
+--- !u!4 &419403236
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 419403234}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &478399902
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1269,6 +1324,7 @@ MonoBehaviour:
   target: {fileID: 0}
   repathInterval: 0.3
   stoppingDistance: 0.1
+  navMeshSampleRadius: 2
 --- !u!195 &517330335
 NavMeshAgent:
   m_ObjectHideFlags: 0
@@ -2074,7 +2130,7 @@ MonoBehaviour:
   m_OverrideTileSize: 0
   m_TileSize: 256
   m_OverrideVoxelSize: 0
-  m_VoxelSize: 0.16666667
+  m_VoxelSize: 0.083333336
   m_BuildHeightMesh: 0
   m_MinRegionArea: 0
   m_HideEditorLogs: 0
@@ -2904,6 +2960,7 @@ MonoBehaviour:
   target: {fileID: 0}
   repathInterval: 0.3
   stoppingDistance: 0.1
+  navMeshSampleRadius: 2
 --- !u!195 &1054057899
 NavMeshAgent:
   m_ObjectHideFlags: 0
@@ -3509,6 +3566,7 @@ MonoBehaviour:
   target: {fileID: 0}
   repathInterval: 0.3
   stoppingDistance: 0.1
+  navMeshSampleRadius: 2
 --- !u!195 &1703600677
 NavMeshAgent:
   m_ObjectHideFlags: 0
@@ -4144,6 +4202,7 @@ MonoBehaviour:
   target: {fileID: 0}
   repathInterval: 0.3
   stoppingDistance: 0.1
+  navMeshSampleRadius: 2
 --- !u!195 &2037217839
 NavMeshAgent:
   m_ObjectHideFlags: 0
@@ -4522,3 +4581,4 @@ SceneRoots:
   - {fileID: 905139914}
   - {fileID: 372129583}
   - {fileID: 1044666347}
+  - {fileID: 419403236}
