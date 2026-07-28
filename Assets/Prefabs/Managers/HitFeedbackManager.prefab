@@ -1,0 +1,62 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &3529899716584089745
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4955078045022803895}
+  - component: {fileID: 5083139958005543740}
+  m_Layer: 0
+  m_Name: HitFeedbackManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4955078045022803895
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3529899716584089745}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &5083139958005543740
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3529899716584089745}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cca1c3ae0ee7a234b9610b5e900d315a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HitFeedbackManager
+  _flashColor: {r: 1, g: 1, b: 1, a: 1}
+  _headshotFlashColor: {r: 1, g: 0.95, b: 0.2, a: 1}
+  _flashDuration: 0.07
+  _knockbackForce: 1.4
+  _headshotKnockbackMultiplier: 1.4
+  _knockbackDuration: 0.1
+  _shakeMagnitude: 0.08
+  _headshotShakeMagnitude: 0.16
+  _deathShakeMagnitude: 0.12
+  _shakeDuration: 0.08
+  _hitStopDuration: 0.06
+  _headshotHitStopDuration: 0.1
+  _popupLifetime: 0.6
+  _popupRiseDistance: 0.6
+  _popupColor: {r: 1, g: 1, b: 1, a: 1}
+  _headshotPopupColor: {r: 1, g: 0.85, b: 0.2, a: 1}

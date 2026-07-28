@@ -323,7 +323,7 @@ private void HandleEnemyHit(Collider2D enemy)
             bool tungsten = shooter != null && shooter.GuaranteedHeadshotChain;
             bool force = tungsten && shooter.ConsumeGuaranteedHeadshot();
 
-            bool wasHeadshot = enemyController.OnBulletHit(baseDamage, Data.element, hasArmorPiercing, headshotBonus, force);
+            bool wasHeadshot = enemyController.OnBulletHit(baseDamage, Data.element, hasArmorPiercing, headshotBonus, force, Direction);
 
             // 텅스텐: 자연(비확정) 헤드샷일 때만 다음 명중을 확정 헤드샷으로 예약(무한 연쇄 방지).
             if (wasHeadshot && !force && tungsten) shooter.ArmGuaranteedHeadshot();

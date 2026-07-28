@@ -8,6 +8,7 @@ public class Enemy : Entity
         health -= _amount;
         if (health <= 0)
         {
+            RaiseOnDeath();
             Destroy(gameObject); //임시
         }
     }
