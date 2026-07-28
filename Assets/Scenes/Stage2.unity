@@ -1783,10 +1783,13 @@ MonoBehaviour:
     m_Bits: 0
   _guidelineRadius: 0.1
   _equippedParts:
-  - {fileID: 11400000, guid: 570539617c68ce94da61359359d801fc, type: 2}
-  - {fileID: 11400000, guid: 9642ba4e055325c49b2046644d440ec1, type: 2}
   - {fileID: 11400000, guid: a9ffe8026af316d438dde4e893bfc7ef, type: 2}
+  - {fileID: 11400000, guid: 570539617c68ce94da61359359d801fc, type: 2}
   - {fileID: 11400000, guid: e09bfcdc5c4731c498f65ac5a13acce6, type: 2}
+  - {fileID: 11400000, guid: fb151c4f4b3b03a498223ac5fe517a68, type: 2}
+  - {fileID: 11400000, guid: 9642ba4e055325c49b2046644d440ec1, type: 2}
+  - {fileID: 11400000, guid: 25d9ca74917ae994090b4453c7b9f524, type: 2}
+  - {fileID: 11400000, guid: d72d0d58ade07764ab4060de39d69a59, type: 2}
   _bulletChangeKey: 113
   _itemChangeKey: 101
   _itemUseKey: 102
@@ -1796,6 +1799,7 @@ MonoBehaviour:
   _lockCameraDuringBreath: 0
   _cameraPan: {fileID: 0}
   _effects: {fileID: 0}
+  _firingMode: 0
 --- !u!114 &1937868037
 MonoBehaviour:
   m_ObjectHideFlags: 0
