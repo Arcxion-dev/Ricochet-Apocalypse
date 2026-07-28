@@ -54,6 +54,12 @@ public static class SceneLoader
     /// <summary>현재 스테이지 진행 인덱스 (0부터).</summary>
     public static int CurrentStageIndex { get; private set; }
 
+    /// <summary>세이브 불러오기 등 외부에서 진행 인덱스를 직접 설정한다(씬 로드는 하지 않음).</summary>
+    public static void SetCurrentStageIndex(int index)
+    {
+        CurrentStageIndex = Mathf.Max(0, index);
+    }
+
     /// <summary>등록된 전체 스테이지 수.</summary>
     public static int StageCount => SceneNames.Stages.Length;
 
@@ -149,13 +155,21 @@ public static class SceneLoader
             return;
         }
 
-        if (Application.CanStreamedLevelBeLoaded(sceneName))
+        if (!Application.CanStreamedLevelBeLoaded(sceneName))
         {
-            SceneManager.LoadScene(sceneName);
+            Debug.LogError($"[SceneLoader] '{sceneName}' 씬을 로드할 수 없습니다. Build Settings에 등록되어 있는지 확인하세요.");
+            return;
+        }
+
+        // 오버레이 전환 매니저가 있으면 페이드+로딩을 거쳐 비동기 로드한다.
+        // (플레이 중에는 항상 부트스트랩되어 존재. 없으면 즉시 동기 로드로 폴백.)
+        if (SceneTransition.Instance != null)
+        {
+            SceneTransition.Instance.Load(sceneName);
         }
         else
         {
-            Debug.LogError($"[SceneLoader] '{sceneName}' 씬을 로드할 수 없습니다. Build Settings에 등록되어 있는지 확인하세요.");
+            SceneManager.LoadScene(sceneName);
         }
     }
 }

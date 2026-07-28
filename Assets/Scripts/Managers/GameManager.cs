@@ -79,6 +79,12 @@ public class GameManager : MonoBehaviour
     {
         // 새 씬(스테이지)이 열릴 때마다 스테이지 상태를 초기화한다.
         ResetStageState();
+
+        // 스테이지 진입 시점에 진행도/인벤토리를 자동 저장한다(타이틀 "이어하기"용).
+        if (SceneLoader.IsStageScene(scene.name) && SaveManager.Instance != null)
+        {
+            SaveManager.Instance.Save();
+        }
     }
 
     /// <summary>스테이지 진행/스코어 상태를 초기화한다.</summary>
