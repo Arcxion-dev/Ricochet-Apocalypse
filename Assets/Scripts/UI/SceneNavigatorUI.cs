@@ -154,12 +154,14 @@ public class SceneNavigatorUI : MonoBehaviour
         {
             AddButton("스테이지 초기화", () => SceneLoader.ResetStage());
             AddButton("다음 스테이지", () => SceneLoader.LoadNextStage());
+            AddButton("상점", () => SceneLoader.LoadShop());
             AddButton("타이틀로 돌아가기", () => SceneLoader.LoadTitle());
         }
         else
         {
             // Shop/Result 등 기타 씬: 진행/복귀만 노출.
             AddButton("다음 스테이지", () => SceneLoader.LoadNextStage());
+            AddButton("상점", () => SceneLoader.LoadShop());
             AddButton("타이틀로 돌아가기", () => SceneLoader.LoadTitle());
         }
     }
