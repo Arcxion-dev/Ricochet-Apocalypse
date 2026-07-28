@@ -300,6 +300,7 @@ public BulletController SpawnChildBullet(BulletSO childData, Vector2 direction)
 
         if (names == null || names.Count == 0) return;
         handler.Play(names[Random.Range(0, names.Count)], transform.position);
+        SoundManager.Instance.PlaySfx("Hit");
     }
 
 private void HandleEnemyHit(Collider2D enemy)

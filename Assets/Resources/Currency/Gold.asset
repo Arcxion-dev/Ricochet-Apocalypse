@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 70ff7c7a17945be428fb2f0b8971b489, type: 3}
+  m_Name: Gold
+  m_EditorClassIdentifier: Assembly-CSharp::ItemDefinition
+  id: gold
+  displayName: "\uACE8\uB4DC"
+  category: 3
+  icon: {fileID: 0}
+  maxStack: 9999999
+  description: "\uC0C1\uC810\uC5D0\uC11C \uC544\uC774\uD15C/\uD0C4\uD658 \uAD6C\uB9E4
+    \uBC0F \uD0C4\uD658 \uC870\uD569\uC5D0 \uC0AC\uC6A9\uD558\uB294 \uC7AC\uD654."
+  shopPrice: 0
