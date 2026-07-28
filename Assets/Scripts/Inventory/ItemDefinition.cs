@@ -32,6 +32,10 @@ public class ItemDefinition : ScriptableObject
     [Tooltip("설명(선택)")]
     public string description;
 
+    [Min(0)]
+    [Tooltip("상점 판매가(골드). 0이면 상점에 표시하지 않는다.")]
+    public int shopPrice = 0;
+
     /// <summary>2개 이상 한 슬롯에 쌓을 수 있는지 여부.</summary>
     public bool IsStackable => maxStack > 1;
 

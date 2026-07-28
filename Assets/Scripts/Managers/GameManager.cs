@@ -49,6 +49,11 @@ public class GameManager : MonoBehaviour
 
     private bool _stageEnded;        // 클리어/실패 중복 트리거 방지
 
+    // 클리어 보상으로 지급할 재화 정의. 최초 사용 시 한 번만 로드해 캐싱한다.
+    private static ItemDefinition _goldDefinition;
+    private static ItemDefinition GoldDefinition =>
+        _goldDefinition != null ? _goldDefinition : (_goldDefinition = Resources.Load<ItemDefinition>("Currency/Gold"));
+
     public int ShotsFired => _shotsFired;
     public int TotalKills => _totalKills;
     public int BestCombo => _bestCombo;
@@ -186,6 +191,10 @@ public class GameManager : MonoBehaviour
 
         var result = new StageResult(true, isPerfect, _bestCombo, _totalKills, _shotsFired, reward);
         Debug.Log($"[GameManager] 스테이지 클리어! {result}");
+
+        // 보상을 실제 재화로 지급(에셋이 없으면 경고만 남기고 넘어간다).
+        if (GoldDefinition != null) InventoryManager.Instance?.Add(GoldDefinition, reward);
+        else Debug.LogWarning("[GameManager] Resources/Currency/Gold 에셋을 찾을 수 없어 보상을 지급하지 못했습니다.");
 
         // 클리어 후 상점 또는 다음 스테이지로.
         if (_goToShopOnClear) SceneLoader.LoadShop();

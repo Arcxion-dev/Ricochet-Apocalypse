@@ -248,6 +248,7 @@ MonoBehaviour:
   target: {fileID: 0}
   repathInterval: 0.3
   stoppingDistance: 0.1
+  navMeshSampleRadius: 2
 --- !u!195 &59948278
 NavMeshAgent:
   m_ObjectHideFlags: 0
@@ -435,6 +436,7 @@ MonoBehaviour:
   target: {fileID: 0}
   repathInterval: 0.3
   stoppingDistance: 0.1
+  navMeshSampleRadius: 2
 --- !u!195 &111112865
 NavMeshAgent:
   m_ObjectHideFlags: 0
@@ -1147,6 +1149,7 @@ MonoBehaviour:
   target: {fileID: 0}
   repathInterval: 0.3
   stoppingDistance: 0.1
+  navMeshSampleRadius: 2
 --- !u!195 &664167632
 NavMeshAgent:
   m_ObjectHideFlags: 0
@@ -1388,6 +1391,7 @@ MonoBehaviour:
   target: {fileID: 0}
   repathInterval: 0.3
   stoppingDistance: 0.1
+  navMeshSampleRadius: 2
 --- !u!195 &837994323
 NavMeshAgent:
   m_ObjectHideFlags: 0
@@ -1471,7 +1475,7 @@ MonoBehaviour:
   m_OverrideTileSize: 0
   m_TileSize: 256
   m_OverrideVoxelSize: 0
-  m_VoxelSize: 0.16666667
+  m_VoxelSize: 0.083333336
   m_BuildHeightMesh: 0
   m_MinRegionArea: 0
   m_HideEditorLogs: 0
@@ -1901,7 +1905,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: be177cd876c831f4b8681d7fc4b6d874, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameManager
-  _goToShopOnClear: 0
+  _goToShopOnClear: 1
   _baseClearReward: 100
   _rewardPerKill: 10
   _rewardPerCombo: 25
@@ -1977,6 +1981,9 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 9642ba4e055325c49b2046644d440ec1, type: 2}
   - {fileID: 11400000, guid: a9ffe8026af316d438dde4e893bfc7ef, type: 2}
   - {fileID: 11400000, guid: e09bfcdc5c4731c498f65ac5a13acce6, type: 2}
+  _bulletChangeKey: 113
+  _itemChangeKey: 101
+  _itemUseKey: 102
   _breathAmplitudeDeg: 2.5
   _breathSpeed: 1.2
   _breathColor: {r: 1, g: 0.85, b: 0.1, a: 1}
@@ -2260,6 +2267,7 @@ MonoBehaviour:
   target: {fileID: 0}
   repathInterval: 0.3
   stoppingDistance: 0.1
+  navMeshSampleRadius: 2
 --- !u!195 &1945944394
 NavMeshAgent:
   m_ObjectHideFlags: 0

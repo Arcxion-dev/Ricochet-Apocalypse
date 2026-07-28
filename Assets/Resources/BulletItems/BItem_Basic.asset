@@ -18,6 +18,7 @@ MonoBehaviour:
   icon: {fileID: 0}
   maxStack: 999
   description: 
+  shopPrice: 5
   isBasic: 1
   bulletData: {fileID: 11400000, guid: fcc660fe00ada6c47963c99927a656bd, type: 2}
   abilityLabels: []

@@ -16,6 +16,25 @@ public enum ElementType
     Ice
 }
 
+public static class ElementTypeExtensions
+{
+    /// <summary>UI 표시용 한글 라벨.</summary>
+    public static string ToKorean(this ElementType element)
+    {
+        switch (element)
+        {
+            case ElementType.None: return "무속성";
+            case ElementType.Fire: return "화염";
+            case ElementType.Water: return "물";
+            case ElementType.Wind: return "바람";
+            case ElementType.Earth: return "대지";
+            case ElementType.Electric: return "전기";
+            case ElementType.Ice: return "냉기";
+            default: return element.ToString();
+        }
+    }
+}
+
 [Serializable]
 public class ElementalWeakness
 {

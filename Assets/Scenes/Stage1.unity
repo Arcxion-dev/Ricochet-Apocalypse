@@ -3762,7 +3762,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: be177cd876c831f4b8681d7fc4b6d874, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameManager
-  _goToShopOnClear: 0
+  _goToShopOnClear: 1
   _baseClearReward: 100
   _rewardPerKill: 10
   _rewardPerCombo: 25
