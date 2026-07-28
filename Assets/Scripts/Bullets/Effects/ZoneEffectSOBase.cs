@@ -6,8 +6,9 @@ using UnityEngine;
 ///
 /// 주의: BulletEffectSO는 ScriptableObject(에셋)이므로 인스턴스 필드를 총알별
 /// 상태로 쓰면 여러 총알이 같은 에셋을 공유할 때 상태가 섞입니다.
-/// 그래서 "이미 적중했는지" 여부는 BulletController가 들고 있는 런타임 상태를
-/// 통해 확인합니다 (HasTriggeredFirstHit).
+/// 그래서 "이미 적중했는지" 여부는 BulletController가 효과 타입(GetType())별로 들고 있는
+/// 런타임 상태를 통해 확인합니다 (HasTriggeredZoneEffect/MarkZoneEffectTriggered) —
+/// 화상+냉기처럼 서로 다른 장판 효과를 한 탄환이 함께 지녀도 둘 다 독립적으로 발동합니다.
 /// </summary>
 public abstract class ZoneEffectSOBase : BulletEffectSO
 {
@@ -28,8 +29,9 @@ public abstract class ZoneEffectSOBase : BulletEffectSO
 
 public override void OnHitEnemy(BulletController bullet, Collider2D enemy)
     {
-        if (bullet.HasTriggeredFirstZoneHit) return; // 최초 1회만 발동
-        bullet.HasTriggeredFirstZoneHit = true;
+        var effectType = GetType();
+        if (bullet.HasTriggeredZoneEffect(effectType)) return; // 이 효과 타입은 최초 1회만 발동
+        bullet.MarkZoneEffectTriggered(effectType);
 
         Vector2 spawnPos = enemy.transform.position;
         GameObject zoneGO;

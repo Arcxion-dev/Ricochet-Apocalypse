@@ -26,8 +26,14 @@ public class BulletController : MonoBehaviour
     public LayerMask EnemyLayerMask => enemyLayerMask;
     public LayerMask WallLayerMask => wallLayerMask;
 
-    /// <summary>화상탄/냉기탄처럼 "최초 1회 적중"을 추적해야 하는 효과들을 위한 공용 플래그.</summary>
-    public bool HasTriggeredFirstZoneHit { get; set; }
+    /// <summary>
+    /// 화상탄/냉기탄처럼 "최초 1회 적중"을 추적해야 하는 장판 효과들을 위한 상태.
+    /// 효과 타입별로 따로 추적해야, 화상+냉기처럼 서로 다른 장판 효과를 함께 지닌 탄환이
+    /// 첫 피격 시 둘 다 발동한다(하나의 공용 bool이면 먼저 도는 효과만 발동하고 나머지는 씹힘).
+    /// </summary>
+    private readonly HashSet<System.Type> _triggeredZoneEffectTypes = new HashSet<System.Type>();
+    public bool HasTriggeredZoneEffect(System.Type effectType) => _triggeredZoneEffectTypes.Contains(effectType);
+    public void MarkZoneEffectTriggered(System.Type effectType) => _triggeredZoneEffectTypes.Add(effectType);
 
     /// <summary>분열탄이 자식 총알에 다시 분열 효과를 넣지 않도록 방지하는 플래그.</summary>
     public bool IsSplitChild { get; set; }
@@ -97,7 +103,7 @@ public class BulletController : MonoBehaviour
         _launchElapsed = 0f;
         _isDead = false;
         _hitEnemiesThisSegment.Clear();
-        HasTriggeredFirstZoneHit = false;
+        _triggeredZoneEffectTypes.Clear();
 
         if (Data.bulletSprite != null)
         {
@@ -106,7 +112,6 @@ public class BulletController : MonoBehaviour
         }
 
         ApplyStretch();
-        ApplyTrailColor();
 
         ApplyVelocity();
         RotateTowardsDirection();
@@ -123,31 +128,6 @@ public class BulletController : MonoBehaviour
         if (_referenceSpeedForStretch <= 0f) return;
         float stretch = Mathf.Clamp(Data.speed / _referenceSpeedForStretch, _stretchClamp.x, _stretchClamp.y);
         transform.localScale = new Vector3(_baseScale.x * stretch, _baseScale.y, _baseScale.z);
-    }
-
-    /// <summary>총알 속성에 맞는 색으로 트레일(있으면)을 물들인다.</summary>
-    private void ApplyTrailColor()
-    {
-        if (_trail == null) return;
-        Color c = ElementTrailColor(Data.element);
-        _trail.startColor = c;
-        Color end = c;
-        end.a = 0f;
-        _trail.endColor = end;
-    }
-
-    private static Color ElementTrailColor(ElementType element)
-    {
-        switch (element)
-        {
-            case ElementType.Fire: return new Color(1f, 0.45f, 0.15f);
-            case ElementType.Water: return new Color(0.25f, 0.55f, 1f);
-            case ElementType.Wind: return new Color(0.75f, 1f, 0.85f);
-            case ElementType.Earth: return new Color(0.6f, 0.45f, 0.25f);
-            case ElementType.Electric: return new Color(1f, 0.95f, 0.3f);
-            case ElementType.Ice: return new Color(0.6f, 0.9f, 1f);
-            default: return new Color(1f, 1f, 1f, 0.8f);
-        }
     }
 
     private void Update()
@@ -385,8 +365,8 @@ private void HandleEnemyHit(Collider2D enemy)
         bool hasArmorPiercing = Data.HasEffect<ArmorPiercingEffectSO>();
         PlayHitEffect(EffectKind.Hit); // 적 피격 이펙트 (Effect 담당자 EffectHandler 연동)
 
-        // 적에 EnemyController가 있으면 그쪽 파이프라인(방어 무적 -> 헤드샷 -> 속성 취약 배수 ->
-        // 장갑 배수 -> Entity.TakeDamage)으로 라우팅한다. 총알 속성(Data.element)과 철갑탄 여부를 넘겨
+        // 적에 EnemyController가 있으면 그쪽 파이프라인(방어 무적 -> 헤드샷 -> 속성(효과) 취약 배수 ->
+        // 장갑 배수 -> Entity.TakeDamage)으로 라우팅한다. 총알 데이터(Data)와 철갑탄 여부를 넘겨
         // AttributeModule/ArmorModule/HeadshotModule/DefenseModule이 실제로 작동하게 한다.
         // 무기 파츠(강선/조준경/텅스텐) 상태를 현재 사수에서 읽는다. 강선 강화는 기본 대미지에 곱한다.
         var shooter = PlayerShooter.Active;
@@ -400,7 +380,7 @@ private void HandleEnemyHit(Collider2D enemy)
             bool tungsten = shooter != null && shooter.GuaranteedHeadshotChain;
             bool force = tungsten && shooter.ConsumeGuaranteedHeadshot();
 
-            bool wasHeadshot = enemyController.OnBulletHit(baseDamage, Data.element, hasArmorPiercing, headshotBonus, force, Direction);
+            bool wasHeadshot = enemyController.OnBulletHit(baseDamage, Data, hasArmorPiercing, headshotBonus, force, Direction);
 
             // 텅스텐: 자연(비확정) 헤드샷일 때만 다음 명중을 확정 헤드샷으로 예약(무한 연쇄 방지).
             if (wasHeadshot && !force && tungsten) shooter.ArmGuaranteedHeadshot();

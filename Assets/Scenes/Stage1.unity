@@ -298,11 +298,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ce81bfe3f62f1ad498878dd52d5c6f52, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AttributeModule
-  selfElement: 6
   weaknessTable:
-  - attackerElement: 1
+  - attackerAttribute: 0
     damageMultiplier: 2
-  - attackerElement: 6
+  - attackerAttribute: 0
     damageMultiplier: 0.5
   defaultMultiplier: 1
 --- !u!114 &161491561
@@ -583,13 +582,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ce81bfe3f62f1ad498878dd52d5c6f52, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AttributeModule
-  selfElement: 1
   weaknessTable:
-  - attackerElement: 6
+  - attackerAttribute: 0
     damageMultiplier: 2
-  - attackerElement: 2
+  - attackerAttribute: 0
     damageMultiplier: 1.5
-  - attackerElement: 1
+  - attackerAttribute: 0
     damageMultiplier: 0.5
   defaultMultiplier: 1
 --- !u!114 &209402487
@@ -1286,7 +1284,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ce81bfe3f62f1ad498878dd52d5c6f52, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AttributeModule
-  selfElement: 0
   weaknessTable: []
   defaultMultiplier: 1
 --- !u!114 &517330333
@@ -2827,11 +2824,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ce81bfe3f62f1ad498878dd52d5c6f52, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AttributeModule
-  selfElement: 5
   weaknessTable:
-  - attackerElement: 4
+  - attackerAttribute: 0
     damageMultiplier: 2
-  - attackerElement: 5
+  - attackerAttribute: 0
     damageMultiplier: 0.5
   defaultMultiplier: 1
 --- !u!114 &1054057897
@@ -3551,7 +3547,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ce81bfe3f62f1ad498878dd52d5c6f52, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AttributeModule
-  selfElement: 3
   weaknessTable: []
   defaultMultiplier: 1
 --- !u!114 &1703600675
@@ -3807,11 +3802,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5083139958005543740, guid: 42f5d242cc22a4b499537249194b1456, type: 3}
       propertyPath: _flashColor.b
-      value: 1
+      value: 0.0056147575
       objectReference: {fileID: 0}
     - target: {fileID: 5083139958005543740, guid: 42f5d242cc22a4b499537249194b1456, type: 3}
       propertyPath: _flashColor.g
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5083139958005543740, guid: 42f5d242cc22a4b499537249194b1456, type: 3}
       propertyPath: _flashColor.r
@@ -3819,27 +3814,31 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5083139958005543740, guid: 42f5d242cc22a4b499537249194b1456, type: 3}
       propertyPath: _flashDuration
-      value: 0.1
-      objectReference: {fileID: 0}
-    - target: {fileID: 5083139958005543740, guid: 42f5d242cc22a4b499537249194b1456, type: 3}
-      propertyPath: _knockbackForce
-      value: 1.4
-      objectReference: {fileID: 0}
-    - target: {fileID: 5083139958005543740, guid: 42f5d242cc22a4b499537249194b1456, type: 3}
-      propertyPath: _headshotFlashColor.b
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5083139958005543740, guid: 42f5d242cc22a4b499537249194b1456, type: 3}
-      propertyPath: _headshotFlashColor.g
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5083139958005543740, guid: 42f5d242cc22a4b499537249194b1456, type: 3}
+      propertyPath: _knockbackForce
+      value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 5083139958005543740, guid: 42f5d242cc22a4b499537249194b1456, type: 3}
+      propertyPath: _knockbackDuration
+      value: 0.4
+      objectReference: {fileID: 0}
+    - target: {fileID: 5083139958005543740, guid: 42f5d242cc22a4b499537249194b1456, type: 3}
+      propertyPath: _headshotFlashColor.b
+      value: 0.023336213
+      objectReference: {fileID: 0}
+    - target: {fileID: 5083139958005543740, guid: 42f5d242cc22a4b499537249194b1456, type: 3}
+      propertyPath: _headshotFlashColor.g
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5083139958005543740, guid: 42f5d242cc22a4b499537249194b1456, type: 3}
       propertyPath: _headshotFlashColor.r
-      value: 0.81096494
+      value: 0.2528302
       objectReference: {fileID: 0}
     - target: {fileID: 5083139958005543740, guid: 42f5d242cc22a4b499537249194b1456, type: 3}
       propertyPath: _headshotKnockbackMultiplier
-      value: 1.4
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -4165,7 +4164,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ce81bfe3f62f1ad498878dd52d5c6f52, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AttributeModule
-  selfElement: 0
   weaknessTable: []
   defaultMultiplier: 1
 --- !u!114 &2037217837

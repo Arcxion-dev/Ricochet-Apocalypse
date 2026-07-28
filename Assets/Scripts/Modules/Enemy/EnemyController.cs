@@ -85,13 +85,14 @@ private void Awake()
     /// 총알이 이 적과 충돌했을 때 호출되는 진입점.
     /// </summary>
     /// <param name="baseDamage">총알의 기본 데미지 (BulletSO.damage)</param>
-    /// <param name="bulletElement">총알의 속성 (아직 총알 쪽에 속성 필드가 없다면 ElementType.None 전달)</param>
+    /// <param name="bulletData">총알 데이터. AttributeModule이 부착된 효과(철갑탄/폭발탄 등)로 취약 배수를 계산하는 데 쓴다.
+    /// 총알이 아닌 광역 아이템 등 실제 BulletSO가 없는 공격이면 null을 전달(효과 없음으로 취급).</param>
     /// <param name="isArmorPiercingBullet">철갑탄 여부(ArmorModule 배수 계산용).</param>
     /// <param name="headshotMultiplierBonus">조준경 등 무기 파츠가 더하는 헤드샷 배수 추가 비율(배수 ×(1+bonus)).</param>
     /// <param name="forceHeadshot">텅스텐 확정 헤드샷 등으로 확률 판정 없이 헤드샷을 강제할지 여부.</param>
     /// <param name="hitDirection">타격 방향(넉백/이펙트 방향용). 총알이 아닌 광역 아이템 등은 생략(제로벡터 → 넉백 없음).</param>
     /// <returns>이번 명중이 헤드샷이었는지 여부(무적으로 무시된 경우 false).</returns>
-public bool OnBulletHit(float baseDamage, ElementType bulletElement, bool isArmorPiercingBullet = false,
+public bool OnBulletHit(float baseDamage, BulletSO bulletData, bool isArmorPiercingBullet = false,
         float headshotMultiplierBonus = 0f, bool forceHeadshot = false, Vector2 hitDirection = default)
     {
         if (defenseModule != null && defenseModule.TryBlockHit())
@@ -119,7 +120,7 @@ public bool OnBulletHit(float baseDamage, ElementType bulletElement, bool isArmo
 
         if (attributeModule != null)
         {
-            finalDamage *= attributeModule.GetDamageMultiplier(bulletElement);
+            finalDamage *= attributeModule.GetDamageMultiplier(bulletData);
         }
 
         if (armorModule != null)

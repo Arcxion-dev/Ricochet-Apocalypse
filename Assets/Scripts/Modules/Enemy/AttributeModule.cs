@@ -3,79 +3,88 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// 공격/객체 속성. 필요에 따라 자유롭게 항목을 추가하세요.
+/// 공격 탄환이 지닌 특수 효과 종류. Assets/Data/BulletEffects의 BulletEffectSO 9종과 1:1로 대응합니다
+/// (화염/물/바람 같은 원소 개념은 이 게임에 없음 — "속성"은 철갑탄/폭발탄 같은 탄환 효과를 뜻합니다).
 /// </summary>
-public enum ElementType
+public enum BulletAttackAttribute
 {
     None,
-    Fire,
-    Water,
-    Wind,
-    Earth,
-    Electric,
-    Ice
-}
-
-public static class ElementTypeExtensions
-{
-    /// <summary>UI 표시용 한글 라벨.</summary>
-    public static string ToKorean(this ElementType element)
-    {
-        switch (element)
-        {
-            case ElementType.None: return "무속성";
-            case ElementType.Fire: return "화염";
-            case ElementType.Water: return "물";
-            case ElementType.Wind: return "바람";
-            case ElementType.Earth: return "대지";
-            case ElementType.Electric: return "전기";
-            case ElementType.Ice: return "냉기";
-            default: return element.ToString();
-        }
-    }
+    ArmorPiercing,
+    Explosive,
+    Split,
+    Suppression,
+    Homing,
+    Gravity,
+    ChainLightning,
+    Burn,
+    Frost
 }
 
 [Serializable]
 public class ElementalWeakness
 {
-    public ElementType attackerElement;
-    [Tooltip("이 속성으로 공격받았을 때 적용될 대미지 배수 (1 = 기본, 2 = 취약, 0.5 = 저항)")]
+    public BulletAttackAttribute attackerAttribute;
+    [Tooltip("이 효과를 가진 탄환에 맞았을 때 적용될 대미지 배수 (1 = 기본, 2 = 취약, 0.5 = 저항)")]
     public float damageMultiplier = 1f;
 }
 
 /// <summary>
-/// 속성 모듈: 이 객체가 지닌 속성과, 공격 속성별 대미지 배수를 정의합니다.
+/// 속성 모듈: 공격 탄환이 지닌 효과(철갑탄/폭발탄 등)별 대미지 배수를 정의합니다.
 /// </summary>
 public class AttributeModule : MonoBehaviour
 {
-    [Header("이 객체의 속성")]
-    [SerializeField] private ElementType selfElement = ElementType.None;
-
-    [Header("공격 속성별 대미지 배수 (아래 표에 없는 속성은 defaultMultiplier 적용)")]
+    [Header("공격 효과별 대미지 배수 (아래 표에 없는 효과는 defaultMultiplier 적용)")]
     [SerializeField] private List<ElementalWeakness> weaknessTable = new List<ElementalWeakness>();
 
-    [Tooltip("weaknessTable에 등록되지 않은 속성으로 공격받았을 때 적용될 기본 배수")]
+    [Tooltip("weaknessTable에 등록되지 않은 효과로 공격받았을 때 적용될 기본 배수")]
     [SerializeField] private float defaultMultiplier = 1f;
 
-    public ElementType SelfElement => selfElement;
-
-public float GetDamageMultiplier(ElementType attackerElement)
+    /// <summary>
+    /// bulletData가 지닌 효과들 중 weaknessTable에 등록된 항목을 모두 찾아 배수를 곱해 반환합니다.
+    /// 하나도 매칭되지 않으면(효과 없는 기본탄 등) defaultMultiplier를 반환합니다.
+    /// bulletData가 null이면(총알이 아닌 광역 아이템 등) 효과 없음으로 취급합니다.
+    /// </summary>
+    public float GetDamageMultiplier(BulletSO bulletData)
     {
+        float multiplier = 1f;
+        bool matchedAny = false;
+
         for (int i = 0; i < weaknessTable.Count; i++)
         {
-            if (weaknessTable[i].attackerElement == attackerElement)
-                return weaknessTable[i].damageMultiplier;
+            if (!BulletHasAttribute(bulletData, weaknessTable[i].attackerAttribute)) continue;
+            multiplier *= weaknessTable[i].damageMultiplier;
+            matchedAny = true;
         }
-        return defaultMultiplier;
+
+        return matchedAny ? multiplier : defaultMultiplier;
     }
 
-    public void SetSelfElement(ElementType element) => selfElement = element;
+    public void SetDefaultMultiplier(float value) => defaultMultiplier = value;
 
-public void SetDefaultMultiplier(float value) => defaultMultiplier = value;
-
-    public void AddWeakness(ElementType element, float multiplier)
+    public void AddWeakness(BulletAttackAttribute attribute, float multiplier)
     {
-        weaknessTable.Add(new ElementalWeakness { attackerElement = element, damageMultiplier = multiplier });
+        weaknessTable.Add(new ElementalWeakness { attackerAttribute = attribute, damageMultiplier = multiplier });
     }
 
+    private static bool BulletHasAttribute(BulletSO bulletData, BulletAttackAttribute attribute)
+    {
+        if (attribute == BulletAttackAttribute.None)
+            return bulletData == null || bulletData.effects == null || bulletData.effects.Count == 0;
+
+        if (bulletData == null) return false;
+
+        switch (attribute)
+        {
+            case BulletAttackAttribute.ArmorPiercing: return bulletData.HasEffect<ArmorPiercingEffectSO>();
+            case BulletAttackAttribute.Explosive: return bulletData.HasEffect<ExplosiveEffectSO>();
+            case BulletAttackAttribute.Split: return bulletData.HasEffect<SplitEffectSO>();
+            case BulletAttackAttribute.Suppression: return bulletData.HasEffect<SuppressionEffectSO>();
+            case BulletAttackAttribute.Homing: return bulletData.HasEffect<HomingEffectSO>();
+            case BulletAttackAttribute.Gravity: return bulletData.HasEffect<GravityEffectSO>();
+            case BulletAttackAttribute.ChainLightning: return bulletData.HasEffect<ChainLightningEffectSO>();
+            case BulletAttackAttribute.Burn: return bulletData.HasEffect<BurnEffectSO>();
+            case BulletAttackAttribute.Frost: return bulletData.HasEffect<FrostEffectSO>();
+            default: return false;
+        }
+    }
 }

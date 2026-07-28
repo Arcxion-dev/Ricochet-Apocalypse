@@ -751,7 +751,7 @@ public class PlayerShooter : MonoBehaviour
                 if (ec != null)
                 {
                     if (!done.Add(ec)) continue;
-                    ec.OnBulletHit(item.damage, ElementType.None);
+                    ec.OnBulletHit(item.damage, null);
                     damaged++;
                 }
                 else
