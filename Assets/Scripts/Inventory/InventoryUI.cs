@@ -137,7 +137,10 @@ public class InventoryUI : MonoBehaviour
             _enhancedBullets.Add(BulletItemDefinition.CreateRuntime("bullet_grav_frost", "중력 냉기탄", false, "중력", "냉기"));
         }
 
-        _gold = ItemDefinition.CreateRuntime("gold", "골드", ItemCategory.Currency, maxStack: 9_999_999);
+        // 정식 에셋(Resources/Currency/Gold)이 있으면 그것을 쓴다(GameManager 보상 지급과 같은 자산 참조).
+        _gold = Resources.Load<ItemDefinition>("Currency/Gold");
+        if (_gold == null)
+            _gold = ItemDefinition.CreateRuntime("gold", "골드", ItemCategory.Currency, maxStack: 9_999_999);
     }
 
     /// <summary>사용 아이템 3종을 Resources에서 로드하고, 없는 종류는 런타임 정의로 폴백 생성한다.</summary>

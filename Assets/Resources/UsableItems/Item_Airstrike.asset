@@ -18,6 +18,7 @@ MonoBehaviour:
   icon: {fileID: 0}
   maxStack: 9
   description: 
+  shopPrice: 60
   kind: 1
   maxRange: 12
   effectRadius: 3.5
