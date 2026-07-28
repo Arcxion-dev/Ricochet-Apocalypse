@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.AI;
 
 /// <summary>
 /// 적 객체의 총괄 컨트롤러.
@@ -20,6 +21,10 @@ public class EnemyController : MonoBehaviour
     private SpeedModule speedModule;
     private Entity entity; // 친구가 만든 체력 시스템 (Enemy : Entity)
 
+    // 타격감 피드백(플래시/넉백)에 쓰는 참조. 없어도(2D 스프라이트가 아니거나 NavMeshAgent가 없어도) 안전하게 건너뛴다.
+    private SpriteRenderer spriteRenderer;
+    private NavMeshAgent navMeshAgent;
+
 private void Awake()
     {
         healthModule = GetComponent<HealthModule>();
@@ -33,6 +38,8 @@ private void Awake()
         traitModule = GetComponent<TraitModule>();
         speedModule = GetComponent<SpeedModule>();
         entity = GetComponent<Entity>();
+        spriteRenderer = GetComponentInChildren<SpriteRenderer>();
+        navMeshAgent = GetComponent<NavMeshAgent>();
 
         ApplyTraitSpeedModifier();
 
@@ -42,11 +49,23 @@ private void Awake()
         {
             healthModule.OnDeath += HandleHealthModuleDeath;
         }
+
+        // Entity 기반 적은 Enemy.DecreaseHP가 직접 Destroy하므로, 사망 연출(타격감)만 이벤트로 걸어둔다.
+        if (entity != null)
+        {
+            entity.OnDeath += HandleEntityDeath;
+        }
     }
 
     private void HandleHealthModuleDeath()
     {
+        HitFeedbackManager.Instance?.TriggerEnemyDeath(transform.position);
         Destroy(gameObject); // 임시: 추후 사망 연출/드랍 등으로 교체 가능
+    }
+
+    private void HandleEntityDeath()
+    {
+        HitFeedbackManager.Instance?.TriggerEnemyDeath(transform.position);
     }
 
 /// <summary>
@@ -70,9 +89,10 @@ private void Awake()
     /// <param name="isArmorPiercingBullet">철갑탄 여부(ArmorModule 배수 계산용).</param>
     /// <param name="headshotMultiplierBonus">조준경 등 무기 파츠가 더하는 헤드샷 배수 추가 비율(배수 ×(1+bonus)).</param>
     /// <param name="forceHeadshot">텅스텐 확정 헤드샷 등으로 확률 판정 없이 헤드샷을 강제할지 여부.</param>
+    /// <param name="hitDirection">타격 방향(넉백/이펙트 방향용). 총알이 아닌 광역 아이템 등은 생략(제로벡터 → 넉백 없음).</param>
     /// <returns>이번 명중이 헤드샷이었는지 여부(무적으로 무시된 경우 false).</returns>
 public bool OnBulletHit(float baseDamage, ElementType bulletElement, bool isArmorPiercingBullet = false,
-        float headshotMultiplierBonus = 0f, bool forceHeadshot = false)
+        float headshotMultiplierBonus = 0f, bool forceHeadshot = false, Vector2 hitDirection = default)
     {
         if (defenseModule != null && defenseModule.TryBlockHit())
             return false; // 무적 판정으로 피해 무시
@@ -121,6 +141,15 @@ public bool OnBulletHit(float baseDamage, ElementType bulletElement, bool isArmo
             healthModule.TakeDamage(finalDamage);
         }
 
+        HitFeedbackManager.Instance?.TriggerEnemyHit(spriteRenderer, navMeshAgent, transform.position,
+            hitDirection, finalDamage, isHeadshot);
+
         return isHeadshot;
+    }
+
+    private void OnDestroy()
+    {
+        if (entity != null) entity.OnDeath -= HandleEntityDeath;
+        if (healthModule != null) healthModule.OnDeath -= HandleHealthModuleDeath;
     }
 }

@@ -81,7 +81,10 @@ public class SoundManager : MonoBehaviour
     // ───────────────────────── SFX ─────────────────────────
 
     /// <summary>등록된 id의 SFX를 재생한다. 여러 SFX가 겹쳐 재생될 수 있다.</summary>
-    public void PlaySfx(string id)
+    public void PlaySfx(string id) => PlaySfx(id, 1f);
+
+    /// <summary>피치를 지정해 재생한다(예: 헤드샷음을 같은 클립으로 더 높게).</summary>
+    public void PlaySfx(string id, float pitch)
     {
         if (!_sfxLookup.TryGetValue(id, out var sound) || sound.clip == null)
         {
@@ -91,6 +94,7 @@ public class SoundManager : MonoBehaviour
 
         var source = _sfxPool[_nextSfxIndex];
         _nextSfxIndex = (_nextSfxIndex + 1) % _sfxPool.Length;
+        source.pitch = pitch;
         source.PlayOneShot(sound.clip, sound.volume * _sfxVolume);
     }
 

@@ -14,8 +14,12 @@ public class InventoryManager : MonoBehaviour
     /// <summary>실제 데이터 컨테이너.</summary>
     public Inventory Inventory { get; private set; } = new Inventory();
 
-    /// <summary>첫 씬 로드 전에 매니저가 없으면 하나 만들어 둔다.</summary>
-    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+    /// <summary>
+    /// 첫 씬 로드 후에도 매니저가 없으면(=씬에 미리 배치된 인스턴스가 없으면) 하나 만들어 둔다.
+    /// AfterSceneLoad를 써야 씬에 배치된 인스턴스의 Awake가 먼저 실행되어 Instance를 선점하고,
+    /// 이 부트스트랩은 안전망으로만 동작한다(BeforeSceneLoad면 반대로 배치된 인스턴스를 밀어냄).
+    /// </summary>
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
     {
         if (Instance != null) return;
