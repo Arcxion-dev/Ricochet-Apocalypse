@@ -1097,7 +1097,7 @@ MonoBehaviour:
     volume: 0.9
     loop: 0
   - id: Death
-    clip: {fileID: 8300000, guid: b61dd50b4678dc642afa694734ef081d, type: 3}
+    clip: {fileID: 8300000, guid: 632845b82affc3e4b885ee430f9212b1, type: 3}
     volume: 0.7
     loop: 0
   _sfxPoolSize: 8
