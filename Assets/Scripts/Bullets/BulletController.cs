@@ -362,7 +362,8 @@ public BulletController SpawnChildBullet(BulletSO childData, Vector2 direction)
 
         if (names == null || names.Count == 0) return;
         handler.Play(names[Random.Range(0, names.Count)], transform.position);
-        SoundManager.Instance.PlaySfx("Hit");
+        // 사운드는 있으면 재생하되, 없거나 예외가 나도 게임플레이(튕김 등)에는 영향 없게 한다.
+        if (SoundManager.Instance != null) SoundManager.Instance.PlaySfx("Hit");
     }
 
 private void HandleEnemyHit(Collider2D enemy)

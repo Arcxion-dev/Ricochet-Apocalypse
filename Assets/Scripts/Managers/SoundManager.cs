@@ -91,9 +91,20 @@ public class SoundManager : MonoBehaviour
             Debug.LogWarning($"[SoundManager] SFX id를 찾을 수 없음: {id}");
             return;
         }
+        if (_sfxPool == null || _sfxPool.Length == 0) return;
 
-        var source = _sfxPool[_nextSfxIndex];
+        int idx = _nextSfxIndex;
         _nextSfxIndex = (_nextSfxIndex + 1) % _sfxPool.Length;
+
+        // 씬 전환/중복 매니저 등으로 풀의 AudioSource가 파괴됐을 수 있다. 파괴됐으면 다시 만들어(자가 복구)
+        // 사운드 예외가 게임플레이(예: 총알 벽 튕김)를 끊지 않도록 방어한다.
+        var source = _sfxPool[idx];
+        if (source == null)
+        {
+            source = gameObject.AddComponent<AudioSource>();
+            source.playOnAwake = false;
+            _sfxPool[idx] = source;
+        }
         source.pitch = pitch;
         source.PlayOneShot(sound.clip, sound.volume * _sfxVolume);
     }
