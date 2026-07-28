@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -47,6 +48,16 @@ public class BulletController : MonoBehaviour
     private Vector3 _baseScale;
     private int _bounceCount;
     private Collider2D _lastPenetratedWall; // 관통형 벽을 매 프레임 중복 처리하지 않기 위한 표시
+
+    /// <summary>
+    /// 이번 "튕김 구간"(마지막 벽 튕김 이후 ~ 다음 튕김 전)에 이미 피격 처리한 적 콜라이더 집합.
+    /// 넉백으로 적이 밀리면 총알이 적 콜라이더를 잠깐 벗어났다가 같은 프레임/직후 프레임에 다시
+    /// 따라잡아 재진입하는 경우가 있어(Enter/Exit만으로는 구분 불가) Exit이 아니라 <see cref="Bounce"/>
+    /// 시점에만 초기화한다. 즉 한 번의 직선 관통 구간에서는 같은 적을 한 번만 맞히고,
+    /// 벽에 튕겨 방향이 바뀌면 그때부터는 같은 적이라도 새로 맞을 수 있다.
+    /// 뭉쳐있는 다른 적(별도 콜라이더)은 이 집합과 무관하게 각자 독립적으로 판정된다.
+    /// </summary>
+    private readonly HashSet<Collider2D> _hitEnemiesThisSegment = new HashSet<Collider2D>();
     private float _elapsedLife;
     private float _launchElapsed;
     private bool _isDead;
@@ -85,6 +96,7 @@ public class BulletController : MonoBehaviour
         _elapsedLife = 0f;
         _launchElapsed = 0f;
         _isDead = false;
+        _hitEnemiesThisSegment.Clear();
         HasTriggeredFirstZoneHit = false;
 
         if (Data.bulletSprite != null)
@@ -310,6 +322,9 @@ public BulletController SpawnChildBullet(BulletSO childData, Vector2 direction)
 
         if (IsInLayerMask(other.gameObject.layer, enemyLayerMask))
         {
+            // 이번 튕김 구간에서 같은 적을 이미 맞혔다면 무시(넉백으로 밀려났다 다시 따라잡는
+            // 경우 포함 — 물리엔진이 같은 접촉을 중복 통지하는 경우도 함께 막힌다).
+            if (!_hitEnemiesThisSegment.Add(other)) return;
             HandleEnemyHit(other);
             return;
         }
@@ -538,6 +553,7 @@ private void HandleObstacleHit(Collider2D obstacle, BulletTargetType targetType,
         }
 
         _bounceCount++;
+        _hitEnemiesThisSegment.Clear(); // 방향이 바뀌었으니 이제부터는 같은 적도 새로 맞을 수 있다.
 
         if (normal == Vector2.zero) normal = -Direction; // 폴백
         normal.Normalize();
