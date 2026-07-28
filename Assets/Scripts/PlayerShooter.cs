@@ -82,6 +82,13 @@ public class PlayerShooter : MonoBehaviour
     [Tooltip("조준 고정/발사/취소 시 슬로우모션·확대·PP·흔들림 연출을 담당. 비우면 자동으로 찾는다.")]
     [SerializeField] private ChargeShotEffects _effects;
 
+    /// <summary>발사 방식. LockThenBreath=클릭으로 조준을 고정한 뒤 호흡 흔들림. FollowMouseBreath=호흡(차징) 중에도 조준선이 마우스를 계속 추종.</summary>
+    private enum FiringMode { LockThenBreath, FollowMouseBreath }
+
+    [Header("발사 방식")]
+    [Tooltip("LockThenBreath=조준→클릭(조준 고정)→호흡 흔들림→격발. FollowMouseBreath=조준→클릭(차징 진입)→마우스 추종 유지→격발. 두 방식 모두 차징 연출은 동일.")]
+    [SerializeField] private FiringMode _firingMode = FiringMode.LockThenBreath;
+
     /// <summary>조준 단계. Free=마우스 추종, Breath=조준 고정+호흡 흔들림(격발 대기).</summary>
     private enum AimPhase { Free, Breath }
     private AimPhase _phase = AimPhase.Free;
@@ -273,8 +280,12 @@ public class PlayerShooter : MonoBehaviour
         }
         else // AimPhase.Breath
         {
-            // 호흡: 조준이 고정되고 기준 방향을 중심으로 흔들린다.
-            Vector2 dir = ComputeBreathDir();
+            // 호흡: 발사 방식에 따라 "기준 방향"만 다르고, 흔들림(호흡)은 둘 다 적용한다.
+            // - LockThenBreath: 고정된 기준 방향을 중심으로 흔들린다(저격 호흡).
+            // - FollowMouseBreath: 매 프레임 마우스 방향을 기준으로 흔들린다(마우스 추종 + 호흡).
+            Vector2 dir = _firingMode == FiringMode.FollowMouseBreath
+                ? ApplyBreathSway(GetAimDirection())
+                : ComputeBreathDir();
             UpdateLaser(dir, _breathColor);
 
             if (Input.GetMouseButtonDown(1))
@@ -319,8 +330,15 @@ public class PlayerShooter : MonoBehaviour
             _cameraPan.ControlsEnabled = true; // 카메라 조작 복원
     }
 
-    /// <summary>고정된 기준 방향에 유기적 호흡 흔들림을 더한 조준 방향을 계산한다.</summary>
-    private Vector2 ComputeBreathDir()
+    /// <summary>고정된 기준 방향(_lockedDir)에 유기적 호흡 흔들림을 더한 조준 방향을 계산한다.</summary>
+    private Vector2 ComputeBreathDir() => ApplyBreathSway(_lockedDir);
+
+    /// <summary>
+    /// 주어진 기준 방향에 유기적 호흡 흔들림(각도 오프셋)을 얹은 조준 방향을 계산한다.
+    /// LockThenBreath는 고정된 <see cref="_lockedDir"/>를, FollowMouseBreath는 매 프레임의
+    /// 마우스 방향을 기준으로 넘겨 "마우스를 따라오되 흔들리는" 호흡을 구현한다.
+    /// </summary>
+    private Vector2 ApplyBreathSway(Vector2 baseDir)
     {
         _breathTime += Time.deltaTime * _breathSpeed;
         float t = _breathTime;
@@ -334,7 +352,8 @@ public class PlayerShooter : MonoBehaviour
         float amplitude = _breathAmplitudeDeg * _stats.swayMultiplier;
         float offsetDeg = (sway / 2.5f) * amplitude;
 
-        float baseAngle = Mathf.Atan2(_lockedDir.y, _lockedDir.x);
+        Vector2 b = baseDir.sqrMagnitude > 0.0001f ? baseDir : Vector2.right;
+        float baseAngle = Mathf.Atan2(b.y, b.x);
         float angle = baseAngle + offsetDeg * Mathf.Deg2Rad;
         return new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
     }
@@ -902,13 +921,17 @@ public class PlayerShooter : MonoBehaviour
 
         Vector2 origin = _firePoint != null ? (Vector2)_firePoint.position : (Vector2)transform.position;
 
-        // 사정거리 = 기본 + 레이저 파츠(합연산) → 상한(_guidelineMaxRange)으로 캡.
+        // 반사 예측기 파츠가 없으면 반사를 끄고(직선), 사정거리도 직선 파츠분만 쓴다.
+        // 있으면 반사 횟수/예측 사정거리를 더한다.
+        int bounces = _stats.reflectionEnabled ? _stats.predictBounces : 0;
+
+        // 사정거리 = 기본(직선) + 반사 예측 추가분(반사 켜졌을 때만) → 상한(_guidelineMaxRange)으로 캡.
         // 파츠에 거리 설정이 없으면 상한을 그대로 사용한다.
-        float range = _stats.laserRange + _stats.predictRange;
+        float range = _stats.laserRange + (_stats.reflectionEnabled ? _stats.predictRange : 0f);
         if (range <= 0.01f) range = _guidelineMaxRange;
         range = Mathf.Min(range, _guidelineMaxRange);
 
-        BuildGuidelinePoints(origin, dir, range, _stats.predictBounces);
+        BuildGuidelinePoints(origin, dir, range, bounces);
         _laser.positionCount = _guidePoints.Count;
         for (int i = 0; i < _guidePoints.Count; i++)
             _laser.SetPosition(i, _guidePoints[i]);

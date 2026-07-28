@@ -19,7 +19,10 @@ public struct WeaponStats
     /// <summary>직선 가이드 사정거리(월드 유닛). 레이저 파츠가 더한다(합연산).</summary>
     public float laserRange;
 
-    /// <summary>예측할 벽 반사 횟수. 조준경 파츠가 더한다(가이드선 증가).</summary>
+    /// <summary>벽 반사 궤적 예측을 켤지 여부. 반사 예측기 파츠가 있어야 true(직선 레이저는 기본, 반사는 이 파츠로만 활성).</summary>
+    public bool reflectionEnabled;
+
+    /// <summary>예측할 벽 반사 횟수. 반사 예측기 파츠가 더한다(가이드선 증가).</summary>
     public int predictBounces;
 
     /// <summary>반사 궤적 예측 사정거리 추가분(월드 유닛). 레이저 파츠가 더하며 기본 사정거리와 합연산된다.</summary>
@@ -41,6 +44,7 @@ public struct WeaponStats
         slowScaleMultiplier = 1f,
         laserEnabled = false,
         laserRange = 0f,
+        reflectionEnabled = false,
         predictBounces = 0,
         predictRange = 0f,
         headshotMultiplierBonus = 0f,
