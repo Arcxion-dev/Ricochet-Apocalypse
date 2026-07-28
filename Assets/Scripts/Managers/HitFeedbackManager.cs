@@ -1,6 +1,8 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.AI;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 using UnityEngine.UI;
 
 /// <summary>
@@ -37,6 +39,13 @@ public class HitFeedbackManager : MonoBehaviour
     [SerializeField] private float _hitStopDuration = 0.06f;
     [SerializeField] private float _headshotHitStopDuration = 0.1f;
 
+    [Header("포스트프로세싱 펀치 (색수차)")]
+    [Tooltip("ChargeShotEffects가 이미 Bloom/Vignette를 쓰고 있어, 겹치지 않도록 색수차(Chromatic Aberration) 전용으로 분리.")]
+    [SerializeField] private float _aberrationPeak = 0.4f;
+    [SerializeField] private float _headshotAberrationPeak = 0.8f;
+    [SerializeField] private float _deathAberrationPeak = 0.6f;
+    [SerializeField] private float _aberrationDuration = 0.12f;
+
     [Header("데미지 팝업")]
     [SerializeField] private float _popupLifetime = 0.6f;
     [Tooltip("팝업이 떠오르는 거리(월드 유닛). 총알/플레이어 크기(0.4~0.5)에 맞춘 기본값.")]
@@ -49,6 +58,10 @@ public class HitFeedbackManager : MonoBehaviour
     private Camera _cam;
     private CameraPanController _cameraPan;
     private Coroutine _shakeRoutine;
+
+    private Volume _volume;
+    private ChromaticAberration _aberration;
+    private Coroutine _aberrationRoutine;
 
     /// <summary>어느 씬에서 Play해도 존재하도록 부트스트랩(다른 매니저들과 동일 패턴).</summary>
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -71,6 +84,29 @@ public class HitFeedbackManager : MonoBehaviour
 
         _font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
         BuildPopupCanvas();
+        BuildAberrationVolume();
+    }
+
+    /// <summary>
+    /// 타격 펀치 전용 런타임 Volume. ChargeShotEffects는 Bloom/Vignette만 건드리므로
+    /// 색수차(Chromatic Aberration)만 쓰면 두 시스템이 같은 프로퍼티를 다투지 않는다.
+    /// </summary>
+    private void BuildAberrationVolume()
+    {
+        var go = new GameObject("HitFeedback Volume");
+        go.transform.SetParent(transform, false);
+
+        _volume = go.AddComponent<Volume>();
+        _volume.isGlobal = true;
+        _volume.weight = 1f;
+        _volume.priority = 100f;
+
+        var profile = ScriptableObject.CreateInstance<VolumeProfile>();
+        _volume.profile = profile;
+
+        _aberration = profile.Add<ChromaticAberration>(true);
+        _aberration.intensity.overrideState = true;
+        _aberration.intensity.value = 0f;
     }
 
     private void BuildPopupCanvas()
@@ -92,7 +128,13 @@ public class HitFeedbackManager : MonoBehaviour
     /// <summary>씬 전환으로 바뀌었을 수 있는 카메라/팬 컨트롤러 참조를 다시 찾는다.</summary>
     private void RefreshCameraRefs()
     {
-        if (_cam == null) _cam = Camera.main;
+        if (_cam == null)
+        {
+            _cam = Camera.main;
+            // ChargeShotEffects도 켜지만, 그게 없는 씬(Shop/Title 등)에서도 색수차가 보이도록 독립적으로 보장.
+            var camData = _cam != null ? _cam.GetUniversalAdditionalCameraData() : null;
+            if (camData != null) camData.renderPostProcessing = true;
+        }
         if (_cameraPan == null) _cameraPan = FindObjectOfType<CameraPanController>();
     }
 
@@ -112,7 +154,11 @@ public class HitFeedbackManager : MonoBehaviour
         if (agent != null)
         {
             float force = _knockbackForce * (isHeadshot ? _headshotKnockbackMultiplier : 1f);
-            StartCoroutine(KnockbackRoutine(agent, hitDirection, force));
+            // force<=0이면 agent.Move()를 아예 호출하지 않는다. Move()는 0벡터로 호출해도
+            // NavMeshAgent를 현재 베이크된 NavMesh 표면으로 "보정 스냅"시키는 부작용이 있어
+            // (실제로 재현 확인: force와 무관하게 항상 동일한 오프셋만큼 튐), 넉백을 껐는데도
+            // 움직이는 것처럼 보였다.
+            if (force > 0.0001f) StartCoroutine(KnockbackRoutine(agent, hitDirection, force));
         }
 
         SpawnDamagePopup(hitPoint, Mathf.RoundToInt(damage), isHeadshot);
@@ -123,14 +169,17 @@ public class HitFeedbackManager : MonoBehaviour
         float hitStop = isHeadshot ? _headshotHitStopDuration : _hitStopDuration;
         TryHitStop(hitStop);
 
+        PulseAberration(isHeadshot ? _headshotAberrationPeak : _aberrationPeak);
+
         if (isHeadshot) SoundManager.Instance?.PlaySfx("Headshot", 1.3f);
     }
 
-    /// <summary>적 사망 순간의 피드백(사운드 + 약간 더 큰 카메라 펀치)을 트리거한다.</summary>
+    /// <summary>적 사망 순간의 피드백(사운드 + 약간 더 큰 카메라 펀치/색수차)을 트리거한다.</summary>
     public void TriggerEnemyDeath(Vector3 position)
     {
         RefreshCameraRefs();
         StartShake(_deathShakeMagnitude);
+        PulseAberration(_deathAberrationPeak);
         SoundManager.Instance?.PlaySfx("Death");
     }
 
@@ -154,20 +203,37 @@ public class HitFeedbackManager : MonoBehaviour
 
     // ───────────────────────── 넉백 ─────────────────────────
 
+    /// <summary>
+    /// 넉백 동안 NavMeshAgent.Move()를 쓰지 않는다 — 반복 호출 시 힘 크기와 무관하게
+    /// 항상 같은 큰 거리로 "보정 스냅"되는 현상이 실측 확인됨(force=0과 force=10이 완전히
+    /// 동일한 오프셋으로 튐 → NavMesh 위 재투영 부작용이 실제 힘보다 압도적으로 큼).
+    /// 대신 넉백 동안만 에이전트를 잠시 꺼서 NavMesh 제약 없이 Transform을 직접, 힘에 비례해
+    /// 움직이고, 끝나면 <see cref="NavMeshAgent.Warp"/>로 한 번만 깔끔하게 재동기화한다.
+    /// </summary>
     private IEnumerator KnockbackRoutine(NavMeshAgent agent, Vector2 direction, float force)
     {
         Vector2 dir = direction.sqrMagnitude > 0.0001f ? direction.normalized : Vector2.zero;
         if (dir == Vector2.zero) yield break;
 
-        float t = 0f;
-        while (t < _knockbackDuration)
-        {
-            if (agent == null || !agent.isActiveAndEnabled) yield break;
+        Transform t = agent.transform;
+        bool wasEnabled = agent.enabled;
+        if (wasEnabled) agent.enabled = false;
 
-            t += Time.deltaTime; // 히트스톱(타임스케일 정지) 동안 함께 멎었다가 풀리는 느낌을 위해 스케일 적용 시간 사용.
-            float damper = 1f - Mathf.Clamp01(t / _knockbackDuration); // 점점 잦아듦
-            agent.Move(dir * (force * damper * Time.deltaTime));
+        float elapsed = 0f;
+        while (elapsed < _knockbackDuration)
+        {
+            if (t == null) yield break;
+
+            elapsed += Time.deltaTime; // 히트스톱(타임스케일 정지) 동안 함께 멎었다가 풀리는 느낌을 위해 스케일 적용 시간 사용.
+            float damper = 1f - Mathf.Clamp01(elapsed / _knockbackDuration); // 점점 잦아듦
+            t.position += (Vector3)(dir * (force * damper * Time.deltaTime));
             yield return null;
+        }
+
+        if (wasEnabled && agent != null && t != null)
+        {
+            agent.enabled = true;
+            agent.Warp(t.position); // 넉백이 끝난 위치를 기준으로 NavMesh에 한 번만 재동기화.
         }
     }
 
@@ -193,6 +259,29 @@ public class HitFeedbackManager : MonoBehaviour
         }
         if (_cameraPan != null) _cameraPan.ExternalShakeOffset = Vector3.zero;
         _shakeRoutine = null;
+    }
+
+    // ───────────────────────── 포스트프로세싱 펀치 ─────────────────────────
+
+    private void PulseAberration(float peak)
+    {
+        if (_aberration == null || peak <= 0f) return;
+        if (_aberrationRoutine != null) StopCoroutine(_aberrationRoutine);
+        _aberrationRoutine = StartCoroutine(AberrationRoutine(peak));
+    }
+
+    private IEnumerator AberrationRoutine(float peak)
+    {
+        _aberration.intensity.value = peak;
+        float t = 0f;
+        while (t < _aberrationDuration)
+        {
+            t += Time.unscaledDeltaTime;
+            _aberration.intensity.value = Mathf.Lerp(peak, 0f, Mathf.Clamp01(t / _aberrationDuration));
+            yield return null;
+        }
+        _aberration.intensity.value = 0f;
+        _aberrationRoutine = null;
     }
 
     // ───────────────────────── 히트스톱 ─────────────────────────

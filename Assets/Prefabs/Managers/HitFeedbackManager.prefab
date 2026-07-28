@@ -45,8 +45,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HitFeedbackManager
   _flashColor: {r: 1, g: 1, b: 1, a: 1}
-  _headshotFlashColor: {r: 1, g: 0.95, b: 0.2, a: 1}
-  _flashDuration: 0.07
+  _headshotFlashColor: {r: 0.81096494, g: 1, b: 0, a: 1}
+  _flashDuration: 0.1
   _knockbackForce: 1.4
   _headshotKnockbackMultiplier: 1.4
   _knockbackDuration: 0.1
@@ -56,6 +56,10 @@ MonoBehaviour:
   _shakeDuration: 0.08
   _hitStopDuration: 0.06
   _headshotHitStopDuration: 0.1
+  _aberrationPeak: 0.4
+  _headshotAberrationPeak: 0.8
+  _deathAberrationPeak: 0.6
+  _aberrationDuration: 0.12
   _popupLifetime: 0.6
   _popupRiseDistance: 0.6
   _popupColor: {r: 1, g: 1, b: 1, a: 1}

@@ -3896,6 +3896,42 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 5083139958005543740, guid: 42f5d242cc22a4b499537249194b1456, type: 3}
+      propertyPath: _flashColor.b
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5083139958005543740, guid: 42f5d242cc22a4b499537249194b1456, type: 3}
+      propertyPath: _flashColor.g
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5083139958005543740, guid: 42f5d242cc22a4b499537249194b1456, type: 3}
+      propertyPath: _flashColor.r
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5083139958005543740, guid: 42f5d242cc22a4b499537249194b1456, type: 3}
+      propertyPath: _flashDuration
+      value: 0.1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5083139958005543740, guid: 42f5d242cc22a4b499537249194b1456, type: 3}
+      propertyPath: _knockbackForce
+      value: 1.4
+      objectReference: {fileID: 0}
+    - target: {fileID: 5083139958005543740, guid: 42f5d242cc22a4b499537249194b1456, type: 3}
+      propertyPath: _headshotFlashColor.b
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5083139958005543740, guid: 42f5d242cc22a4b499537249194b1456, type: 3}
+      propertyPath: _headshotFlashColor.g
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5083139958005543740, guid: 42f5d242cc22a4b499537249194b1456, type: 3}
+      propertyPath: _headshotFlashColor.r
+      value: 0.81096494
+      objectReference: {fileID: 0}
+    - target: {fileID: 5083139958005543740, guid: 42f5d242cc22a4b499537249194b1456, type: 3}
+      propertyPath: _headshotKnockbackMultiplier
+      value: 1.4
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

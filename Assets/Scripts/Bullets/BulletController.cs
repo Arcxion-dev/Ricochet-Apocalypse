@@ -31,11 +31,24 @@ public class BulletController : MonoBehaviour
     /// <summary>분열탄이 자식 총알에 다시 분열 효과를 넣지 않도록 방지하는 플래그.</summary>
     public bool IsSplitChild { get; set; }
 
+    [Header("액션감 (속도 스트레치/발사 가속)")]
+    [Tooltip("이 속도를 기준(스트레치 배율 1배)으로 다른 속도의 총알은 진행방향으로 더 늘어나거나 짧아진다.")]
+    [SerializeField] private float _referenceSpeedForStretch = 15f;
+    [Tooltip("스트레치 배율의 최소/최대 클램프(진행방향 스케일).")]
+    [SerializeField] private Vector2 _stretchClamp = new Vector2(0.8f, 1.6f);
+    [Tooltip("발사 직후 목표 속도까지 가속하는 데 걸리는 시간(초). 0이면 즉시 최고속.")]
+    [SerializeField] private float _launchRampDuration = 0.05f;
+    [Tooltip("발사 시작 순간의 속도 배율(이후 1배까지 램프업).")]
+    [Range(0f, 1f)] [SerializeField] private float _launchStartSpeedFactor = 0.35f;
+
     private Rigidbody2D _rb;
     private Collider2D _col;
+    private TrailRenderer _trail;
+    private Vector3 _baseScale;
     private int _bounceCount;
     private Collider2D _lastPenetratedWall; // 관통형 벽을 매 프레임 중복 처리하지 않기 위한 표시
     private float _elapsedLife;
+    private float _launchElapsed;
     private bool _isDead;
 
     // 물리엔진(바람/자력) 담당 시스템이 외부에서 걸어줄 수 있는 훅.
@@ -47,6 +60,8 @@ public class BulletController : MonoBehaviour
     {
         _rb = GetComponent<Rigidbody2D>();
         _col = GetComponent<Collider2D>();
+        _trail = GetComponent<TrailRenderer>();
+        _baseScale = transform.localScale;
         _rb.gravityScale = 0f; // 탑다운 2D 슈터 기준
 
         // 고속 총알이 얇은 벽을 뚫고 지나가는(터널링) 것을 막기 위해 연속 충돌 감지를 켠다.
@@ -68,6 +83,7 @@ public class BulletController : MonoBehaviour
 
         _bounceCount = 0;
         _elapsedLife = 0f;
+        _launchElapsed = 0f;
         _isDead = false;
         HasTriggeredFirstZoneHit = false;
 
@@ -77,12 +93,48 @@ public class BulletController : MonoBehaviour
             if (sr != null) sr.sprite = Data.bulletSprite;
         }
 
+        ApplyStretch();
+        ApplyTrailColor();
+
         ApplyVelocity();
         RotateTowardsDirection();
 
         foreach (var effect in Data.effects)
         {
             if (effect != null) effect.OnInit(this);
+        }
+    }
+
+    /// <summary>총알 속도에 비례해 진행방향(로컬 X)으로 늘이거나 줄인다 — 빠른 총알일수록 길쭉해 보인다.</summary>
+    private void ApplyStretch()
+    {
+        if (_referenceSpeedForStretch <= 0f) return;
+        float stretch = Mathf.Clamp(Data.speed / _referenceSpeedForStretch, _stretchClamp.x, _stretchClamp.y);
+        transform.localScale = new Vector3(_baseScale.x * stretch, _baseScale.y, _baseScale.z);
+    }
+
+    /// <summary>총알 속성에 맞는 색으로 트레일(있으면)을 물들인다.</summary>
+    private void ApplyTrailColor()
+    {
+        if (_trail == null) return;
+        Color c = ElementTrailColor(Data.element);
+        _trail.startColor = c;
+        Color end = c;
+        end.a = 0f;
+        _trail.endColor = end;
+    }
+
+    private static Color ElementTrailColor(ElementType element)
+    {
+        switch (element)
+        {
+            case ElementType.Fire: return new Color(1f, 0.45f, 0.15f);
+            case ElementType.Water: return new Color(0.25f, 0.55f, 1f);
+            case ElementType.Wind: return new Color(0.75f, 1f, 0.85f);
+            case ElementType.Earth: return new Color(0.6f, 0.45f, 0.25f);
+            case ElementType.Electric: return new Color(1f, 0.95f, 0.3f);
+            case ElementType.Ice: return new Color(0.6f, 0.9f, 1f);
+            default: return new Color(1f, 1f, 1f, 0.8f);
         }
     }
 
@@ -106,6 +158,8 @@ public class BulletController : MonoBehaviour
     private void FixedUpdate()
     {
         if (_isDead || Data == null) return;
+
+        if (_launchElapsed < _launchRampDuration) _launchElapsed += Time.deltaTime;
 
         // 자력 등으로 무효화된 경우 이동을 멈춤 (실제 자력 판정은 물리엔진 담당자 영역)
         if (_isNullified)
@@ -188,7 +242,15 @@ public class BulletController : MonoBehaviour
 
     private void ApplyVelocity()
     {
-        _rb.linearVelocity = Direction * Data.speed;
+        _rb.linearVelocity = Direction * (Data.speed * LaunchSpeedMultiplier());
+    }
+
+    /// <summary>발사 직후 <see cref="_launchRampDuration"/>초 동안 속도를 0~1배로 램프업한다(즉시 최고속 대신 살짝 가속하는 느낌).</summary>
+    private float LaunchSpeedMultiplier()
+    {
+        if (_launchRampDuration <= 0f) return 1f;
+        float t = Mathf.Clamp01(_launchElapsed / _launchRampDuration);
+        return Mathf.Lerp(_launchStartSpeedFactor, 1f, t);
     }
 
     private void RotateTowardsDirection()
