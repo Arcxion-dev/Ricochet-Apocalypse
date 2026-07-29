@@ -28,7 +28,7 @@ public override void OnHitEnemy(BulletController bullet, Collider2D enemy)
         if (bullet.IsSplitChild) return; // 무한 분열 방지
         if ((trigger & SplitTrigger.OnEnemyHit) != 0)
         {
-            DoSplit(bullet, bullet.Direction);
+            DoSplit(bullet, bullet.Direction, forceZeroBounceChildren: false);
         }
     }
 
@@ -37,7 +37,8 @@ public override void OnHitObstacle(BulletController bullet, Collider2D obstacle,
         if (bullet.IsSplitChild) return;
         if ((trigger & SplitTrigger.OnWallBounce) != 0)
         {
-            DoSplit(bullet, bullet.Direction);
+            // 벽 튕김으로 생성된 자식 탄환은 이후 벽에 닿는 즉시 소멸해야 하므로(0번 튕김) 강제 적용.
+            DoSplit(bullet, bullet.Direction, forceZeroBounceChildren: true);
         }
     }
 
@@ -56,11 +57,11 @@ private System.Collections.IEnumerator TimerSplitRoutine(BulletController bullet
         yield return new WaitForSeconds(timerDuration);
         if (bullet != null)
         {
-            DoSplit(bullet, bullet.Direction);
+            DoSplit(bullet, bullet.Direction, forceZeroBounceChildren: false);
         }
     }
 
-    private void DoSplit(BulletController bullet, Vector2 baseDirection)
+    private void DoSplit(BulletController bullet, Vector2 baseDirection, bool forceZeroBounceChildren)
     {
         Debug.Log($"[분열탄] 분열 발동 - {splitCount}발, 퍼짐각 {spreadAngle}도");
 
@@ -74,7 +75,9 @@ private System.Collections.IEnumerator TimerSplitRoutine(BulletController bullet
         {
             float angle = splitCount > 1 ? startAngle + step * i : baseAngle;
             Vector2 dir = new Vector2(Mathf.Cos(angle * Mathf.Deg2Rad), Mathf.Sin(angle * Mathf.Deg2Rad));
-            bullet.SpawnChildBullet(childBulletSO, dir);
+            var child = bullet.SpawnChildBullet(childBulletSO, dir);
+            // 벽 튕김으로 생성된 자식 탄환: 다음 벽 접촉 시 즉시 소멸(0번 튕김)하도록 이 인스턴스만 오버라이드.
+            if (forceZeroBounceChildren && child != null) child.SetMaxBounceCountOverride(0);
         }
     }
 }
