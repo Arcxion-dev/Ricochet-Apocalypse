@@ -19,6 +19,7 @@ public class EnemyController : MonoBehaviour
     private ArmorModule armorModule;
     private TraitModule traitModule;
     private SpeedModule speedModule;
+    private StealthModule stealthModule;
     private Entity entity; // 친구가 만든 체력 시스템 (Enemy : Entity)
 
     // 타격감 피드백(플래시/넉백)에 쓰는 참조. 없어도(2D 스프라이트가 아니거나 NavMeshAgent가 없어도) 안전하게 건너뛴다.
@@ -37,6 +38,9 @@ private void Awake()
         armorModule = GetComponent<ArmorModule>();
         traitModule = GetComponent<TraitModule>();
         speedModule = GetComponent<SpeedModule>();
+        // 은신(수풀/모래바람/아지랑이) 모듈도 모든 적에 적용되도록 없으면 자동 부착한다.
+        stealthModule = GetComponent<StealthModule>();
+        if (stealthModule == null) stealthModule = gameObject.AddComponent<StealthModule>();
         entity = GetComponent<Entity>();
         spriteRenderer = GetComponentInChildren<SpriteRenderer>();
         navMeshAgent = GetComponent<NavMeshAgent>();

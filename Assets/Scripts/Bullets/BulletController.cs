@@ -475,6 +475,14 @@ private void HandleObstacleHit(Collider2D obstacle, BulletTargetType targetType,
                 }
             }
 
+            // 화염 탄환은 통과하는 풀숲(Bush)을 태워 없앤다 → 안에 은신(StealthModule)했던 적이 드러난다.
+            // 풀숲은 관통 대상이므로 총알은 계속 진행하고, 풀숲만 제거된다.
+            if (targetType == BulletTargetType.Bush && Data.element == ElementType.Fire)
+            {
+                PlayHitEffect(EffectKind.Explosion);
+                Destroy(obstacle.gameObject);
+            }
+
             foreach (var effect in Data.effects)
             {
                 if (effect != null) effect.OnHitObstacle(this, obstacle, targetType);
