@@ -56,6 +56,18 @@ public class BulletController : MonoBehaviour
     private Collider2D _lastPenetratedWall; // 관통형 벽을 매 프레임 중복 처리하지 않기 위한 표시
 
     /// <summary>
+    /// BulletSO.maxBounceCount 대신 이 총알 인스턴스에만 적용할 튕김 한도.
+    /// null이면 BulletSO 값을 그대로 사용한다.
+    /// (예: 분열탄이 벽 튕김으로 만들어낸 자식 탄환은 0으로 설정해 벽에 닿는 즉시 소멸시킨다.)
+    /// </summary>
+    private int? _maxBounceCountOverride;
+
+    /// <summary>이 총알 인스턴스의 튕김 한도를 강제로 지정한다. 인스턴스 단위이므로 원본 BulletSO는 건드리지 않는다.</summary>
+    public void SetMaxBounceCountOverride(int maxBounceCount) => _maxBounceCountOverride = maxBounceCount;
+
+    private int EffectiveMaxBounceCount => _maxBounceCountOverride ?? Data.maxBounceCount;
+
+    /// <summary>
     /// 이번 "튕김 구간"(마지막 벽 튕김 이후 ~ 다음 튕김 전)에 이미 피격 처리한 적 콜라이더 집합.
     /// 넉백으로 적이 밀리면 총알이 적 콜라이더를 잠깐 벗어났다가 같은 프레임/직후 프레임에 다시
     /// 따라잡아 재진입하는 경우가 있어(Enter/Exit만으로는 구분 불가) Exit이 아니라 <see cref="Bounce"/>
@@ -99,6 +111,7 @@ public class BulletController : MonoBehaviour
         Target = target;
 
         _bounceCount = 0;
+        _maxBounceCountOverride = null;
         _elapsedLife = 0f;
         _launchElapsed = 0f;
         _isDead = false;
@@ -469,7 +482,7 @@ private void HandleObstacleHit(Collider2D obstacle, BulletTargetType targetType,
 
             case BulletHitResult.Bounce:
                 _lastPenetratedWall = null;
-                Bounce(normal, contactPoint);
+                Bounce(normal, contactPoint, obstacle);
                 break;
 
             case BulletHitResult.Destroy:
@@ -525,15 +538,18 @@ private void HandleObstacleHit(Collider2D obstacle, BulletTargetType targetType,
     /// 않게) 벽 표면 법선 기준으로 반사시킨다. 스윕은 벽에 닿기 "전"에 감지하므로 총알 중심이
     /// 벽 반대편으로 넘어가는 일이 없어 통과가 구조적으로 발생하지 않는다.
     /// </summary>
-    private void Bounce(Vector2 normal, Vector2 contactPoint)
+    private void Bounce(Vector2 normal, Vector2 contactPoint, Collider2D obstacle = null)
     {
-        if (_bounceCount >= Data.maxBounceCount)
+        // 탄성벽(ElasticWallMarker)에 튕기는 경우 튕김 횟수를 소모하지 않는다(무제한 튕김).
+        bool isElasticBounce = obstacle != null && obstacle.GetComponent<ElasticWallMarker>() != null;
+
+        if (!isElasticBounce && _bounceCount >= EffectiveMaxBounceCount)
         {
             Die();
             return;
         }
 
-        _bounceCount++;
+        if (!isElasticBounce) _bounceCount++;
         _hitEnemiesThisSegment.Clear(); // 방향이 바뀌었으니 이제부터는 같은 적도 새로 맞을 수 있다.
 
         if (normal == Vector2.zero) normal = -Direction; // 폴백
@@ -546,7 +562,9 @@ private void HandleObstacleHit(Collider2D obstacle, BulletTargetType targetType,
         SetDirection(reflected);
         ApplyVelocity();
 
-        Debug.Log($"[BulletController] 벽 튕김 ({_bounceCount}/{Data.maxBounceCount})");
+        Debug.Log(isElasticBounce
+            ? "[BulletController] 탄성벽 튕김 (카운트 소모 없음)"
+            : $"[BulletController] 벽 튕김 ({_bounceCount}/{EffectiveMaxBounceCount})");
     }
 
 private void Die()

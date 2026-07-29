@@ -15,7 +15,7 @@ MonoBehaviour:
   speed: 15
   damage: 10
   lifeTime: 5
-  maxBounceCount: 1
+  maxBounceCount: 10
   bulletSprite: {fileID: 0}
   hitVfxPrefab: {fileID: 0}
   destroyVfxPrefab: {fileID: 0}
