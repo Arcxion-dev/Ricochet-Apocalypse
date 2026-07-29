@@ -148,8 +148,10 @@ public class ShopUI : MonoBehaviour
         panel.pivot = new Vector2(0.5f, 0f);
         panel.anchoredPosition = new Vector2(0f, _margin.y);
 
+        // 클리어 시 스테이지 인덱스가 미리 다음으로 전진되므로, 상점 '출발'은 현재(준비된) 스테이지를 연다.
+        // (준비 상태에서 상점을 다녀온 경우에도 같은 스테이지로 복귀한다.)
         var btn = AddButton(panel, "다음 스테이지로 출발", new Color(0.18f, 0.34f, 0.20f, 0.95f));
-        btn.onClick.AddListener(() => SceneLoader.LoadNextStage());
+        btn.onClick.AddListener(() => SceneLoader.LaunchCurrentStage());
     }
 
     // ───────────────────────── 갱신 ─────────────────────────

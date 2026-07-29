@@ -264,6 +264,16 @@ public class PlayerShooter : MonoBehaviour
             return;
         }
 
+        // 준비(Ready) 상태(시작 전)나 스테이지 종료 후에는 조준/격발/아이템 입력을 막는다.
+        if (GameManager.Instance != null && !GameManager.Instance.StageStarted)
+        {
+            if (_laser != null && _laser.enabled) _laser.enabled = false;
+            if (_itemIndicator != null && _itemIndicator.enabled) _itemIndicator.enabled = false;
+            if (_mode != InputMode.Normal) ExitMode();
+            if (_phase == AimPhase.Breath) { ExitBreath(); _effects?.Cancel(); }
+            return;
+        }
+
         // 탄환/아이템 변경 모드 또는 아이템 조준 모드가 활성이면, 일반 조준/격발 대신 그 처리를 한다.
         if (HandleItemModes()) return;
 
