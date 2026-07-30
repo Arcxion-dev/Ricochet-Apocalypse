@@ -21,6 +21,7 @@ public override void OnHitEnemy(BulletController bullet, Collider2D enemy)
         var visited = new System.Collections.Generic.HashSet<Collider2D> { enemy };
         Collider2D current = enemy;
         float currentDamage = bullet.Data.damage;
+        bool hasArmorPiercing = bullet.Data.HasEffect<ArmorPiercingEffectSO>();
         int chainCount = 0;
 
         Debug.Log($"[전력탄] {enemy.name} 시작으로 체인 발동");
@@ -45,7 +46,7 @@ public override void OnHitEnemy(BulletController bullet, Collider2D enemy)
             if (next == null) break;
 
             currentDamage *= damageFalloffPerChain;
-            BulletDamageDispatcher.ApplyDamage(next, currentDamage, $"전력탄 체인 {chainCount + 1}");
+            BulletDamageDispatcher.ApplyDamage(next, currentDamage, $"전력탄 체인 {chainCount + 1}", bullet.Data, hasArmorPiercing);
 
             visited.Add(next);
             current = next;

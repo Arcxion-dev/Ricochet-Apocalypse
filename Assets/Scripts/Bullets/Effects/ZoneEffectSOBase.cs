@@ -27,6 +27,9 @@ public abstract class ZoneEffectSOBase : BulletEffectSO
 
     protected abstract string EffectLabel { get; }
 
+    /// <summary>이 장판 효과의 속성 식별자(화상=Burn, 냉기=Frost). AttributeModule의 취약 배수/즉사 판정에 쓰인다.</summary>
+    protected abstract BulletAttackAttribute AttackAttribute { get; }
+
 public override void OnHitEnemy(BulletController bullet, Collider2D enemy)
     {
         var effectType = GetType();
@@ -50,7 +53,7 @@ public override void OnHitEnemy(BulletController bullet, Collider2D enemy)
 
         var zone = zoneGO.GetComponent<DamageZone>();
         if (zone == null) zone = zoneGO.AddComponent<DamageZone>();
-        zone.Setup(zoneRadius, zoneDuration, zoneTickDamage, bullet.EnemyLayerMask, EffectLabel);
+        zone.Setup(zoneRadius, zoneDuration, zoneTickDamage, bullet.EnemyLayerMask, EffectLabel, attackAttribute: AttackAttribute);
 
         Debug.Log($"[{EffectLabel}] {enemy.name} 최초 직격 - 위치 {spawnPos} 기준 반경 {zoneRadius} 장판 생성, {zoneDuration}초간 틱당 {zoneTickDamage} 데미지");
     }

@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &3666617725475228820
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 8290974475080975876, guid: 12eeb026ec7d04e4082cc7645c44a8d5, type: 3}
+      propertyPath: m_Name
+      value: Enemy_Magnet
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 8290974475080975876, guid: 12eeb026ec7d04e4082cc7645c44a8d5, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2700762270161860183}
+  m_SourcePrefab: {fileID: 100100000, guid: 12eeb026ec7d04e4082cc7645c44a8d5, type: 3}
+--- !u!1 &4750457848479238800 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8290974475080975876, guid: 12eeb026ec7d04e4082cc7645c44a8d5, type: 3}
+  m_PrefabInstance: {fileID: 3666617725475228820}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &2700762270161860183
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4750457848479238800}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e637cd2175e36bf4bb5f82daa995c8e1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MagnetModule
+  pullRadius: 4
+  pullForce: 3
+  bulletLayerMask:
+    serializedVersion: 2
+    m_Bits: 512

@@ -20,10 +20,11 @@ public override void OnBulletDestroyed(BulletController bullet)
     {
         Vector2 pos = bullet.transform.position;
 
+        bool hasArmorPiercing = bullet.Data.HasEffect<ArmorPiercingEffectSO>();
         var enemyHits = Physics2D.OverlapCircleAll(pos, explosionRadius, bullet.EnemyLayerMask);
         foreach (var hit in enemyHits)
         {
-            BulletDamageDispatcher.ApplyDamage(hit, explosionDamage, "폭발탄");
+            BulletDamageDispatcher.ApplyDamage(hit, explosionDamage, "폭발탄", bullet.Data, hasArmorPiercing);
         }
 
         if (canDestroyRock)

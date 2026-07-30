@@ -7,4 +7,5 @@ using UnityEngine;
 public class BurnEffectSO : ZoneEffectSOBase
 {
     protected override string EffectLabel => "화상탄";
+    protected override BulletAttackAttribute AttackAttribute => BulletAttackAttribute.Burn;
 }
