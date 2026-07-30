@@ -19,6 +19,7 @@ public class EnemyController : MonoBehaviour
     private ArmorModule armorModule;
     private TraitModule traitModule;
     private SpeedModule speedModule;
+    private ShieldModule shieldModule;
     private Entity entity; // 친구가 만든 체력 시스템 (Enemy : Entity)
 
     // 타격감 피드백(플래시/넉백)에 쓰는 참조. 없어도(2D 스프라이트가 아니거나 NavMeshAgent가 없어도) 안전하게 건너뛴다.
@@ -37,6 +38,7 @@ private void Awake()
         armorModule = GetComponent<ArmorModule>();
         traitModule = GetComponent<TraitModule>();
         speedModule = GetComponent<SpeedModule>();
+        shieldModule = GetComponent<ShieldModule>();
         entity = GetComponent<Entity>();
         spriteRenderer = GetComponentInChildren<SpriteRenderer>();
         navMeshAgent = GetComponent<NavMeshAgent>();
@@ -133,6 +135,66 @@ public bool OnBulletHit(float baseDamage, BulletSO bulletData, bool isArmorPierc
             Debug.Log($"{name}: {(forceHeadshot ? "확정 " : "")}헤드샷! 최종 대미지 {finalDamage}");
         }
 
+        RouteDamageToHealth(finalDamage);
+
+        HitFeedbackManager.Instance?.TriggerEnemyHit(spriteRenderer, navMeshAgent, transform.position,
+            hitDirection, finalDamage, isHeadshot);
+
+        return isHeadshot;
+    }
+
+    /// <summary>
+    /// 폭발탄(반경 피해)/전력탄 체인 전이처럼 "직격과 같은 취약 배수 규칙을 쓰지만 헤드샷 판정은 없는"
+    /// 대미지의 진입점. Attribute/Armor 배수가 직격과 동일하게 적용된다(단 ignoreArmor면 Armor는 건너뜀 —
+    /// 장판 틱은 철갑 배수를 타지 않는다는 밸런스 규칙 때문에 이 인자가 필요).
+    /// </summary>
+    public void ApplyAreaDamage(float baseDamage, BulletSO bulletData, bool isArmorPiercingBullet, bool ignoreArmor = false)
+    {
+        if (defenseModule != null && defenseModule.TryBlockHit())
+            return; // 무적 판정으로 피해 무시
+
+        float finalDamage = baseDamage;
+
+        if (attributeModule != null)
+        {
+            finalDamage *= attributeModule.GetDamageMultiplier(bulletData);
+        }
+
+        if (!ignoreArmor && armorModule != null)
+        {
+            finalDamage *= armorModule.GetDamageMultiplier(isArmorPiercingBullet);
+        }
+
+        RouteDamageToHealth(finalDamage);
+
+        HitFeedbackManager.Instance?.TriggerEnemyHit(spriteRenderer, navMeshAgent, transform.position,
+            Vector2.zero, finalDamage, false);
+    }
+
+    /// <summary>
+    /// 장판 틱처럼 호출자(DamageZone)가 이미 취약 배수/즉사 여부까지 전부 계산해 놓은 최종 대미지를
+    /// 그대로 적용하는 진입점. 여기서는 추가로 Attribute/Armor 배수를 곱하지 않는다.
+    /// </summary>
+    public void ApplyPrecomputedDamage(float finalDamage)
+    {
+        if (defenseModule != null && defenseModule.TryBlockHit())
+            return; // 무적 판정으로 피해 무시
+
+        RouteDamageToHealth(finalDamage);
+    }
+
+    /// <summary>
+    /// 계산이 끝난 최종 대미지를 실제 체력에 적용하는 공용 종착점.
+    /// ShieldModule이 있고 아직 깨지지 않았으면 방패가 먼저 흡수한다(초과분은 버려지고 본체로 넘어가지 않음).
+    /// </summary>
+    private void RouteDamageToHealth(float finalDamage)
+    {
+        if (shieldModule != null && !shieldModule.IsBroken)
+        {
+            shieldModule.AbsorbDamage(finalDamage);
+            return;
+        }
+
         if (entity != null)
         {
             entity.TakeDamage(Mathf.RoundToInt(finalDamage));
@@ -141,11 +203,6 @@ public bool OnBulletHit(float baseDamage, BulletSO bulletData, bool isArmorPierc
         {
             healthModule.TakeDamage(finalDamage);
         }
-
-        HitFeedbackManager.Instance?.TriggerEnemyHit(spriteRenderer, navMeshAgent, transform.position,
-            hitDirection, finalDamage, isHeadshot);
-
-        return isHeadshot;
     }
 
     private void OnDestroy()

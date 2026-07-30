@@ -24,8 +24,14 @@ public enum BulletAttackAttribute
 public class ElementalWeakness
 {
     public BulletAttackAttribute attackerAttribute;
-    [Tooltip("이 효과를 가진 탄환에 맞았을 때 적용될 대미지 배수 (1 = 기본, 2 = 취약, 0.5 = 저항)")]
+    [Tooltip("이 효과를 가진 탄환의 직격/폭발 대미지에 적용될 배수 (1 = 기본, 2 = 취약, 0.5 = 저항)")]
     public float damageMultiplier = 1f;
+
+    [Tooltip("이 효과가 만든 장판(화상탄/냉기탄) 틱 대미지에 적용될 별도 배수. 직격과 장판의 취약도가 다를 때(예: 소환/시체산 몹은 장판에만 취약) 사용")]
+    public float zoneTickMultiplier = 1f;
+
+    [Tooltip("이 효과가 만든 장판에 닿으면 남은 체력과 무관하게 즉사시킬지 여부 (예: 화염 몹이 화상 장판을 밟으면 한방)")]
+    public bool oneShotZoneTick = false;
 }
 
 /// <summary>
@@ -64,6 +70,28 @@ public class AttributeModule : MonoBehaviour
     public void AddWeakness(BulletAttackAttribute attribute, float multiplier)
     {
         weaknessTable.Add(new ElementalWeakness { attackerAttribute = attribute, damageMultiplier = multiplier });
+    }
+
+    /// <summary>
+    /// 이 효과(예: 화상탄/냉기탄)가 만든 장판의 틱 대미지에 적용할 배수. weaknessTable에 없으면 1(기본).
+    /// </summary>
+    public float GetZoneTickMultiplier(BulletAttackAttribute attribute)
+    {
+        for (int i = 0; i < weaknessTable.Count; i++)
+        {
+            if (weaknessTable[i].attackerAttribute == attribute) return weaknessTable[i].zoneTickMultiplier;
+        }
+        return 1f;
+    }
+
+    /// <summary>이 효과가 만든 장판에 닿으면 즉사해야 하는지(자기 속성과 일치하는 장판인지) 여부.</summary>
+    public bool ShouldOneShotZoneTick(BulletAttackAttribute attribute)
+    {
+        for (int i = 0; i < weaknessTable.Count; i++)
+        {
+            if (weaknessTable[i].attackerAttribute == attribute) return weaknessTable[i].oneShotZoneTick;
+        }
+        return false;
     }
 
     private static bool BulletHasAttribute(BulletSO bulletData, BulletAttackAttribute attribute)

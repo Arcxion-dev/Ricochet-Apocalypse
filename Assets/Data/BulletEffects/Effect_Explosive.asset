@@ -14,5 +14,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ExplosiveEffectSO
   description: 
   explosionRadius: 3
-  explosionDamage: 20
+  explosionDamage: 8
   canDestroyRock: 1

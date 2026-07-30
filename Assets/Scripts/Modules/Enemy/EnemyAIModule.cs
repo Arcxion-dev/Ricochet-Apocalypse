@@ -33,6 +33,25 @@ public class EnemyAIModule : MonoBehaviour, ISuppressible
     /// <summary>저지 중 이동속도 감소율(1 = 완전 정지).</summary>
     private float suppressSlow;
 
+    /// <summary>도망 특성 등이 강제로 목적지를 지정하는 동안 남은 시간(초). 0보다 크면 플레이어 추격 대신 이 목적지를 유지한다.</summary>
+    private float overrideDestinationTimer;
+    private Vector3 overrideDestination;
+
+    /// <summary>
+    /// 지정된 시간 동안 추격 대신 이 목적지로 강제 이동시킨다(도망 특성의 후퇴 등).
+    /// 매 프레임 재지정되지 않으므로 도착 후에는 그 자리에 멈춘다.
+    /// </summary>
+    public void ForceDestinationFor(Vector3 point, float duration)
+    {
+        overrideDestination = point;
+        overrideDestinationTimer = Mathf.Max(overrideDestinationTimer, duration);
+        if (agent != null && agent.isOnNavMesh)
+        {
+            agent.isStopped = false;
+            agent.SetDestination(point);
+        }
+    }
+
     /// <summary>ISuppressible: 지정 시간 동안 이동을 저지한다(더 강하거나 더 긴 저지가 우선).</summary>
     public void ApplySuppression(float duration, float slowRatio)
     {
@@ -94,6 +113,12 @@ public class EnemyAIModule : MonoBehaviour, ISuppressible
             return; // 완전 저지 중엔 목적지를 갱신하지 않는다.
         }
         if (agent.isStopped) agent.isStopped = false;
+
+        if (overrideDestinationTimer > 0f)
+        {
+            overrideDestinationTimer -= Time.deltaTime;
+            return; // 강제 목적지 유지 중 - 추격 재지정을 건너뛴다.
+        }
 
         if (target == null) return;
 
