@@ -54,23 +54,22 @@ public static class ShopManager
         return true;
     }
 
-    /// <summary>보유한 이펙트탄에 속성을 합쳐 새 탄환을 만든다. 원본 1개 + 고정 비용을 소모한다.</summary>
-    public static bool TryCombine(BulletItemDefinition source, ElementType element, out string reason)
+    /// <summary>서로 다른 효과를 가진 두 탄환을 합쳐 새 탄환을 만든다. 원본 각 1개 + 고정 비용을 소모한다.</summary>
+    public static bool TryCombine(BulletItemDefinition a, BulletItemDefinition b, out string reason)
     {
-        if (source == null) { reason = "원본 탄환 없음"; return false; }
-        if (element == ElementType.None) { reason = "속성을 선택하세요"; return false; }
-        if (source.bulletData == null) { reason = "탄환 데이터 없음"; return false; }
-        if (source.bulletData.element != ElementType.None) { reason = "이미 속성이 부여된 탄환입니다"; return false; }
+        if (!BulletCombiner.CanCombine(a, b, out reason)) return false;
         if (Gold == null) { reason = "재화 정의를 찾을 수 없음"; return false; }
         if (InventoryManager.Instance == null) { reason = "인벤토리 없음"; return false; }
         if (CurrentGold < CombineCost) { reason = $"골드 부족 (필요 {CombineCost}, 보유 {CurrentGold})"; return false; }
-        if (InventoryManager.Instance.Inventory.GetQuantity(source) <= 0) { reason = "보유하지 않은 탄환입니다"; return false; }
+        if (InventoryManager.Instance.Inventory.GetQuantity(a) <= 0) { reason = "보유하지 않은 탄환입니다"; return false; }
+        if (InventoryManager.Instance.Inventory.GetQuantity(b) <= 0) { reason = "보유하지 않은 탄환입니다"; return false; }
 
-        var combined = BulletCombiner.Combine(source, element);
+        var combined = BulletCombiner.Combine(a, b);
         if (combined == null) { reason = "조합 실패"; return false; }
 
         InventoryManager.Instance.Remove(Gold, CombineCost);
-        InventoryManager.Instance.Remove(source, 1);
+        InventoryManager.Instance.Remove(a, 1);
+        InventoryManager.Instance.Remove(b, 1);
         InventoryManager.Instance.Add(combined, 1);
         reason = null;
         return true;

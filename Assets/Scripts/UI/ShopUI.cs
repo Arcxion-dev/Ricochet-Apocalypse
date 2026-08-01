@@ -8,7 +8,7 @@ using UnityEngine.UI;
 /// 아니라 Shop 씬에만 배치되는 일반 컴포넌트다(상점은 그 자체로 독립된 씬이라 다른 씬엔 필요 없음).
 ///
 /// - 좌측: 구매 패널(ShopManager.GetCatalog() 목록 + 구매 버튼).
-/// - 우측: 탄환 조합 패널(속성 없는 보유 탄환 선택 + 속성 선택 + 조합 버튼).
+/// - 우측: 탄환 조합 패널(서로 다른 효과를 가진 보유 탄환 두 개 선택 + 조합 버튼).
 /// - 하단: 다음 스테이지로 출발 버튼(SceneLoader.LoadNextStage).
 ///
 /// 코드로 Canvas/Button/Text를 생성하는 방식은 InventoryUI/WeaponPartsUI와 동일한 컨벤션을 따른다.
@@ -19,23 +19,16 @@ public class ShopUI : MonoBehaviour
     [SerializeField] private Vector2 _margin = new Vector2(24f, 24f);
     [SerializeField] private float _panelWidth = 360f;
 
-    private static readonly ElementType[] AllElements =
-    {
-        ElementType.Fire, ElementType.Water, ElementType.Wind,
-        ElementType.Earth, ElementType.Electric, ElementType.Ice,
-    };
-
     private Font _font;
     private Inventory _inventory;
 
     private Text _goldText;
     private RectTransform _catalogRoot;
     private RectTransform _combineListRoot;
-    private RectTransform _elementRoot;
     private Text _combineStatusText;
 
-    private BulletItemDefinition _selectedSource;
-    private ElementType _selectedElement = ElementType.None;
+    private BulletItemDefinition _selectedA;
+    private BulletItemDefinition _selectedB;
 
     private void Awake()
     {
@@ -127,12 +120,8 @@ public class ShopUI : MonoBehaviour
         bg.color = new Color(0f, 0f, 0f, 0.55f);
 
         AddText(panel, $"탄환 조합 (비용 {ShopManager.CombineCost} 골드)", 22, new Color(1f, 0.75f, 0.5f), FontStyle.Bold);
-
-        AddText(panel, "원본 탄환 선택", 16, new Color(0.8f, 0.8f, 0.8f));
+        AddText(panel, "조합할 탄환 두 개 선택", 16, new Color(0.8f, 0.8f, 0.8f));
         _combineListRoot = CreateVerticalPanel(panel, "CombineCandidates");
-
-        AddText(panel, "속성 선택", 16, new Color(0.8f, 0.8f, 0.8f));
-        _elementRoot = CreateVerticalPanel(panel, "ElementButtons");
 
         var combineBtn = AddButton(panel, "조합하기", new Color(0.20f, 0.28f, 0.40f, 0.95f));
         combineBtn.onClick.AddListener(OnCombineClicked);
@@ -161,7 +150,6 @@ public class ShopUI : MonoBehaviour
         RefreshGold();
         RefreshCatalog();
         RefreshCombineCandidates();
-        RefreshElementButtons();
     }
 
     private void RefreshGold()
@@ -196,7 +184,7 @@ public class ShopUI : MonoBehaviour
         }
     }
 
-    /// <summary>인벤토리 Ammo 중 속성이 아직 없는 탄환을 종류별로 묶어 조합 후보 목록을 만든다.</summary>
+    /// <summary>인벤토리 Ammo 중 기본탄이 아닌(효과를 지닌) 탄환을 종류별로 묶어 조합 후보 목록을 만든다.</summary>
     private List<BulletItemDefinition> GetCombineCandidates()
     {
         var result = new List<BulletItemDefinition>();
@@ -206,7 +194,7 @@ public class ShopUI : MonoBehaviour
         {
             if (entry.Quantity <= 0) continue;
             if (!(entry.Definition is BulletItemDefinition bullet)) continue;
-            if (bullet.bulletData == null || bullet.bulletData.element != ElementType.None) continue;
+            if (bullet.isBasic || bullet.bulletData == null) continue;
 
             bool alreadyListed = false;
             foreach (var existing in result)
@@ -224,7 +212,8 @@ public class ShopUI : MonoBehaviour
         ClearChildren(_combineListRoot);
 
         var candidates = GetCombineCandidates();
-        if (_selectedSource != null && !candidates.Contains(_selectedSource)) _selectedSource = null;
+        if (_selectedA != null && !candidates.Contains(_selectedA)) _selectedA = null;
+        if (_selectedB != null && !candidates.Contains(_selectedB)) _selectedB = null;
 
         if (candidates.Count == 0)
         {
@@ -234,43 +223,34 @@ public class ShopUI : MonoBehaviour
 
         foreach (var bullet in candidates)
         {
-            bool isSelected = bullet == _selectedSource;
-            string prefix = isSelected ? "▶ " : "   ";
-            var row = AddButton(_combineListRoot, $"{prefix}{bullet.ResolvedName}",
+            int owned = _inventory != null ? _inventory.GetQuantity(bullet) : 0;
+            string labels = string.Join(", ", bullet.GetAbilityLabels());
+            bool isSelected = bullet == _selectedA || bullet == _selectedB;
+            string prefix = bullet == _selectedA ? "① " : bullet == _selectedB ? "② " : "   ";
+
+            var row = AddButton(_combineListRoot, $"{prefix}{bullet.ResolvedName}  [{labels}]  보유 {owned}",
                 isSelected ? new Color(0.20f, 0.34f, 0.20f, 0.95f) : new Color(0.16f, 0.20f, 0.28f, 0.95f));
-            row.onClick.AddListener(() =>
-            {
-                _selectedSource = bullet;
-                RefreshCombineCandidates();
-            });
+            row.onClick.AddListener(() => OnCandidateClicked(bullet));
         }
     }
 
-    private void RefreshElementButtons()
+    private void OnCandidateClicked(BulletItemDefinition item)
     {
-        if (_elementRoot == null) return;
-        ClearChildren(_elementRoot);
+        if (item == _selectedA) _selectedA = null;
+        else if (item == _selectedB) _selectedB = null;
+        else if (_selectedA == null) _selectedA = item;
+        else if (_selectedB == null) _selectedB = item;
+        // 이미 A, B 둘 다 다른 항목으로 차 있으면 클릭 무시(먼저 하나를 해제해야 함).
 
-        foreach (var element in AllElements)
-        {
-            bool isSelected = element == _selectedElement;
-            string prefix = isSelected ? "▶ " : "   ";
-            var row = AddButton(_elementRoot, $"{prefix}{element.ToKorean()}",
-                isSelected ? new Color(0.34f, 0.24f, 0.16f, 0.95f) : new Color(0.16f, 0.20f, 0.28f, 0.95f));
-            row.onClick.AddListener(() =>
-            {
-                _selectedElement = element;
-                RefreshElementButtons();
-            });
-        }
+        RefreshCombineCandidates();
     }
 
     private void OnCombineClicked()
     {
-        if (ShopManager.TryCombine(_selectedSource, _selectedElement, out string reason))
+        if (ShopManager.TryCombine(_selectedA, _selectedB, out string reason))
         {
-            _selectedSource = null;
-            _selectedElement = ElementType.None;
+            _selectedA = null;
+            _selectedB = null;
             if (_combineStatusText != null) _combineStatusText.text = "조합 성공!";
             RefreshAll();
         }

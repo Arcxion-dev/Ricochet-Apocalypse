@@ -1,0 +1,65 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &184824400970155056
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 8290974475080975876, guid: 12eeb026ec7d04e4082cc7645c44a8d5, type: 3}
+      propertyPath: m_Name
+      value: Enemy_Corpse
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 8290974475080975876, guid: 12eeb026ec7d04e4082cc7645c44a8d5, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4986823586343630159}
+    - targetCorrespondingSourceObject: {fileID: 8290974475080975876, guid: 12eeb026ec7d04e4082cc7645c44a8d5, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5934100662338221231}
+  m_SourcePrefab: {fileID: 100100000, guid: 12eeb026ec7d04e4082cc7645c44a8d5, type: 3}
+--- !u!1 &8187497443524264500 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8290974475080975876, guid: 12eeb026ec7d04e4082cc7645c44a8d5, type: 3}
+  m_PrefabInstance: {fileID: 184824400970155056}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &4986823586343630159
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8187497443524264500}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ce81bfe3f62f1ad498878dd52d5c6f52, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AttributeModule
+  weaknessTable:
+  - attackerAttribute: 8
+    damageMultiplier: 1
+    zoneTickMultiplier: 1.5
+    oneShotZoneTick: 0
+  - attackerAttribute: 9
+    damageMultiplier: 1
+    zoneTickMultiplier: 1.5
+    oneShotZoneTick: 0
+  defaultMultiplier: 1
+--- !u!114 &5934100662338221231
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8187497443524264500}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1a36c055bc96423458d933dbf3290a4c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CorpseOnDeathModule
+  corpseObstaclePrefab: {fileID: 8542081837443165447, guid: 6ffd0f1b7961f03448b416cb5e8be1a3, type: 3}

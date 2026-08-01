@@ -26,8 +26,14 @@ public class BulletController : MonoBehaviour
     public LayerMask EnemyLayerMask => enemyLayerMask;
     public LayerMask WallLayerMask => wallLayerMask;
 
-    /// <summary>화상탄/냉기탄처럼 "최초 1회 적중"을 추적해야 하는 효과들을 위한 공용 플래그.</summary>
-    public bool HasTriggeredFirstZoneHit { get; set; }
+    /// <summary>
+    /// 화상탄/냉기탄처럼 "최초 1회 적중"을 추적해야 하는 장판 효과들을 위한 상태.
+    /// 효과 타입별로 따로 추적해야, 화상+냉기처럼 서로 다른 장판 효과를 함께 지닌 탄환이
+    /// 첫 피격 시 둘 다 발동한다(하나의 공용 bool이면 먼저 도는 효과만 발동하고 나머지는 씹힘).
+    /// </summary>
+    private readonly HashSet<System.Type> _triggeredZoneEffectTypes = new HashSet<System.Type>();
+    public bool HasTriggeredZoneEffect(System.Type effectType) => _triggeredZoneEffectTypes.Contains(effectType);
+    public void MarkZoneEffectTriggered(System.Type effectType) => _triggeredZoneEffectTypes.Add(effectType);
 
     /// <summary>분열탄이 자식 총알에 다시 분열 효과를 넣지 않도록 방지하는 플래그.</summary>
     public bool IsSplitChild { get; set; }
@@ -48,6 +54,18 @@ public class BulletController : MonoBehaviour
     private Vector3 _baseScale;
     private int _bounceCount;
     private Collider2D _lastPenetratedWall; // 관통형 벽을 매 프레임 중복 처리하지 않기 위한 표시
+
+    /// <summary>
+    /// BulletSO.maxBounceCount 대신 이 총알 인스턴스에만 적용할 튕김 한도.
+    /// null이면 BulletSO 값을 그대로 사용한다.
+    /// (예: 분열탄이 벽 튕김으로 만들어낸 자식 탄환은 0으로 설정해 벽에 닿는 즉시 소멸시킨다.)
+    /// </summary>
+    private int? _maxBounceCountOverride;
+
+    /// <summary>이 총알 인스턴스의 튕김 한도를 강제로 지정한다. 인스턴스 단위이므로 원본 BulletSO는 건드리지 않는다.</summary>
+    public void SetMaxBounceCountOverride(int maxBounceCount) => _maxBounceCountOverride = maxBounceCount;
+
+    private int EffectiveMaxBounceCount => _maxBounceCountOverride ?? Data.maxBounceCount;
 
     /// <summary>
     /// 이번 "튕김 구간"(마지막 벽 튕김 이후 ~ 다음 튕김 전)에 이미 피격 처리한 적 콜라이더 집합.
@@ -93,11 +111,12 @@ public class BulletController : MonoBehaviour
         Target = target;
 
         _bounceCount = 0;
+        _maxBounceCountOverride = null;
         _elapsedLife = 0f;
         _launchElapsed = 0f;
         _isDead = false;
         _hitEnemiesThisSegment.Clear();
-        HasTriggeredFirstZoneHit = false;
+        _triggeredZoneEffectTypes.Clear();
 
         if (Data.bulletSprite != null)
         {
@@ -106,7 +125,6 @@ public class BulletController : MonoBehaviour
         }
 
         ApplyStretch();
-        ApplyTrailColor();
 
         ApplyVelocity();
         RotateTowardsDirection();
@@ -123,31 +141,6 @@ public class BulletController : MonoBehaviour
         if (_referenceSpeedForStretch <= 0f) return;
         float stretch = Mathf.Clamp(Data.speed / _referenceSpeedForStretch, _stretchClamp.x, _stretchClamp.y);
         transform.localScale = new Vector3(_baseScale.x * stretch, _baseScale.y, _baseScale.z);
-    }
-
-    /// <summary>총알 속성에 맞는 색으로 트레일(있으면)을 물들인다.</summary>
-    private void ApplyTrailColor()
-    {
-        if (_trail == null) return;
-        Color c = ElementTrailColor(Data.element);
-        _trail.startColor = c;
-        Color end = c;
-        end.a = 0f;
-        _trail.endColor = end;
-    }
-
-    private static Color ElementTrailColor(ElementType element)
-    {
-        switch (element)
-        {
-            case ElementType.Fire: return new Color(1f, 0.45f, 0.15f);
-            case ElementType.Water: return new Color(0.25f, 0.55f, 1f);
-            case ElementType.Wind: return new Color(0.75f, 1f, 0.85f);
-            case ElementType.Earth: return new Color(0.6f, 0.45f, 0.25f);
-            case ElementType.Electric: return new Color(1f, 0.95f, 0.3f);
-            case ElementType.Ice: return new Color(0.6f, 0.9f, 1f);
-            default: return new Color(1f, 1f, 1f, 0.8f);
-        }
     }
 
     private void Update()
@@ -386,8 +379,8 @@ private void HandleEnemyHit(Collider2D enemy)
         bool hasArmorPiercing = Data.HasEffect<ArmorPiercingEffectSO>();
         PlayHitEffect(EffectKind.Hit); // 적 피격 이펙트 (Effect 담당자 EffectHandler 연동)
 
-        // 적에 EnemyController가 있으면 그쪽 파이프라인(방어 무적 -> 헤드샷 -> 속성 취약 배수 ->
-        // 장갑 배수 -> Entity.TakeDamage)으로 라우팅한다. 총알 속성(Data.element)과 철갑탄 여부를 넘겨
+        // 적에 EnemyController가 있으면 그쪽 파이프라인(방어 무적 -> 헤드샷 -> 속성(효과) 취약 배수 ->
+        // 장갑 배수 -> Entity.TakeDamage)으로 라우팅한다. 총알 데이터(Data)와 철갑탄 여부를 넘겨
         // AttributeModule/ArmorModule/HeadshotModule/DefenseModule이 실제로 작동하게 한다.
         // 무기 파츠(강선/조준경/텅스텐) 상태를 현재 사수에서 읽는다. 강선 강화는 기본 대미지에 곱한다.
         var shooter = PlayerShooter.Active;
@@ -401,7 +394,7 @@ private void HandleEnemyHit(Collider2D enemy)
             bool tungsten = shooter != null && shooter.GuaranteedHeadshotChain;
             bool force = tungsten && shooter.ConsumeGuaranteedHeadshot();
 
-            bool wasHeadshot = enemyController.OnBulletHit(baseDamage, Data.element, hasArmorPiercing, headshotBonus, force, Direction);
+            bool wasHeadshot = enemyController.OnBulletHit(baseDamage, Data, hasArmorPiercing, headshotBonus, force, Direction);
 
             // 텅스텐: 자연(비확정) 헤드샷일 때만 다음 명중을 확정 헤드샷으로 예약(무한 연쇄 방지).
             if (wasHeadshot && !force && tungsten) shooter.ArmGuaranteedHeadshot();
@@ -475,9 +468,10 @@ private void HandleObstacleHit(Collider2D obstacle, BulletTargetType targetType,
                 }
             }
 
-            // 화염 탄환은 통과하는 풀숲(Bush)을 태워 없앤다 → 안에 은신(StealthModule)했던 적이 드러난다.
+            // 화염(화상) 탄환은 통과하는 풀숲(Bush)을 태워 없앤다 → 안에 은신(FoliageConcealmentModule)했던 적이 드러난다.
             // 풀숲은 관통 대상이므로 총알은 계속 진행하고, 풀숲만 제거된다.
-            if (targetType == BulletTargetType.Bush && Data.element == ElementType.Fire)
+            // (병합 후 속성 모델이 BulletSO.element → effect 리스트로 바뀌어, 화상 효과(BurnEffectSO) 보유로 화염 탄환을 식별한다.)
+            if (targetType == BulletTargetType.Bush && Data.HasEffect<BurnEffectSO>())
             {
                 PlayHitEffect(EffectKind.Explosion);
                 Destroy(obstacle.gameObject);
@@ -497,7 +491,7 @@ private void HandleObstacleHit(Collider2D obstacle, BulletTargetType targetType,
 
             case BulletHitResult.Bounce:
                 _lastPenetratedWall = null;
-                Bounce(normal, contactPoint);
+                Bounce(normal, contactPoint, obstacle);
                 break;
 
             case BulletHitResult.Destroy:
@@ -553,15 +547,18 @@ private void HandleObstacleHit(Collider2D obstacle, BulletTargetType targetType,
     /// 않게) 벽 표면 법선 기준으로 반사시킨다. 스윕은 벽에 닿기 "전"에 감지하므로 총알 중심이
     /// 벽 반대편으로 넘어가는 일이 없어 통과가 구조적으로 발생하지 않는다.
     /// </summary>
-    private void Bounce(Vector2 normal, Vector2 contactPoint)
+    private void Bounce(Vector2 normal, Vector2 contactPoint, Collider2D obstacle = null)
     {
-        if (_bounceCount >= Data.maxBounceCount)
+        // 탄성벽(ElasticWallMarker)에 튕기는 경우 튕김 횟수를 소모하지 않는다(무제한 튕김).
+        bool isElasticBounce = obstacle != null && obstacle.GetComponent<ElasticWallMarker>() != null;
+
+        if (!isElasticBounce && _bounceCount >= EffectiveMaxBounceCount)
         {
             Die();
             return;
         }
 
-        _bounceCount++;
+        if (!isElasticBounce) _bounceCount++;
         _hitEnemiesThisSegment.Clear(); // 방향이 바뀌었으니 이제부터는 같은 적도 새로 맞을 수 있다.
 
         if (normal == Vector2.zero) normal = -Direction; // 폴백
@@ -574,7 +571,9 @@ private void HandleObstacleHit(Collider2D obstacle, BulletTargetType targetType,
         SetDirection(reflected);
         ApplyVelocity();
 
-        Debug.Log($"[BulletController] 벽 튕김 ({_bounceCount}/{Data.maxBounceCount})");
+        Debug.Log(isElasticBounce
+            ? "[BulletController] 탄성벽 튕김 (카운트 소모 없음)"
+            : $"[BulletController] 벽 튕김 ({_bounceCount}/{EffectiveMaxBounceCount})");
     }
 
 private void Die()

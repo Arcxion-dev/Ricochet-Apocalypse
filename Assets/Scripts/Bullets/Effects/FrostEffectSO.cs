@@ -7,4 +7,5 @@ using UnityEngine;
 public class FrostEffectSO : ZoneEffectSOBase
 {
     protected override string EffectLabel => "냉기탄";
+    protected override BulletAttackAttribute AttackAttribute => BulletAttackAttribute.Frost;
 }

@@ -268,7 +268,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 415ca3b336468e448bb47e5703148a1b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Enemy
-  health: 100
+  health: 20
 --- !u!114 &1043440158433370439
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -293,12 +293,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ce81bfe3f62f1ad498878dd52d5c6f52, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AttributeModule
-  selfElement: 6
   weaknessTable:
-  - attackerElement: 1
+  - attackerAttribute: 9
     damageMultiplier: 2
-  - attackerElement: 6
-    damageMultiplier: 0.5
+    zoneTickMultiplier: 1
+    oneShotZoneTick: 1
   defaultMultiplier: 1
 --- !u!114 &1000000000000000004
 MonoBehaviour:

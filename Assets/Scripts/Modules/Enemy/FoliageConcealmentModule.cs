@@ -14,8 +14,11 @@ using UnityEngine;
 /// - 적 중심점이 은신 장애물 콜라이더 안에 들어오면 은신, 벗어나면 해제한다.
 ///
 /// EnemyController가 Awake에서 자동 부착하므로(HeadshotModule과 동일 패턴) 모든 적에 적용된다.
+///
+/// 이름 메모: 특수몹용 반투명 은신(Special/StealthModule)과 클래스명이 겹쳐,
+/// 환경(수풀) 기반 은신인 이 모듈을 FoliageConcealmentModule로 명명한다.
 /// </summary>
-public class StealthModule : MonoBehaviour
+public class FoliageConcealmentModule : MonoBehaviour
 {
     [Header("은신 판정")]
     [Tooltip("은신 장애물이 올라가 있는 레이어. 비워두면(0) Awake에서 \"Wall\" 레이어로 자동 설정.")]

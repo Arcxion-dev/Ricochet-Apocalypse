@@ -18,11 +18,13 @@ public class DamageZone : MonoBehaviour
     private float _tickInterval = 0.5f;
     private LayerMask _enemyLayerMask;
     private string _label;
+    private BulletAttackAttribute _attackAttribute;
 
     private float _elapsed;
     private float _tickTimer;
 
-    public void Setup(float radius, float duration, float tickDamage, LayerMask enemyLayerMask, string label, float tickInterval = 0.5f)
+    public void Setup(float radius, float duration, float tickDamage, LayerMask enemyLayerMask, string label, float tickInterval = 0.5f,
+        BulletAttackAttribute attackAttribute = BulletAttackAttribute.None)
     {
         _radius = radius;
         _duration = duration;
@@ -30,6 +32,7 @@ public class DamageZone : MonoBehaviour
         _enemyLayerMask = enemyLayerMask;
         _label = label;
         _tickInterval = tickInterval;
+        _attackAttribute = attackAttribute;
 
         var col = GetComponent<CircleCollider2D>();
         col.isTrigger = true;
@@ -55,12 +58,27 @@ public class DamageZone : MonoBehaviour
         }
     }
 
+    /// <summary>장판 틱은 철갑 배수는 타지 않지만(밸런스 규칙), 속성 취약 배수/즉사 판정은 그대로 적용한다.</summary>
     private void DealTickDamage()
     {
         var hits = Physics2D.OverlapCircleAll(transform.position, _radius, _enemyLayerMask);
         foreach (var hit in hits)
         {
-            BulletDamageDispatcher.ApplyDamage(hit, _tickDamage, _label);
+            float damage = _tickDamage;
+            var attributeModule = hit.GetComponentInParent<AttributeModule>();
+            if (attributeModule != null)
+            {
+                if (attributeModule.ShouldOneShotZoneTick(_attackAttribute))
+                {
+                    damage = 9999f; // 자기 속성과 일치하는 장판 - 남은 체력과 무관하게 즉사
+                }
+                else
+                {
+                    damage *= attributeModule.GetZoneTickMultiplier(_attackAttribute);
+                }
+            }
+
+            BulletDamageDispatcher.ApplyDamage(hit, damage, _label, precomputed: true);
         }
     }
 
