@@ -301,8 +301,12 @@ MonoBehaviour:
   weaknessTable:
   - attackerAttribute: 0
     damageMultiplier: 2
+    zoneTickMultiplier: 1
+    oneShotZoneTick: 0
   - attackerAttribute: 0
     damageMultiplier: 0.5
+    zoneTickMultiplier: 1
+    oneShotZoneTick: 0
   defaultMultiplier: 1
 --- !u!114 &161491561
 MonoBehaviour:
@@ -585,10 +589,16 @@ MonoBehaviour:
   weaknessTable:
   - attackerAttribute: 0
     damageMultiplier: 2
+    zoneTickMultiplier: 1
+    oneShotZoneTick: 0
   - attackerAttribute: 0
     damageMultiplier: 1.5
+    zoneTickMultiplier: 1
+    oneShotZoneTick: 0
   - attackerAttribute: 0
     damageMultiplier: 0.5
+    zoneTickMultiplier: 1
+    oneShotZoneTick: 0
   defaultMultiplier: 1
 --- !u!114 &209402487
 MonoBehaviour:
@@ -2827,8 +2837,12 @@ MonoBehaviour:
   weaknessTable:
   - attackerAttribute: 0
     damageMultiplier: 2
+    zoneTickMultiplier: 1
+    oneShotZoneTick: 0
   - attackerAttribute: 0
     damageMultiplier: 0.5
+    zoneTickMultiplier: 1
+    oneShotZoneTick: 0
   defaultMultiplier: 1
 --- !u!114 &1054057897
 MonoBehaviour:

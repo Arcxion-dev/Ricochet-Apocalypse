@@ -13,11 +13,12 @@ using UnityEngine;
 public abstract class ZoneEffectSOBase : BulletEffectSO
 {
     [Header("장판 공통 설정")]
-    [Tooltip("생성할 장판(지대) 프리팹")]
+    [Tooltip("장판 판정 오브젝트로 쓸 프리팹(선택). 비워두면 판정용 오브젝트를 코드에서 만들고 " +
+             "비주얼은 DamageZoneVisual이 반경에 맞춰 파티클로 생성한다. 보통은 비워두는 것이 맞다.")]
     public GameObject zonePrefab;
 
-    [Tooltip("장판 반경")]
-    public float zoneRadius = 2.5f;
+    [Tooltip("장판 반경(월드 유닛). 이 값 하나로 판정 범위와 파티클 비주얼 크기가 함께 결정된다.")]
+    public float zoneRadius = 5f;
 
     [Tooltip("장판 지속 시간(초)")]
     public float zoneDuration = 3f;
@@ -45,8 +46,9 @@ public override void OnHitEnemy(BulletController bullet, Collider2D enemy)
         }
         else
         {
-            // 담당자가 아직 장판 프리팹을 만들지 않은 경우를 위한 임시 폴백 (콜라이더만 있는 빈 오브젝트)
-            zoneGO = new GameObject($"{EffectLabel}_ZoneTemp");
+            // 기본 경로: 판정용 콜라이더만 있는 빈 오브젝트를 만들고, 눈에 보이는 부분은
+            // DamageZone.Setup이 붙이는 DamageZoneVisual(파티클)이 반경에 맞춰 그린다.
+            zoneGO = new GameObject($"{EffectLabel}_Zone");
             zoneGO.transform.position = spawnPos;
             zoneGO.AddComponent<CircleCollider2D>();
         }
