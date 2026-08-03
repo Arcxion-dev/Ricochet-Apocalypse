@@ -188,7 +188,7 @@ public class PlayerShooter : MonoBehaviour
         }
 
         // 씬 전환 중 UI가 닫힌 채로 타임스케일이 0에 묶여 있으면 풀어준다(정지 상태로 씬이 시작되는 것 방지).
-        if (Time.timeScale == 0f && !InventoryUI.IsOpen && !WeaponPartsUI.IsOpen)
+        if (Time.timeScale == 0f && !InventoryUI.IsOpen && !WeaponPartsUI.IsOpen && !InventoryDebugUI.IsOpen)
             Time.timeScale = 1f;
 
         SetupLaser();
@@ -256,7 +256,7 @@ public class PlayerShooter : MonoBehaviour
         HandleBulletSelectionInput();
 
         // 인벤토리/파츠 UI가 열려 있으면 게임을 완전히 멈추고(타임스케일 0) 조준·격발 입력을 막는다.
-        bool uiOpen = InventoryUI.IsOpen || WeaponPartsUI.IsOpen;
+        bool uiOpen = InventoryUI.IsOpen || WeaponPartsUI.IsOpen || InventoryDebugUI.IsOpen;
         UpdateUiPause(uiOpen);
         if (uiOpen)
         {
