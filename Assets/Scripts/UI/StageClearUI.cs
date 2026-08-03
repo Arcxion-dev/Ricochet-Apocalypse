@@ -3,33 +3,54 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using TMPro;
 
 /// <summary>
-/// 스테이지 클리어 시 뜨는 결과/보상 창(코드 생성 uGUI 오버레이).
-/// - 결과 요약(퍼펙트/콤보/처치/발사)과 지급 골드, 드랍테이블로 획득한 아이템 목록을 보여준다.
-/// - [확인] 버튼을 누르면 <see cref="Show"/>에 넘긴 onConfirm 콜백을 실행한다(보통 상점으로 이동).
+/// 스테이지 클리어 시 뜨는 결과/보상 창. 이제 <b>프리팹 기반</b>이다
+/// (Figma 목업 → <c>Resources/UI/StageClearScreen</c> 프리팹).
 ///
-/// HitFeedbackManager와 동일하게 <see cref="Bootstrap"/>으로 자동 생성되는 씬 무관 싱글턴이라
-/// 어떤 스테이지에서든 별도 배치 없이 동작한다. 평소엔 캔버스를 숨겨둔다.
+/// - 씬 무관 싱글턴: <see cref="Bootstrap"/>이 첫 씬 로드 후 프리팹을 인스턴스화한다(별도 배치 불필요).
+/// - <see cref="Show"/>가 결과/드랍을 받아 텍스트를 채우고, 드랍 개수만큼 <see cref="DropCardView"/>를 생성한다.
+/// - [확인] 버튼 → <see cref="Show"/>에 넘긴 onConfirm 콜백(보통 상점 이동).
+///
+/// 필드 참조는 프리팹에서 바인딩되어 있다(코드로 캔버스를 만들지 않는다).
 /// </summary>
 public class StageClearUI : MonoBehaviour
 {
     public static StageClearUI Instance { get; private set; }
 
-    private Font _font;
-    private Canvas _canvas;
-    private RectTransform _window;
-    private Text _titleText;
-    private RectTransform _bodyRoot;
-    private Button _confirmButton;
+    [Header("루트")]
+    [SerializeField] private Canvas _canvas;
+
+    [Header("텍스트")]
+    [SerializeField] private TMP_Text _title;
+    [SerializeField] private GameObject _perfectPill;
+    [SerializeField] private TMP_Text _killsValue;
+    [SerializeField] private TMP_Text _comboValue;
+    [SerializeField] private TMP_Text _shotsValue;
+    [SerializeField] private TMP_Text _goldValue;
+
+    [Header("드랍")]
+    [SerializeField] private Transform _dropsContainer;
+    [SerializeField] private GameObject _dropsEmptyLabel;
+    [SerializeField] private DropCardView _dropCardPrefab;
+
+    [Header("버튼")]
+    [SerializeField] private Button _confirmButton;
+
     private Action _onConfirm;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
     {
         if (Instance != null) return;
-        var go = new GameObject("StageClearUI");
-        go.AddComponent<StageClearUI>();
+        var prefab = Resources.Load<GameObject>("UI/StageClearScreen");
+        if (prefab == null)
+        {
+            Debug.LogError("[StageClearUI] Resources/UI/StageClearScreen 프리팹을 찾을 수 없습니다.");
+            return;
+        }
+        Instantiate(prefab); // 프리팹 루트의 StageClearUI가 Awake에서 Instance를 잡는다.
     }
 
     private void Awake()
@@ -38,54 +59,61 @@ public class StageClearUI : MonoBehaviour
         Instance = this;
         DontDestroyOnLoad(gameObject);
 
-        _font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
         EnsureEventSystem();
-        BuildCanvas();
-        _canvas.enabled = false; // 평소 숨김.
+        if (_confirmButton != null) _confirmButton.onClick.AddListener(OnConfirmClicked);
+        if (_canvas != null) _canvas.enabled = false; // 평소 숨김.
     }
 
     /// <summary>클리어 결과와 드랍 목록을 표시하고, [확인] 시 onConfirm을 호출한다.</summary>
     public void Show(StageResult result, IReadOnlyList<DropResult> drops, Action onConfirm)
     {
         _onConfirm = onConfirm;
+        Time.timeScale = 1f; // 오버레이가 프리즈 뒤에 가려지지 않도록.
 
-        // 오버레이가 프리즈 뒤에 가려지지 않도록 시간 흐름을 정상화.
-        Time.timeScale = 1f;
+        if (_title != null) _title.text = result.IsClear ? "STAGE CLEAR" : "STAGE FAILED";
+        if (_perfectPill != null) _perfectPill.SetActive(result.IsPerfect);
+        if (_killsValue != null) _killsValue.text = result.TotalKills.ToString();
+        if (_comboValue != null) _comboValue.text = "×" + result.Combo;
+        if (_shotsValue != null) _shotsValue.text = result.ShotsFired.ToString();
+        if (_goldValue != null) _goldValue.text = "+ " + result.Reward + " G";
 
-        _titleText.text = result.IsPerfect ? "스테이지 클리어!  (PERFECT)" : "스테이지 클리어!";
+        PopulateDrops(drops);
 
-        ClearChildren(_bodyRoot);
-        AddLine($"처치: {result.TotalKills}    최고 콤보: {result.Combo}    발사: {result.ShotsFired}",
-            18, new Color(0.85f, 0.9f, 1f));
-        AddLine($"획득 골드: +{result.Reward}", 20, new Color(1f, 0.9f, 0.4f), FontStyle.Bold);
-
-        AddLine("── 드랍 보상 ──", 18, new Color(0.7f, 0.95f, 0.8f), FontStyle.Bold);
-        if (drops == null || drops.Count == 0)
+        if (_canvas != null)
         {
-            AddLine("(획득한 아이템 없음)", 16, new Color(0.7f, 0.7f, 0.7f));
+            _canvas.enabled = true;
+            _canvas.transform.SetAsLastSibling();
         }
-        else
+    }
+
+    private void PopulateDrops(IReadOnlyList<DropResult> drops)
+    {
+        if (_dropsContainer == null) return;
+
+        for (int i = _dropsContainer.childCount - 1; i >= 0; i--)
+            Destroy(_dropsContainer.GetChild(i).gameObject);
+
+        int count = 0;
+        if (drops != null && _dropCardPrefab != null)
         {
             foreach (var d in drops)
             {
                 if (d.Item == null) continue;
-                AddLine($"· {d.Item.ResolvedName}  x{d.Quantity}", 17, new Color(0.9f, 0.95f, 1f));
+                var card = Instantiate(_dropCardPrefab, _dropsContainer);
+                card.Set(d.Item, d.Quantity);
+                count++;
             }
         }
-
-        _canvas.enabled = true;
-        _canvas.transform.SetAsLastSibling();
+        if (_dropsEmptyLabel != null) _dropsEmptyLabel.SetActive(count == 0);
     }
 
     private void OnConfirmClicked()
     {
-        _canvas.enabled = false;
+        if (_canvas != null) _canvas.enabled = false;
         var cb = _onConfirm;
         _onConfirm = null;
         cb?.Invoke();
     }
-
-    // ───────────────────────── UI 구성 ─────────────────────────
 
     private void EnsureEventSystem()
     {
@@ -94,141 +122,5 @@ public class StageClearUI : MonoBehaviour
         esGO.AddComponent<EventSystem>();
         esGO.AddComponent<StandaloneInputModule>();
         DontDestroyOnLoad(esGO);
-    }
-
-    private void BuildCanvas()
-    {
-        var canvasGO = new GameObject("StageClearCanvas");
-        canvasGO.transform.SetParent(transform, false);
-
-        _canvas = canvasGO.AddComponent<Canvas>();
-        _canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        _canvas.sortingOrder = 850; // 다른 HUD보다 위.
-
-        var scaler = canvasGO.AddComponent<CanvasScaler>();
-        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1920f, 1080f);
-        scaler.matchWidthOrHeight = 0.5f;
-
-        canvasGO.AddComponent<GraphicRaycaster>();
-
-        // 화면 전체를 어둡게(뒤 클릭 차단).
-        var dim = new GameObject("Dim", typeof(RectTransform));
-        dim.transform.SetParent(_canvas.transform, false);
-        var dimImg = dim.AddComponent<Image>();
-        dimImg.color = new Color(0f, 0f, 0f, 0.6f);
-        var dimRt = dim.GetComponent<RectTransform>();
-        dimRt.anchorMin = Vector2.zero; dimRt.anchorMax = Vector2.one;
-        dimRt.offsetMin = Vector2.zero; dimRt.offsetMax = Vector2.zero;
-
-        // 중앙 결과 창.
-        var winGO = new GameObject("Window", typeof(RectTransform));
-        winGO.transform.SetParent(_canvas.transform, false);
-        var winImg = winGO.AddComponent<Image>();
-        winImg.color = new Color(0.10f, 0.12f, 0.16f, 0.97f);
-        _window = winGO.GetComponent<RectTransform>();
-        _window.anchorMin = new Vector2(0.5f, 0.5f);
-        _window.anchorMax = new Vector2(0.5f, 0.5f);
-        _window.pivot = new Vector2(0.5f, 0.5f);
-        _window.sizeDelta = new Vector2(560f, 520f);
-
-        var layout = winGO.AddComponent<VerticalLayoutGroup>();
-        layout.spacing = 10f;
-        layout.padding = new RectOffset(28, 28, 24, 24);
-        layout.childAlignment = TextAnchor.UpperCenter;
-        layout.childControlWidth = true;
-        layout.childControlHeight = true;
-        layout.childForceExpandWidth = true;
-        layout.childForceExpandHeight = false;
-
-        _titleText = AddText(_window, "스테이지 클리어!", 30, new Color(1f, 0.95f, 0.6f), FontStyle.Bold);
-        _titleText.alignment = TextAnchor.MiddleCenter;
-
-        _bodyRoot = CreateVerticalPanel(_window, "Body");
-
-        _confirmButton = AddButton(_window, "확인", new Color(0.18f, 0.34f, 0.20f, 0.98f));
-        _confirmButton.onClick.AddListener(OnConfirmClicked);
-    }
-
-    // ───────────────────────── 위젯 헬퍼 ─────────────────────────
-
-    private void AddLine(string text, int size, Color color, FontStyle style = FontStyle.Normal)
-    {
-        var t = AddText(_bodyRoot, text, size, color, style);
-        t.alignment = TextAnchor.MiddleCenter;
-    }
-
-    private RectTransform CreateVerticalPanel(Transform parent, string name)
-    {
-        var go = new GameObject(name, typeof(RectTransform));
-        go.transform.SetParent(parent, false);
-
-        var layout = go.AddComponent<VerticalLayoutGroup>();
-        layout.spacing = 6f;
-        layout.childAlignment = TextAnchor.UpperCenter;
-        layout.childControlWidth = true;
-        layout.childControlHeight = true;
-        layout.childForceExpandWidth = true;
-        layout.childForceExpandHeight = false;
-
-        // 부모 VerticalLayoutGroup이 높이를 제어하므로 ContentSizeFitter 없이 flexibleHeight로 남은 공간을 채운다.
-        var le = go.AddComponent<LayoutElement>();
-        le.flexibleHeight = 1f;
-        return go.GetComponent<RectTransform>();
-    }
-
-    private Text AddText(Transform parent, string message, int fontSize, Color color, FontStyle style = FontStyle.Normal)
-    {
-        var go = new GameObject("Text", typeof(RectTransform));
-        go.transform.SetParent(parent, false);
-
-        var text = go.AddComponent<Text>();
-        text.font = _font;
-        text.text = message;
-        text.fontSize = fontSize;
-        text.fontStyle = style;
-        text.color = color;
-        text.alignment = TextAnchor.MiddleLeft;
-        text.horizontalOverflow = HorizontalWrapMode.Wrap;
-        text.verticalOverflow = VerticalWrapMode.Overflow;
-
-        var le = go.AddComponent<LayoutElement>();
-        le.preferredHeight = fontSize + 8f;
-        return text;
-    }
-
-    private Button AddButton(Transform parent, string label, Color baseColor)
-    {
-        var go = new GameObject($"Button_{label}", typeof(RectTransform));
-        go.transform.SetParent(parent, false);
-
-        var image = go.AddComponent<Image>();
-        image.color = baseColor;
-
-        var button = go.AddComponent<Button>();
-        button.targetGraphic = image;
-
-        var le = go.AddComponent<LayoutElement>();
-        le.preferredHeight = 56f;
-
-        var textGO = new GameObject("Text", typeof(RectTransform));
-        textGO.transform.SetParent(go.transform, false);
-        var text = textGO.AddComponent<Text>();
-        text.font = _font;
-        text.text = label;
-        text.fontSize = 24;
-        text.color = Color.white;
-        text.alignment = TextAnchor.MiddleCenter;
-        var trt = textGO.GetComponent<RectTransform>();
-        trt.anchorMin = Vector2.zero; trt.anchorMax = Vector2.one;
-        trt.offsetMin = Vector2.zero; trt.offsetMax = Vector2.zero;
-
-        return button;
-    }
-
-    private void ClearChildren(Transform parent)
-    {
-        for (int i = parent.childCount - 1; i >= 0; i--)
-            Destroy(parent.GetChild(i).gameObject);
     }
 }
