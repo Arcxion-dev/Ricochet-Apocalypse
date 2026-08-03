@@ -2051,7 +2051,7 @@ MonoBehaviour:
   _rewardPerKill: 10
   _rewardPerCombo: 25
   _perfectBonus: 200
-  _civilianHitPenalty: 20
+  _civilianHitPenalty: 0.2
   _enemyChaseDelay: 1
 --- !u!4 &1775640210
 Transform:

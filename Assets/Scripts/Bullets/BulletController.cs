@@ -431,7 +431,7 @@ private void HandleObstacleHit(Collider2D obstacle, BulletTargetType targetType,
 
         if (targetType == BulletTargetType.Civilian)
         {
-            Debug.LogWarning("[BulletController] 민간인 피격! 골드 차감 + 콤보 초기화 페널티");
+            Debug.LogWarning("[BulletController] 민간인 피격! 이번 스테이지 클리어 보상 감소");
             GameManager.Instance?.OnCivilianHit();
             Die();
             return;

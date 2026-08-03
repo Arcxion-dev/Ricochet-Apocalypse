@@ -40,6 +40,12 @@ public class StageClearUI : MonoBehaviour
 
     private Action _onConfirm;
 
+    /// <summary>
+    /// 클리어 결과 창이 떠 있는지. 이 동안은 보상이 이미 지급됐고 진행만 남은 상태라,
+    /// 다른 UI(일시정지 등)가 끼어들지 않도록 양보 판단에 쓴다.
+    /// </summary>
+    public bool IsShowing => _canvas != null && _canvas.enabled;
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
     {

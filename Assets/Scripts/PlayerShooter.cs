@@ -188,7 +188,7 @@ public class PlayerShooter : MonoBehaviour
         }
 
         // 씬 전환 중 UI가 닫힌 채로 타임스케일이 0에 묶여 있으면 풀어준다(정지 상태로 씬이 시작되는 것 방지).
-        if (Time.timeScale == 0f && !InventoryUI.IsOpen && !WeaponPartsUI.IsOpen)
+        if (Time.timeScale == 0f && !IsBlockingUiOpen)
             Time.timeScale = 1f;
 
         SetupLaser();
@@ -205,7 +205,13 @@ public class PlayerShooter : MonoBehaviour
         Active = this;
     }
 
-    /// <summary>인벤토리/파츠 UI가 열리면 게임을 완전히 멈추고(타임스케일 0), 닫히면 재개한다.</summary>
+    /// <summary>조준·격발을 막고 게임을 멈춰야 하는 전체화면 UI(인벤토리/파츠/일시정지)가 떠 있는지.</summary>
+    private static bool IsBlockingUiOpen => InventoryUI.IsOpen || WeaponPartsUI.IsOpen || PauseMenuUI.IsOpen;
+
+    /// <summary>탄환/아이템 변경·조준 모드처럼 ESC가 "모드 취소"로 먼저 소비되는 상태인지.</summary>
+    public bool IsInSelectionMode => _mode != InputMode.Normal;
+
+    /// <summary>인벤토리/파츠/일시정지 UI가 열리면 게임을 완전히 멈추고(타임스케일 0), 닫히면 재개한다.</summary>
     private void UpdateUiPause(bool uiOpen)
     {
         if (uiOpen && !_uiPaused)
@@ -255,8 +261,8 @@ public class PlayerShooter : MonoBehaviour
     {
         HandleBulletSelectionInput();
 
-        // 인벤토리/파츠 UI가 열려 있으면 게임을 완전히 멈추고(타임스케일 0) 조준·격발 입력을 막는다.
-        bool uiOpen = InventoryUI.IsOpen || WeaponPartsUI.IsOpen;
+        // 인벤토리/파츠/일시정지 UI가 열려 있으면 게임을 완전히 멈추고(타임스케일 0) 조준·격발 입력을 막는다.
+        bool uiOpen = IsBlockingUiOpen;
         UpdateUiPause(uiOpen);
         if (uiOpen)
         {
