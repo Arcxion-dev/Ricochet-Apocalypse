@@ -33,6 +33,12 @@ public class HudController : MonoBehaviour
     [SerializeField] private Transform _itemContainer;
     [SerializeField] private ItemChipView _itemChipPrefab;
 
+    [Header("장착 파츠")]
+    [SerializeField] private GameObject _partsPanel;   // Tab으로 on/off
+    [SerializeField] private Transform _partsContainer;
+    [SerializeField] private PartChipView _partChipPrefab;
+    [SerializeField] private KeyCode _partsToggleKey = KeyCode.Tab;
+
     [Header("탄환 목록")]
     [SerializeField] private Transform _bulletContainer;
     [SerializeField] private BulletSlotView _bulletRowPrefab;
@@ -42,7 +48,7 @@ public class HudController : MonoBehaviour
     private Player _player;
     private float _findTimer;
     private int _maxHp;
-    private int _bulletSig = int.MinValue, _itemSig = int.MinValue;
+    private int _bulletSig = int.MinValue, _itemSig = int.MinValue, _partsSig = int.MinValue;
     private int _lastHp = int.MinValue, _lastCombo = int.MinValue, _lastGold = int.MinValue, _lastEnemies = int.MinValue, _lastStage = int.MinValue;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -110,6 +116,12 @@ public class HudController : MonoBehaviour
             string mode = _shooter.ActiveModeLabel;
             _itemHint.text = string.IsNullOrEmpty(mode) ? "E 변경 · F 사용" : mode;
         }
+
+        // ── 장착 파츠 ──
+        int pSig = PartsSignature();
+        if (pSig != _partsSig) { _partsSig = pSig; RefreshParts(_shooter.EquippedParts); }
+        if (Input.GetKeyDown(_partsToggleKey) && _partsPanel != null)
+            _partsPanel.SetActive(!_partsPanel.activeSelf);
     }
 
     // ───────────────────────── 공개 세터(폴링/테스트 공용) ─────────────────────────
@@ -164,6 +176,20 @@ public class HudController : MonoBehaviour
         }
     }
 
+    public void RefreshParts(IReadOnlyList<WeaponPartSO> parts)
+    {
+        if (_partsContainer == null || _partChipPrefab == null) return;
+        ClearChildren(_partsContainer);
+
+        int count = parts != null ? parts.Count : 0;
+        for (int i = 0; i < count; i++)
+        {
+            if (parts[i] == null) continue;
+            var chip = Instantiate(_partChipPrefab, _partsContainer);
+            chip.Set(parts[i].DisplayName);
+        }
+    }
+
     // ───────────────────────── 내부 ─────────────────────────
 
     private int BulletSignature()
@@ -191,6 +217,15 @@ public class HudController : MonoBehaviour
             h = h * 31 + (c.Definition != null ? c.Definition.GetInstanceID() : 0);
             h = h * 31 + c.Count;
         }
+        return h;
+    }
+
+    private int PartsSignature()
+    {
+        int h = 23;
+        var parts = _shooter.EquippedParts;
+        h = h * 31 + (parts != null ? parts.Count : 0);
+        if (parts != null) foreach (var p in parts) h = h * 31 + (p != null ? p.GetInstanceID() : 0);
         return h;
     }
 
