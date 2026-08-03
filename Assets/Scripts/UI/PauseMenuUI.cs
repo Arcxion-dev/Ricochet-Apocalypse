@@ -86,6 +86,11 @@ public class PauseMenuUI : MonoBehaviour
 
         // 다른 전체화면 UI가 ESC를 이미 쓰고 있으면 양보한다.
         if (InventoryUI.IsOpen || WeaponPartsUI.IsOpen) return false;
+
+        // 클리어 결과 창이 떠 있는 동안은 막는다. 이 시점엔 보상이 이미 지급됐는데 세이브의
+        // 이어하기 지점은 아직 그 스테이지라, 여기서 나갔다 들어오면 같은 스테이지를 다시 깨서
+        // 보상을 중복으로 받을 수 있다([확인]을 눌러 다음 지점으로 넘어간 뒤에 나가게 한다).
+        if (StageClearUI.Instance != null && StageClearUI.Instance.IsShowing) return false;
         if (PlayerShooter.Active != null && PlayerShooter.Active.IsInSelectionMode) return false;
         if (SceneTransition.Instance != null && SceneTransition.Instance.IsTransitioning) return false;
 

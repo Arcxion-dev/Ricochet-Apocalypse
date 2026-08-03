@@ -468,6 +468,15 @@ private void HandleObstacleHit(Collider2D obstacle, BulletTargetType targetType,
                 }
             }
 
+            // 화염(화상) 탄환은 통과하는 풀숲(Bush)을 태워 없앤다 → 안에 은신(FoliageConcealmentModule)했던 적이 드러난다.
+            // 풀숲은 관통 대상이므로 총알은 계속 진행하고, 풀숲만 제거된다.
+            // (병합 후 속성 모델이 BulletSO.element → effect 리스트로 바뀌어, 화상 효과(BurnEffectSO) 보유로 화염 탄환을 식별한다.)
+            if (targetType == BulletTargetType.Bush && Data.HasEffect<BurnEffectSO>())
+            {
+                PlayHitEffect(EffectKind.Explosion);
+                Destroy(obstacle.gameObject);
+            }
+
             foreach (var effect in Data.effects)
             {
                 if (effect != null) effect.OnHitObstacle(this, obstacle, targetType);

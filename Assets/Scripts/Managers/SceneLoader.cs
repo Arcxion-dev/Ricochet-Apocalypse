@@ -140,6 +140,15 @@ public static class SceneLoader
         LoadStage(CurrentStageIndex + 1);
     }
 
+    /// <summary>
+    /// 현재(준비된) 스테이지 인덱스의 스테이지를 로드한다. 클리어 시 인덱스가 미리 전진되므로,
+    /// 상점 '출발'과 준비 상태에서 상점을 다녀온 뒤 복귀는 이 메서드로 "같은 다음 스테이지"를 연다.
+    /// </summary>
+    public static void LaunchCurrentStage()
+    {
+        LoadStage(CurrentStageIndex);
+    }
+
     /// <summary>현재 스테이지를 재시도한다 (실패 시).</summary>
     public static void ReloadStage()
     {

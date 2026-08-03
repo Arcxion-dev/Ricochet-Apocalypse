@@ -10,7 +10,7 @@ using UnityEngine.SceneManagement;
 /// - 콤보/퍼펙트 스코어링을 위해 발사 수(RegisterShot)와 처치 수(ReportEnemyKilled)를 추적한다.
 ///   콤보 = "한 발의 탄환으로 처치한 최대 몬스터 수", 퍼펙트 = "단 1발로 스테이지 클리어".
 /// - 클리어 보상(골드)은 <see cref="CalculateReward"/> 참고: 기본 + 처치 + 콤보(체증) + 퍼펙트를 더한 뒤,
-///   그 스테이지에서 민간인을 맞힌 횟수만큼 비율 감산한다.
+///   그 스테이지에서 민간인을 맞힌 횟수만큼 비율 감산한다. 골드와 별개로 드랍테이블 아이템도 지급한다.
 /// - 실패 판정(플레이어 사망)은 OnPlayerDeath로 들어온다. 민간인 피격(OnCivilianHit)은 실패가 아니라
 ///   보상 감산 페널티다.
 ///
@@ -41,7 +41,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] private int _perfectBonus = 200;
 
     [Tooltip("민간인을 1명 맞힐 때마다 그 스테이지 보상이 줄어드는 비율 (0.2 = 20%).\n" +
-             "여러 번 맞히면 누적되며 0%까지 떨어진다.")]
+             "여러 번 맞히면 누적되며 0%까지 떨어진다. 이미 보유한 골드는 차감하지 않는다.")]
     [Range(0f, 1f)]
     [SerializeField] private float _civilianHitPenalty = 0.2f;
 
@@ -52,6 +52,12 @@ public class GameManager : MonoBehaviour
     /// <summary>true가 되면 적(EnemyAIModule)이 추격(SetDestination)을 시작한다. 스테이지 시작 시 false.</summary>
     public bool EnemiesCanChase { get; private set; }
     private Coroutine _chaseArmRoutine;
+
+    /// <summary>
+    /// 준비(Ready) 상태에서 [시작]을 누르면 true가 된다. false면 <see cref="PlayerShooter"/>가
+    /// 조준선을 숨기고 격발/아이템 입력을 막는다(준비 중 조준 방지). 스테이지 진입 시 false.
+    /// </summary>
+    public bool StageStarted { get; private set; }
 
     // 살아있는 적 집합. Enemy가 등록/해제한다.
     private readonly HashSet<Enemy> _aliveEnemies = new HashSet<Enemy>();
@@ -142,6 +148,21 @@ public class GameManager : MonoBehaviour
             StopCoroutine(_chaseArmRoutine);
             _chaseArmRoutine = null;
         }
+
+        // 모든 스테이지는 준비(Ready) 상태로 시작한다([시작] 전까지 조준/격발 불가).
+        StageStarted = false;
+    }
+
+    // ───────────────────────── 준비 / 시작 상태 ─────────────────────────
+
+    /// <summary>스테이지를 준비(Ready) 상태로 되돌린다(조준/격발 차단). StageReadyUI 진입 시 호출.</summary>
+    public void SetStageReady() => StageStarted = false;
+
+    /// <summary>준비 상태에서 [시작]을 눌러 플레이를 개시한다(조준/격발 허용). StageReadyUI에서 호출.</summary>
+    public void StartStage()
+    {
+        StageStarted = true;
+        Debug.Log("[GameManager] 스테이지 시작 (조준/격발 허용)");
     }
 
     // ───────────────────────── 적 추적 (등록 방식) ─────────────────────────
@@ -282,6 +303,9 @@ public class GameManager : MonoBehaviour
         if (_stageEnded) return;
         _stageEnded = true;
 
+        // 클리어 순간부터는 조준/격발을 막는다(클리어 창 뒤에서 계속 쏘는 것 방지).
+        StageStarted = false;
+
         bool isPerfect = _shotsFired == 1;
         int reward = CalculateReward(isPerfect);
 
@@ -291,20 +315,56 @@ public class GameManager : MonoBehaviour
         // 런 누계 성적에 이번 스테이지를 더한다(결과 화면이 읽는다).
         RunResult.ReportStageCleared(result);
 
-        // 보상을 실제 재화로 지급(에셋이 없으면 경고만 남기고 넘어간다).
+        // 골드 보상을 실제 재화로 지급(에셋이 없으면 경고만 남기고 넘어간다).
         if (GoldDefinition != null) InventoryManager.Instance?.Add(GoldDefinition, reward);
         else Debug.LogWarning("[GameManager] Resources/Currency/Gold 에셋을 찾을 수 없어 보상을 지급하지 못했습니다.");
 
-        // 마지막 스테이지를 깼다면 게임 최종 클리어 → 상점을 거치지 않고 결과 화면으로.
+        // 스테이지별 드랍테이블을 굴려 아이템을 지급하고, 클리어 UI에 표시한다.
+        var drops = RollAndAwardDrops();
+
+        // 클리어 UI를 띄우고, [확인] 시 상점(또는 결과)으로 진행한다. UI가 없으면 바로 진행.
+        if (StageClearUI.Instance != null) StageClearUI.Instance.Show(result, drops, ProceedAfterClear);
+        else ProceedAfterClear();
+    }
+
+    /// <summary>
+    /// 현재 스테이지의 드랍테이블(<c>Resources/DropTables/{씬이름}</c> → 없으면 <c>DropTables/Default</c>)을
+    /// 굴려 나온 아이템을 인벤토리에 지급하고 결과 목록을 반환한다. 테이블이 없으면 빈 목록.
+    /// </summary>
+    private List<DropResult> RollAndAwardDrops()
+    {
+        var results = new List<DropResult>();
+
+        string sceneName = SceneManager.GetActiveScene().name;
+        var table = Resources.Load<DropTableSO>($"DropTables/{sceneName}");
+        if (table == null) table = Resources.Load<DropTableSO>("DropTables/Default");
+        if (table == null) return results;
+
+        results = table.Roll();
+        foreach (var d in results)
+        {
+            if (d.Item != null) InventoryManager.Instance?.Add(d.Item, d.Quantity);
+        }
+        return results;
+    }
+
+    /// <summary>클리어 UI [확인] 후: 스테이지 인덱스를 다음으로 올리고 상점을 경유한다(마지막이면 최종 클리어).</summary>
+    private void ProceedAfterClear()
+    {
+        // 방금 깬 것이 마지막 스테이지라면 게임 최종 클리어 → 상점을 거치지 않고 런을 종료한다.
+        // (런 데이터를 지우고 결과 씬으로 보낸다 — SceneLoader.FinishRun 참고)
         if (SceneLoader.IsOnLastStage)
         {
             SceneLoader.FinishRun(true);
             return;
         }
 
-        // 클리어 후 상점 또는 다음 스테이지로.
+        // 준비할 다음 스테이지로 인덱스를 미리 전진시킨다(상점 '출발'은 이 인덱스를 로드한다).
+        int next = SceneLoader.CurrentStageIndex + 1;
+        SceneLoader.SetCurrentStageIndex(next);
+
         if (_goToShopOnClear) SceneLoader.LoadShop();
-        else SceneLoader.LoadNextStage();
+        else SceneLoader.LoadStage(next);
     }
 
     /// <summary>

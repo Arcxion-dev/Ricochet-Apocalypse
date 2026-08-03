@@ -19,6 +19,7 @@ public class EnemyController : MonoBehaviour
     private ArmorModule armorModule;
     private TraitModule traitModule;
     private SpeedModule speedModule;
+    private FoliageConcealmentModule foliageConcealment;
     private ShieldModule shieldModule;
     private Entity entity; // 친구가 만든 체력 시스템 (Enemy : Entity)
 
@@ -38,6 +39,9 @@ private void Awake()
         armorModule = GetComponent<ArmorModule>();
         traitModule = GetComponent<TraitModule>();
         speedModule = GetComponent<SpeedModule>();
+        // 은신(수풀/모래바람/아지랑이) 모듈도 모든 적에 적용되도록 없으면 자동 부착한다.
+        foliageConcealment = GetComponent<FoliageConcealmentModule>();
+        if (foliageConcealment == null) foliageConcealment = gameObject.AddComponent<FoliageConcealmentModule>();
         shieldModule = GetComponent<ShieldModule>();
         entity = GetComponent<Entity>();
         spriteRenderer = GetComponentInChildren<SpriteRenderer>();
