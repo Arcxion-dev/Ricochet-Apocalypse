@@ -5,9 +5,10 @@ using UnityEngine;
 /// <summary>
 /// 화상탄/냉기탄/중력자탄 등이 생성하는 범위 장판의 런타임 동작.
 /// 프리팹 루트에 CircleCollider2D(Trigger) + 이 컴포넌트를 붙여서 사용합니다.
-/// 담당자가 실제 비주얼 프리팹을 만들면 Setup()으로 파라미터만 주입하면 됩니다.
-/// 프리팹이 아직 없을 경우를 대비해, 프리팹 없이도 순수 로직(OverlapCircle)만으로
-/// 동작하는 SpawnLogicOnly 헬퍼를 BulletEffectSO 쪽에 별도로 제공합니다.
+///
+/// 비주얼은 <see cref="DamageZoneVisual"/>이 Setup()에서 받은 반경 그대로 파티클 시스템을
+/// 만들어 붙인다. 예전처럼 Circle 스프라이트 프리팹을 깔면 프리팹 스케일과 실제 판정 반경이
+/// 따로 놀아 "보이는 크기 != 맞는 크기"가 되므로, 비주얼은 항상 반경 값에서 파생시킨다.
 /// </summary>
 [RequireComponent(typeof(CircleCollider2D))]
 public class DamageZone : MonoBehaviour
@@ -22,6 +23,7 @@ public class DamageZone : MonoBehaviour
 
     private float _elapsed;
     private float _tickTimer;
+    private DamageZoneVisual _visual;
 
     public void Setup(float radius, float duration, float tickDamage, LayerMask enemyLayerMask, string label, float tickInterval = 0.5f,
         BulletAttackAttribute attackAttribute = BulletAttackAttribute.None)
@@ -38,7 +40,11 @@ public class DamageZone : MonoBehaviour
         col.isTrigger = true;
         col.radius = radius;
 
+        // 스케일을 1로 고정해야 콜라이더 반경 = 월드 반경이 되고, 비주얼도 같은 값에 맞출 수 있다.
         transform.localScale = Vector3.one;
+
+        if (_visual != null) Destroy(_visual.gameObject); // Setup 재호출 대비
+        _visual = DamageZoneVisual.Create(transform, radius, attackAttribute);
     }
 
     private void Update()
@@ -54,6 +60,8 @@ public class DamageZone : MonoBehaviour
 
         if (_elapsed >= _duration)
         {
+            // 비주얼은 분리해서 남은 입자가 사라질 때까지 두고, 판정 본체만 즉시 정리한다.
+            if (_visual != null) _visual.Release();
             Destroy(gameObject);
         }
     }

@@ -28,6 +28,10 @@ public class HitFeedbackManager : MonoBehaviour
     [SerializeField] private float _knockbackForce = 1.4f;
     [SerializeField] private float _headshotKnockbackMultiplier = 1.4f;
     [SerializeField] private float _knockbackDuration = 0.1f;
+    [Tooltip("넉백이 통과하지 못하는 레이어. 비워두면 Wall 레이어를 자동으로 사용한다.")]
+    [SerializeField] private LayerMask _knockbackBlockingLayers;
+    [Tooltip("넉백으로 벽에 완전히 달라붙지 않도록 남겨두는 여유 간격(월드 유닛).")]
+    [SerializeField] private float _knockbackSkinWidth = 0.03f;
 
     [Header("카메라 펀치")]
     [SerializeField] private float _shakeMagnitude = 0.08f;
@@ -63,6 +67,9 @@ public class HitFeedbackManager : MonoBehaviour
     private ChromaticAberration _aberration;
     private Coroutine _aberrationRoutine;
 
+    /// <summary>넉백 스윕이 벽으로 판정할 대상 필터. Awake에서 한 번만 만든다.</summary>
+    private ContactFilter2D _knockbackFilter;
+
     /// <summary>어느 씬에서 Play해도 존재하도록 부트스트랩(다른 매니저들과 동일 패턴).</summary>
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
@@ -83,6 +90,8 @@ public class HitFeedbackManager : MonoBehaviour
         DontDestroyOnLoad(gameObject);
 
         _font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        _knockbackFilter = CollideAndSlide2D.CreateFilter(
+            CollideAndSlide2D.ResolveDefaultWallMask(_knockbackBlockingLayers));
         BuildPopupCanvas();
         BuildAberrationVolume();
     }
@@ -209,6 +218,10 @@ public class HitFeedbackManager : MonoBehaviour
     /// 동일한 오프셋으로 튐 → NavMesh 위 재투영 부작용이 실제 힘보다 압도적으로 큼).
     /// 대신 넉백 동안만 에이전트를 잠시 꺼서 NavMesh 제약 없이 Transform을 직접, 힘에 비례해
     /// 움직이고, 끝나면 <see cref="NavMeshAgent.Warp"/>로 한 번만 깔끔하게 재동기화한다.
+    ///
+    /// 단, 에이전트를 끄면 NavMesh의 이동 제약도 함께 사라지기 때문에 Transform을 그냥 더하면
+    /// 적이 벽을 뚫고 밀려난다. 그래서 매 스텝을 <see cref="CollideAndSlide2D"/>로 미리 쓸어보고
+    /// 벽 앞에서 멈추거나 벽을 따라 미끄러지게 한다.
     /// </summary>
     private IEnumerator KnockbackRoutine(NavMeshAgent agent, Vector2 direction, float force)
     {
@@ -216,6 +229,7 @@ public class HitFeedbackManager : MonoBehaviour
         if (dir == Vector2.zero) yield break;
 
         Transform t = agent.transform;
+        Collider2D body = agent.GetComponent<Collider2D>(); // 없으면 스윕 없이 예전처럼 이동
         bool wasEnabled = agent.enabled;
         if (wasEnabled) agent.enabled = false;
 
@@ -226,7 +240,12 @@ public class HitFeedbackManager : MonoBehaviour
 
             elapsed += Time.deltaTime; // 히트스톱(타임스케일 정지) 동안 함께 멎었다가 풀리는 느낌을 위해 스케일 적용 시간 사용.
             float damper = 1f - Mathf.Clamp01(elapsed / _knockbackDuration); // 점점 잦아듦
-            t.position += (Vector3)(dir * (force * damper * Time.deltaTime));
+
+            Vector2 current = t.position;
+            Vector2 step = dir * (force * damper * Time.deltaTime);
+            Vector2 next = CollideAndSlide2D.Move(body, current, step, _knockbackFilter, _knockbackSkinWidth);
+            t.position = new Vector3(next.x, next.y, t.position.z);
+
             yield return null;
         }
 

@@ -13,7 +13,19 @@ public class PlayerPositionModule : MonoBehaviour
     public void ApplyToPlayer(Transform player)
     {
         if (player == null) return;
-        player.position = GetSpawnPosition();
+
+        Vector3 spawnPosition = GetSpawnPosition();
+
+        // 플레이어는 Kinematic Rigidbody2D로 움직이므로 Transform만 옮기면 물리 포즈와 어긋난다.
+        // PlayerMovement가 있으면 둘을 함께 맞춰주는 Teleport를 쓴다.
+        var movement = player.GetComponent<PlayerMovement>();
+        if (movement != null)
+        {
+            movement.Teleport(spawnPosition);
+            return;
+        }
+
+        player.position = spawnPosition;
     }
 
     public void SetSpawnPoint(Transform point) => spawnPoint = point;
