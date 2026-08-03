@@ -54,6 +54,13 @@ public static class SceneLoader
     /// <summary>현재 스테이지 진행 인덱스 (0부터).</summary>
     public static int CurrentStageIndex { get; private set; }
 
+    /// <summary>
+    /// 이 프로젝트는 Domain Reload가 꺼져 있어 정적 값이 플레이 세션 사이에 남는다.
+    /// 플레이 시작 시 진행 인덱스를 0으로 되돌려, 이전 세션의 진행도가 새 플레이에 새지 않게 한다.
+    /// </summary>
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetOnEnterPlayMode() => CurrentStageIndex = 0;
+
     /// <summary>세이브 불러오기 등 외부에서 진행 인덱스를 직접 설정한다(씬 로드는 하지 않음).</summary>
     public static void SetCurrentStageIndex(int index)
     {
@@ -73,6 +80,32 @@ public static class SceneLoader
         return false;
     }
 
+    /// <summary>
+    /// 지금 열려 있는 씬 이름에 맞춰 진행 인덱스를 보정한다.
+    /// 정상 흐름(LoadStage 경유)에선 이미 일치하므로 아무 일도 하지 않고, 에디터에서 스테이지 씬을
+    /// 직접 Play한 경우에만 인덱스를 맞춰 준다(마지막 스테이지 판정/저장이 어긋나지 않도록).
+    /// </summary>
+    public static void SyncStageIndexToScene(string sceneName)
+    {
+        var stages = SceneNames.Stages;
+        for (int i = 0; i < stages.Length; i++)
+        {
+            if (stages[i] != sceneName) continue;
+            if (CurrentStageIndex != i)
+            {
+                Debug.Log($"[SceneLoader] 열린 씬에 맞춰 진행 인덱스 보정: {CurrentStageIndex} → {i} ({sceneName})");
+                CurrentStageIndex = i;
+            }
+            return;
+        }
+    }
+
+    /// <summary>주어진 인덱스가 마지막 스테이지인지(= 여기를 깨면 게임 최종 클리어).</summary>
+    public static bool IsLastStageIndex(int index) => index >= SceneNames.Stages.Length - 1;
+
+    /// <summary>현재 플레이 중인 스테이지가 마지막 스테이지인지.</summary>
+    public static bool IsOnLastStage => IsLastStageIndex(CurrentStageIndex);
+
     /// <summary>타이틀로 이동하고 진행 인덱스를 초기화한다.</summary>
     public static void LoadTitle()
     {
@@ -90,8 +123,8 @@ public static class SceneLoader
 
         if (index >= SceneNames.Stages.Length)
         {
-            Debug.Log($"[SceneLoader] 마지막 스테이지까지 클리어 → 결과 씬으로 이동");
-            LoadResult();
+            // 마지막 스테이지 다음으로 넘어가려 한다 = 게임 최종 클리어.
+            FinishRun(true);
             return;
         }
 
@@ -144,6 +177,74 @@ public static class SceneLoader
     public static void LoadResult()
     {
         LoadScene(SceneNames.Result);
+    }
+
+    // ───────────────────────── 런 시작 / 종료 ─────────────────────────
+
+    /// <summary>
+    /// 한 판(런)을 끝내고 결과 씬으로 보낸다. 로그라이크 규칙상 여기서 런 데이터는 모두 지워지고,
+    /// 다음 판은 1스테이지부터 빈 손으로 시작한다. 성적은 <see cref="RunResult"/>에 남아 결과 화면이 읽는다.
+    /// </summary>
+    /// <param name="cleared">최종 클리어면 true, 사망/실패면 false.</param>
+    /// <param name="failReason">실패 사유(클리어면 무시).</param>
+    public static void FinishRun(bool cleared, string failReason = null)
+    {
+        // 이미 종료 처리된 런이면 클리어 횟수가 중복 집계되지 않도록 결과 화면만 다시 띄운다.
+        if (RunResult.LastOutcome != RunResult.Outcome.None)
+        {
+            LoadResult();
+            return;
+        }
+
+        if (cleared)
+        {
+            RunResult.MarkCleared();
+            Debug.Log("[SceneLoader] 게임 최종 클리어! → 결과 씬으로 이동");
+        }
+        else
+        {
+            RunResult.MarkFailed(failReason);
+            Debug.Log($"[SceneLoader] 런 종료 ({failReason}) → 결과 씬으로 이동");
+        }
+
+        // 세이브의 런 데이터를 비운다(= 이어하기 불가, 다음엔 1스테이지부터).
+        SaveManager.Instance?.EndRun(cleared);
+        CurrentStageIndex = 0;
+
+        LoadResult();
+    }
+
+    /// <summary>1스테이지부터 새 런을 시작한다(타이틀 "새 게임" / 결과 화면 "다시 도전").</summary>
+    public static void StartNewRun()
+    {
+        SaveManager.Instance?.StartNewRun();
+        RunResult.BeginRun();
+        LoadStage(0);
+    }
+
+    /// <summary>
+    /// 중간 저장해 둔 런을 이어서 시작한다. 상점에서 나갔으면 상점으로, 스테이지에서 나갔으면 그 스테이지로
+    /// 돌아간다. 이어할 런이 없으면 새 런을 시작한다.
+    /// </summary>
+    public static void ResumeRun()
+    {
+        var save = SaveManager.Instance;
+        if (save == null || save.Load() < 0)
+        {
+            StartNewRun();
+            return;
+        }
+
+        string resume = save.ResumeScene;
+        if (!string.IsNullOrEmpty(resume) && Application.CanStreamedLevelBeLoaded(resume))
+        {
+            Debug.Log($"[SceneLoader] 이어하기 → '{resume}' (스테이지 인덱스 {CurrentStageIndex})");
+            LoadScene(resume);
+            return;
+        }
+
+        // 복귀 씬 정보가 없거나 빌드에 없으면 저장된 스테이지 인덱스로 폴백.
+        LoadStage(CurrentStageIndex);
     }
 
     /// <summary>이름으로 씬을 로드하는 저수준 진입점.</summary>
