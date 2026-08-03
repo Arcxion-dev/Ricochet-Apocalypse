@@ -74,4 +74,17 @@ public static class UITheme
 
     /// <summary>알파를 바꾼 색 사본.</summary>
     public static Color A(this Color c, float a) => new Color(c.r, c.g, c.b, a);
+
+    /// <summary>탄환 능력/속성 라벨을 대표 색으로 매핑(태그·아이콘 색 공용).</summary>
+    public static Color AbilityColor(string label)
+    {
+        if (string.IsNullOrEmpty(label)) return Cyan;
+        if (label.Contains("화") || label.Contains("불") || label.Contains("염")) return Fire;
+        if (label.Contains("폭")) return Explosive;
+        if (label.Contains("관통") || label.Contains("철갑")) return Ice;
+        if (label.Contains("얼") || label.Contains("빙") || label.Contains("냉")) return Ice;
+        if (label.Contains("전")) return Electric;
+        if (label.Contains("유도") || label.Contains("분열") || label.Contains("중력") || label.Contains("복합")) return Arcane;
+        return Cyan;
+    }
 }
