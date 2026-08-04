@@ -129,8 +129,8 @@ public class HitFeedbackManager : MonoBehaviour
 
         var scaler = canvasGO.AddComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1920f, 1080f);
-        scaler.matchWidthOrHeight = 0.5f;
+        scaler.referenceResolution = new Vector2(1080f, 1920f);
+        scaler.matchWidthOrHeight = 0f; // 폭 기준(세로 고정)
         // 표시 전용(클릭 없음)이라 GraphicRaycaster/EventSystem은 필요 없다.
     }
 

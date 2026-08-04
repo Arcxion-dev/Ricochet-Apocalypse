@@ -204,8 +204,8 @@ public class SceneTransition : MonoBehaviour
 
         var scaler = canvasGO.AddComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1920f, 1080f);
-        scaler.matchWidthOrHeight = 0.5f;
+        scaler.referenceResolution = new Vector2(1080f, 1920f);
+        scaler.matchWidthOrHeight = 0f; // 폭 기준(세로 고정)
 
         canvasGO.AddComponent<GraphicRaycaster>();
         _group = canvasGO.AddComponent<CanvasGroup>();
