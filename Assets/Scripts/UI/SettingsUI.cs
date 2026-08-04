@@ -94,11 +94,11 @@ public class SettingsUI : MonoBehaviour
 
         var scaler = canvasGO.AddComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1920f, 1080f);
-        scaler.matchWidthOrHeight = 1f; // 높이 기준 → 세로로 항상 패널이 들어오도록
+        scaler.referenceResolution = new Vector2(1080f, 1920f);
+        scaler.matchWidthOrHeight = 0f; // 폭 기준 → 세로로 긴 폰에서 좌우가 잘리지 않도록
         canvasGO.AddComponent<GraphicRaycaster>();
 
-        // 반투명 배경(뒤 클릭 차단).
+        // 반투명 배경(뒤 클릭 차단). 노치까지 덮어야 하므로 SafeArea 밖.
         var dim = CreateStretch(canvasGO.transform, "Dim");
         var dimImg = dim.gameObject.AddComponent<Image>();
         dimImg.color = new Color(0f, 0f, 0f, 0.6f);

@@ -106,14 +106,24 @@ public class StageReadyUI : MonoBehaviour
 
         var scaler = canvasGO.AddComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1920f, 1080f);
-        scaler.matchWidthOrHeight = 0.5f;
+        scaler.referenceResolution = new Vector2(1080f, 1920f);
+        scaler.matchWidthOrHeight = 0f; // 폭 기준(세로 고정)
 
         canvasGO.AddComponent<GraphicRaycaster>();
 
+        // 제스처바/노치를 피하기 위한 안전영역 루트.
+        var safeGO = new GameObject("SafeArea", typeof(RectTransform));
+        safeGO.transform.SetParent(_canvas.transform, false);
+        var safe = (RectTransform)safeGO.transform;
+        safe.anchorMin = Vector2.zero;
+        safe.anchorMax = Vector2.one;
+        safe.offsetMin = Vector2.zero;
+        safe.offsetMax = Vector2.zero;
+        safeGO.AddComponent<SafeAreaFitter>();
+
         // 하단 중앙 준비 패널(플레이 화면을 가리지 않도록 화면 전체를 덮지 않는다).
         var winGO = new GameObject("ReadyPanel", typeof(RectTransform));
-        winGO.transform.SetParent(_canvas.transform, false);
+        winGO.transform.SetParent(safe, false);
         var winImg = winGO.AddComponent<Image>();
         winImg.color = new Color(0.08f, 0.10f, 0.14f, 0.92f);
         var win = winGO.GetComponent<RectTransform>();
