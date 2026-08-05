@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -126,8 +128,37 @@ public static class MapTileLayers
             if (p != null) { p.enumValueIndex = (int)def.targetType; so.ApplyModifiedPropertiesWithoutUndo(); }
 
             if (def.elastic) go.AddComponent<ElasticWallMarker>();
+
+            // NavMeshPlus가 이 콜라이더를 '통행 불가' 구멍으로 카브하도록 표시.
+            // (없으면 벽 콜라이더가 '걷기 가능' 지오메트리로 수집되어 적이 벽을 통과함)
+            SetNotWalkable(go);
         }
         return tm;
+    }
+
+    /// <summary>NavMeshPlus의 NavMeshModifier를 리플렉션으로 붙이고 Area='Not Walkable'로 설정(어셈블리 하드 참조 회피).</summary>
+    public static void SetNotWalkable(GameObject go)
+    {
+        var t = FindNavMeshModifierType();
+        if (t == null) { Debug.LogWarning("[MapTileLayers] NavMeshModifier 타입을 찾지 못해 벽 카브 표시를 건너뜁니다."); return; }
+        var comp = go.GetComponent(t) ?? go.AddComponent(t);
+        var so = new SerializedObject(comp);
+        var oa = so.FindProperty("m_OverrideArea"); if (oa != null) oa.boolValue = true;
+        var ar = so.FindProperty("m_Area"); if (ar != null) ar.intValue = 1; // 1 = Not Walkable
+        so.ApplyModifiedPropertiesWithoutUndo();
+    }
+
+    static Type FindNavMeshModifierType()
+    {
+        var t = Type.GetType("NavMeshPlus.Components.NavMeshModifier, NavMeshPlus");
+        if (t != null) return t;
+        foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
+        {
+            try { t = asm.GetTypes().FirstOrDefault(x => x.Name == "NavMeshModifier"); }
+            catch { t = null; }
+            if (t != null) return t;
+        }
+        return null;
     }
 
     /// <summary>Grid 정렬 + 모든 표준 레이어를 보장한다(에디터 버튼용).</summary>
@@ -135,7 +166,12 @@ public static class MapTileLayers
     {
         var grid = GetOrCreateGrid(module);
         AlignGrid(grid, module);
-        foreach (var def in All) EnsureLayer(module, def);
+        foreach (var def in All)
+        {
+            var tm = EnsureLayer(module, def);
+            // 이미 존재하던 벽 레이어도 NavMesh 카브 표시를 보수(관통 방지).
+            if (def.isWall && tm != null) SetNotWalkable(tm.gameObject);
+        }
         EditorSceneManager.MarkSceneDirty(module.gameObject.scene);
     }
 }
