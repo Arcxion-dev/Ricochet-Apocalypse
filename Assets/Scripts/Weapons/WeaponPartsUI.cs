@@ -91,13 +91,23 @@ public class WeaponPartsUI : MonoBehaviour
 
         var scaler = canvasGO.AddComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1920f, 1080f);
-        scaler.matchWidthOrHeight = 0.5f;
+        scaler.referenceResolution = new Vector2(1080f, 1920f);
+        scaler.matchWidthOrHeight = 0f; // 폭 기준(세로 고정)
 
         canvasGO.AddComponent<GraphicRaycaster>();
 
+        // 상태바/노치를 피하기 위한 안전영역 루트.
+        var safeGO = new GameObject("SafeArea", typeof(RectTransform));
+        safeGO.transform.SetParent(_canvas.transform, false);
+        var safe = (RectTransform)safeGO.transform;
+        safe.anchorMin = Vector2.zero;
+        safe.anchorMax = Vector2.one;
+        safe.offsetMin = Vector2.zero;
+        safe.offsetMax = Vector2.zero;
+        safeGO.AddComponent<SafeAreaFitter>();
+
         // 좌상단 고정 패널(인벤토리는 우상단이라 겹치지 않는다).
-        var panel = CreateVerticalPanel(_canvas.transform, "Root");
+        var panel = CreateVerticalPanel(safe, "Root");
         panel.anchorMin = new Vector2(0f, 1f);
         panel.anchorMax = new Vector2(0f, 1f);
         panel.pivot = new Vector2(0f, 1f);

@@ -105,14 +105,24 @@ public class SceneNavigatorUI : MonoBehaviour
 
         var scaler = canvasGO.AddComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1920f, 1080f);
-        scaler.matchWidthOrHeight = 0.5f;
+        scaler.referenceResolution = new Vector2(1080f, 1920f);
+        scaler.matchWidthOrHeight = 0f; // 폭 기준(세로 고정)
 
         canvasGO.AddComponent<GraphicRaycaster>();
 
+        // 상태바/노치를 피하기 위한 안전영역 루트.
+        var safeGO = new GameObject("SafeArea", typeof(RectTransform));
+        safeGO.transform.SetParent(_canvas.transform, false);
+        var safe = (RectTransform)safeGO.transform;
+        safe.anchorMin = Vector2.zero;
+        safe.anchorMax = Vector2.one;
+        safe.offsetMin = Vector2.zero;
+        safe.offsetMax = Vector2.zero;
+        safeGO.AddComponent<SafeAreaFitter>();
+
         // 좌상단에 고정되는 세로 배치 패널.
         var panelGO = new GameObject("Panel", typeof(RectTransform));
-        panelGO.transform.SetParent(_canvas.transform, false);
+        panelGO.transform.SetParent(safe, false);
 
         _panel = panelGO.GetComponent<RectTransform>();
         _panel.anchorMin = new Vector2(0f, 1f);
