@@ -1634,6 +1634,7 @@ GameObject:
   - component: {fileID: 2253375205927623163}
   - component: {fileID: 8274028953601070462}
   - component: {fileID: 5980826792486552349}
+  - component: {fileID: 2834537553759293316}
   m_Layer: 0
   m_Name: StageClearScreen
   m_TagString: Untagged
@@ -1738,6 +1739,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StageClearUI
   _canvas: {fileID: 453826563749471153}
+  _group: {fileID: 2834537553759293316}
+  _window: {fileID: 3865704255399852339}
   _title: {fileID: 1415797468618814494}
   _perfectPill: {fileID: 8150225027537170372}
   _killsValue: {fileID: 1642770243850093648}
@@ -1748,6 +1751,18 @@ MonoBehaviour:
   _dropsEmptyLabel: {fileID: 7468764266943360519}
   _dropCardPrefab: {fileID: 6935451053249454909, guid: 994b157b7b638514cbbddbb26899f613, type: 3}
   _confirmButton: {fileID: 3533227690915115660}
+--- !u!225 &2834537553759293316
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5711346801256514646}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1 &5864322924374564254
 GameObject:
   m_ObjectHideFlags: 0
@@ -2952,6 +2967,7 @@ GameObject:
   - component: {fileID: 3287056371584812180}
   - component: {fileID: 656837528125829837}
   - component: {fileID: 3533227690915115660}
+  - component: {fileID: 6283914222420371124}
   m_Layer: 0
   m_Name: ConfirmButton
   m_TagString: Untagged
@@ -3077,6 +3093,21 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &6283914222420371124
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7916989850352506574}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4571612a55146da47adda4d860563b2d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIButtonMotion
+  _pressedScale: 0.94
+  _hoverScale: 1.03
+  _punchOnClick: 1
 --- !u!1 &8150225027537170372
 GameObject:
   m_ObjectHideFlags: 0

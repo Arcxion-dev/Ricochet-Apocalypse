@@ -226,6 +226,7 @@ GameObject:
   - component: {fileID: 817953431932388456}
   - component: {fileID: 8790376949235117662}
   - component: {fileID: 5210489827927222913}
+  - component: {fileID: 8284547975980017961}
   m_Layer: 0
   m_Name: CombineCandidateRow
   m_TagString: Untagged
@@ -376,6 +377,21 @@ MonoBehaviour:
   _badge: {fileID: 5423775149845273324}
   _badgeNum: {fileID: 6738763940162145677}
   _button: {fileID: 8790376949235117662}
+--- !u!114 &8284547975980017961
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4039675161656601516}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4571612a55146da47adda4d860563b2d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIButtonMotion
+  _pressedScale: 0.94
+  _hoverScale: 1.03
+  _punchOnClick: 1
 --- !u!1 &4171207578305012275
 GameObject:
   m_ObjectHideFlags: 0

@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 6793698099991446935}
   - component: {fileID: 8956060200544978490}
   - component: {fileID: 1865038919826517321}
+  - component: {fileID: 6497450871778951797}
   m_Layer: 0
   m_Name: StartButton
   m_TagString: Untagged
@@ -138,6 +139,21 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &6497450871778951797
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 66968501831573385}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4571612a55146da47adda4d860563b2d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIButtonMotion
+  _pressedScale: 0.94
+  _hoverScale: 1.03
+  _punchOnClick: 1
 --- !u!1 &320233962071908185
 GameObject:
   m_ObjectHideFlags: 0
@@ -1042,6 +1058,7 @@ GameObject:
   - component: {fileID: 7464024963726819150}
   - component: {fileID: 2804196239150662631}
   - component: {fileID: 2779133378462120873}
+  - component: {fileID: 6069778955981340127}
   m_Layer: 0
   m_Name: CombineButton
   m_TagString: Untagged
@@ -1166,6 +1183,21 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &6069778955981340127
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1391220558190577770}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4571612a55146da47adda4d860563b2d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIButtonMotion
+  _pressedScale: 0.94
+  _hoverScale: 1.03
+  _punchOnClick: 1
 --- !u!1 &1664012938223770390
 GameObject:
   m_ObjectHideFlags: 0
@@ -3340,6 +3372,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 73a917c05d7ebac44a654b0b05c77499, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShopUI
+  _goldPanel: {fileID: 721122217486270460}
   _goldValue: {fileID: 5284848749885917751}
   _catalogContainer: {fileID: 8319274379261432447}
   _buyRowPrefab: {fileID: 2229828280519761450, guid: cc1e96b0f4a0b3842a1f80451d6d5d86, type: 3}
@@ -3356,6 +3389,10 @@ MonoBehaviour:
   _combineButton: {fileID: 2779133378462120873}
   _combineStatus: {fileID: 8372541235290913753}
   _startButton: {fileID: 1865038919826517321}
+  _entrancePanels:
+  - {fileID: 5028161759422186129}
+  - {fileID: 7361042628070821450}
+  - {fileID: 2264272851063057902}
 --- !u!1 &4584865707205006273
 GameObject:
   m_ObjectHideFlags: 0

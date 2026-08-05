@@ -245,6 +245,7 @@ public class WeaponPartsUI : MonoBehaviour
 
         var button = go.AddComponent<Button>();
         button.targetGraphic = image;
+        go.AddComponent<UIButtonMotion>();
 
         var colors = button.colors;
         colors.normalColor = Color.white;

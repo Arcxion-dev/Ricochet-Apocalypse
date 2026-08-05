@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -20,12 +21,15 @@ public class HudController : MonoBehaviour
 
     [Header("루트")]
     [SerializeField] private Canvas _canvas;
+    [SerializeField] private CanvasGroup _group;   // HUD 전체 페이드(스테이지 진입/이탈)
 
     [Header("상단")]
+    [SerializeField] private RectTransform _hpPanel;   // 피격 시 흔들림
     [SerializeField] private TMP_Text _hpValue;
     [SerializeField] private Image _hpBarFill;      // Image.type = Filled (Horizontal)
     [SerializeField] private TMP_Text _stageInfo;
     [SerializeField] private TMP_Text _combo;
+    [SerializeField] private RectTransform _goldPanel;  // 골드 증가 시 펀치
     [SerializeField] private TMP_Text _goldValue;
 
     [Header("아이템 슬롯")]
@@ -50,6 +54,10 @@ public class HudController : MonoBehaviour
     private int _maxHp;
     private int _bulletSig = int.MinValue, _itemSig = int.MinValue, _partsSig = int.MinValue;
     private int _lastHp = int.MinValue, _lastCombo = int.MinValue, _lastGold = int.MinValue, _lastEnemies = int.MinValue, _lastStage = int.MinValue;
+    private int _lastBulletCount = -1, _lastBulletSelected = -1;
+    private int _lastItemCount = -1, _lastItemSelected = -1;
+    private bool _hudVisible;
+    private Color _hpBarBaseColor = Color.white;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
@@ -65,7 +73,11 @@ public class HudController : MonoBehaviour
         if (_instance != null && _instance != this) { Destroy(gameObject); return; }
         _instance = this;
         DontDestroyOnLoad(gameObject);
+        if (_group == null && _canvas != null) _group = UIAnim.GroupOf(_canvas);
+        if (_hpBarFill != null) _hpBarBaseColor = _hpBarFill.color;
         if (_canvas != null) _canvas.enabled = false;
+        if (_group != null) _group.alpha = 0f;
+        _hudVisible = false;
     }
 
     private void Update()
@@ -82,14 +94,14 @@ public class HudController : MonoBehaviour
         }
 
         bool visible = _shooter != null;
-        if (_canvas != null && _canvas.enabled != visible) _canvas.enabled = visible;
+        if (visible != _hudVisible) SetHudVisible(visible);
         if (!visible) return;
 
         // ── 체력 ──
         if (_player != null)
         {
             _maxHp = Mathf.Max(_maxHp, _player.health, 1);
-            if (_player.health != _lastHp) { _lastHp = _player.health; SetHp(_player.health, _maxHp); }
+            if (_player.health != _lastHp) SetHp(_player.health, _maxHp); // _lastHp는 SetHp가 갱신(이전 값이 연출에 필요).
         }
 
         // ── 콤보 / 골드 / 스테이지·적 ──
@@ -97,7 +109,7 @@ public class HudController : MonoBehaviour
         if (combo != _lastCombo) { _lastCombo = combo; SetCombo(combo); }
 
         int gold = ShopManager.CurrentGold;
-        if (gold != _lastGold) { _lastGold = gold; SetGold(gold); }
+        if (gold != _lastGold) { SetGold(gold); _lastGold = gold; }
 
         int stage = SceneLoader.CurrentStageIndex + 1;
         int enemies = GameManager.Instance != null ? GameManager.Instance.AliveEnemyCount : 0;
@@ -121,30 +133,120 @@ public class HudController : MonoBehaviour
         int pSig = PartsSignature();
         if (pSig != _partsSig) { _partsSig = pSig; RefreshParts(_shooter.EquippedParts); }
         if (Input.GetKeyDown(_partsToggleKey) && _partsPanel != null)
-            _partsPanel.SetActive(!_partsPanel.activeSelf);
+            TogglePartsPanel();
+    }
+
+    // ───────────────────────── 표시/숨김 ─────────────────────────
+
+    /// <summary>스테이지 진입/이탈 시 HUD를 통째로 페이드한다.</summary>
+    private void SetHudVisible(bool visible)
+    {
+        _hudVisible = visible;
+        if (_canvas == null) return;
+
+        if (visible)
+        {
+            _canvas.enabled = true;
+            UIAnim.ShowPopup(_group, null, UIAnim.Slow);
+        }
+        else
+        {
+            UIAnim.HidePopup(_group, null, UIAnim.Normal, () => { if (_canvas != null) _canvas.enabled = false; });
+        }
+    }
+
+    /// <summary>파츠 패널을 접었다 폈다(세로로 펼쳐지는 느낌).</summary>
+    private void TogglePartsPanel()
+    {
+        var rt = _partsPanel.transform as RectTransform;
+        bool open = !_partsPanel.activeSelf;
+
+        if (open)
+        {
+            _partsPanel.SetActive(true);
+            var g = UIAnim.GroupOf(_partsPanel.transform);
+            UIAnim.Stop(rt); UIAnim.Stop(g);
+            g.alpha = 0f;
+            rt.localScale = new Vector3(1f, 0.8f, 1f);
+            g.DOFade(1f, UIAnim.Fast).SetUpdate(true).SetTarget(g).SetLink(_partsPanel);
+            rt.DOScale(Vector3.one, UIAnim.Normal).SetEase(UIAnim.EasePop).SetUpdate(true).SetTarget(rt).SetLink(_partsPanel);
+        }
+        else
+        {
+            var g = UIAnim.GroupOf(_partsPanel.transform);
+            UIAnim.Stop(rt); UIAnim.Stop(g);
+            g.DOFade(0f, UIAnim.Fast).SetUpdate(true).SetTarget(g).SetLink(_partsPanel)
+             .OnComplete(() => { if (_partsPanel != null) _partsPanel.SetActive(false); });
+            rt.DOScale(new Vector3(1f, 0.8f, 1f), UIAnim.Fast).SetEase(UIAnim.EaseOut).SetUpdate(true).SetTarget(rt).SetLink(_partsPanel);
+        }
     }
 
     // ───────────────────────── 공개 세터(폴링/테스트 공용) ─────────────────────────
 
     public void SetHp(int current, int max)
     {
-        if (_hpValue != null) _hpValue.text = $"{current} / {max}";
-        if (_hpBarFill != null) _hpBarFill.fillAmount = max > 0 ? Mathf.Clamp01((float)current / max) : 0f;
+        int previous = _lastHp;
+        _lastHp = current;
+
+        if (_hpValue != null)
+        {
+            if (previous == int.MinValue) _hpValue.text = $"{current} / {max}";
+            else UIAnim.CountTo(_hpValue, previous, current, "", $" / {max}", "0", UIAnim.Normal);
+        }
+
+        float ratio = max > 0 ? Mathf.Clamp01((float)current / max) : 0f;
+        if (_hpBarFill != null)
+        {
+            if (previous == int.MinValue) _hpBarFill.fillAmount = ratio;
+            else UIAnim.FillTo(_hpBarFill, ratio, UIAnim.Slow);   // 게이지는 컴포넌트를 키로 쓴다.
+        }
+
+        if (previous == int.MinValue || previous == current) return;
+
+        // 피격이면 붉게 튀기고 패널을 흔든다. 회복이면 초록으로 한 번 밝힌다.
+        // 색은 GameObject를 키로 쓰므로 위 fillAmount 트윈과 서로 죽이지 않는다.
+        bool damaged = current < previous;
+        UIAnim.Flash(_hpBarFill, damaged ? UITheme.Danger : UITheme.Success, _hpBarBaseColor, UIAnim.Slow);
+        if (damaged) UIAnim.Shake(_hpPanel, 10f, 0.25f);
     }
 
     public void SetCombo(int combo)
     {
-        if (_combo != null) _combo.text = "COMBO ×" + combo;
+        if (_combo == null) return;
+        _combo.text = "COMBO ×" + combo;
+
+        if (combo <= 0)
+        {
+            // 콤보가 끊기면 조용히 흐려진다.
+            UIAnim.Stop(_combo);
+            _combo.DOFade(0.35f, UIAnim.Normal).SetUpdate(true).SetTarget(_combo).SetLink(_combo.gameObject);
+            return;
+        }
+
+        UIAnim.Stop(_combo);
+        _combo.alpha = 1f;
+        // 콤보가 쌓일수록 조금 더 크게 튄다.
+        UIAnim.Punch(_combo.rectTransform, Mathf.Min(0.14f + combo * 0.02f, 0.34f), 0.3f);
     }
 
     public void SetGold(int gold)
     {
-        if (_goldValue != null) _goldValue.text = gold.ToString("N0");
+        if (_goldValue == null) return;
+        int previous = _lastGold == int.MinValue ? gold : _lastGold;
+        UIAnim.CountTo(_goldValue, previous, gold);
+        if (gold > previous)
+        {
+            UIAnim.Punch(_goldPanel, 0.12f, 0.3f);
+            UIAnim.Flash(_goldValue, Color.white, UITheme.GoldText, 0.4f);
+        }
     }
 
     public void SetStage(int stageNumber, int enemiesAlive)
     {
-        if (_stageInfo != null) _stageInfo.text = $"STAGE {stageNumber}   ·   ENEMIES {enemiesAlive}";
+        if (_stageInfo == null) return;
+        _stageInfo.text = $"STAGE {stageNumber}   ·   ENEMIES {enemiesAlive}";
+        // 적 수가 줄어들 때마다 아주 살짝만 반응한다(너무 시끄럽지 않게).
+        UIAnim.Punch(_stageInfo.rectTransform, 0.06f, 0.2f);
     }
 
     public void RefreshBullets(IReadOnlyList<PlayerShooter.BulletChoice> choices, int selectedIndex)
@@ -160,6 +262,15 @@ public class HudController : MonoBehaviour
             row.Set(i + 1, c.Definition, c.Count, i == selectedIndex);
         }
         if (_bulletEmptyLabel != null) _bulletEmptyLabel.SetActive(count == 0);
+
+        // 목록 구성이 바뀌었을 때만 순차 등장. 사격으로 수량만 준 경우엔
+        // 매번 다시 밀려들어오면 시끄러우므로 선택된 행만 톡 튕긴다.
+        if (count != _lastBulletCount) UIAnim.StaggerIn(_bulletContainer);
+        else if (selectedIndex != _lastBulletSelected) UIAnim.PunchChild(_bulletContainer, selectedIndex);
+        else UIAnim.PunchChild(_bulletContainer, selectedIndex, 0.07f);
+
+        _lastBulletCount = count;
+        _lastBulletSelected = selectedIndex;
     }
 
     public void RefreshItems(IReadOnlyList<PlayerShooter.ItemChoice> choices, int selectedIndex)
@@ -174,6 +285,12 @@ public class HudController : MonoBehaviour
             var chip = Instantiate(_itemChipPrefab, _itemContainer);
             chip.Set(c.Definition, c.Count, i == selectedIndex);
         }
+
+        if (count != _lastItemCount) UIAnim.StaggerIn(_itemContainer);
+        else UIAnim.PunchChild(_itemContainer, selectedIndex, selectedIndex != _lastItemSelected ? 0.14f : 0.07f);
+
+        _lastItemCount = count;
+        _lastItemSelected = selectedIndex;
     }
 
     public void RefreshParts(IReadOnlyList<WeaponPartSO> parts)
@@ -188,6 +305,7 @@ public class HudController : MonoBehaviour
             var chip = Instantiate(_partChipPrefab, _partsContainer);
             chip.Set(parts[i].DisplayName);
         }
+        UIAnim.StaggerIn(_partsContainer, UIAnim.StaggerStep * 1.5f);
     }
 
     // ───────────────────────── 내부 ─────────────────────────

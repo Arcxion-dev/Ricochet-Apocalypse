@@ -1,3 +1,4 @@
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -45,6 +46,21 @@ public class BulletSlotView : MonoBehaviour
         if (_keyBg != null) _keyBg.color = new Color(0.106f,0.165f,0.227f);
         if (_name != null) _name.color = selected ? UITheme.TextHi : new Color(0.769f,0.824f,0.871f);
         if (_count != null) _count.color = selected ? UITheme.TextHi : new Color(0.553f,0.627f,0.690f);
+
+        // 선택된 슬롯의 강조 바는 은은하게 맥동해서 "지금 이게 장전돼 있다"를 계속 알린다.
+        if (_accent != null)
+        {
+            DOTween.Kill(_accent);
+            if (selected)
+            {
+                _accent.DOFade(0.45f, 0.7f)
+                       .SetEase(Ease.InOutSine)
+                       .SetLoops(-1, LoopType.Yoyo)
+                       .SetUpdate(true)
+                       .SetTarget(_accent)
+                       .SetLink(gameObject);
+            }
+        }
     }
 
     /// <summary>탄환 능력 라벨을 속성 색으로 매핑(대략).</summary>

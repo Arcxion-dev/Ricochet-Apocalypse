@@ -1,3 +1,4 @@
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -20,6 +21,12 @@ public class TitleMenuUI : MonoBehaviour
     [SerializeField] private Button _settingsButton;
     [SerializeField] private Button _exitButton;
 
+    [Header("등장 연출")]
+    [Tooltip("타이틀 진입 시 순서대로 나타나는 요소들. 비워두면 SafeArea 자식 전체를 순서대로 쓴다.")]
+    [SerializeField] private RectTransform[] _entranceOrder;
+    [SerializeField] private RectTransform _logoLine1;
+    [SerializeField] private RectTransform _logoLine2;
+
     private void Start()
     {
         // 세이브가 있으면 자동 복원 → PLAY가 이어하기로 동작.
@@ -29,6 +36,47 @@ public class TitleMenuUI : MonoBehaviour
         }
 
         WireButtons();
+        PlayEntrance();
+    }
+
+    // ───────────────────────── 등장 연출 ─────────────────────────
+
+    /// <summary>로고가 먼저 자리를 잡고, 나머지 요소가 아래에서 차례로 올라온다.</summary>
+    private void PlayEntrance()
+    {
+        var order = _entranceOrder;
+        if (order == null || order.Length == 0) order = CollectDefaultOrder();
+
+        for (int i = 0; i < order.Length; i++)
+        {
+            if (order[i] == null) continue;
+            UIAnim.RiseIn(order[i], 0.05f + i * 0.06f, 28f, UIAnim.Slow);
+        }
+
+        // 로고는 은은하게 계속 숨 쉬게 둔다(정적인 타이틀 방지).
+        Breathe(_logoLine1, 0f);
+        Breathe(_logoLine2, 0.35f);
+    }
+
+    private RectTransform[] CollectDefaultOrder()
+    {
+        var safeArea = transform.Find("SafeArea");
+        var root = safeArea != null ? safeArea : transform;
+        var list = new System.Collections.Generic.List<RectTransform>();
+        for (int i = 0; i < root.childCount; i++)
+            if (root.GetChild(i) is RectTransform rt && rt.gameObject.activeSelf) list.Add(rt);
+        return list.ToArray();
+    }
+
+    private static void Breathe(RectTransform rt, float delay)
+    {
+        if (rt == null) return;
+        rt.DOScale(1.015f, 2.4f)
+          .SetDelay(delay)
+          .SetEase(Ease.InOutSine)
+          .SetLoops(-1, LoopType.Yoyo)
+          .SetUpdate(true)
+          .SetLink(rt.gameObject);
     }
 
     private void WireButtons()

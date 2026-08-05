@@ -19,6 +19,9 @@ public class StageReadyUI : MonoBehaviour
 
     private Font _font;
     private Canvas _canvas;
+    private CanvasGroup _group;
+    private RectTransform _panel;
+    private bool _shown;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
@@ -64,13 +67,29 @@ public class StageReadyUI : MonoBehaviour
         }
     }
 
+    /// <summary>아래에서 밀려 올라온다.</summary>
     private void Show()
     {
+        if (_shown) return;
+        _shown = true;
         _canvas.enabled = true;
         _canvas.transform.SetAsLastSibling();
+        UIAnim.SlideUpIn(_group, _panel, 70f, UIAnim.Slow);
     }
 
-    private void Hide() => _canvas.enabled = false;
+    /// <summary>아래로 미끄러져 사라진다.</summary>
+    private void Hide()
+    {
+        if (!_shown)
+        {
+            // 최초 1회: 연출 없이 그냥 숨긴 상태로 둔다.
+            _canvas.enabled = false;
+            if (_group != null) _group.alpha = 0f;
+            return;
+        }
+        _shown = false;
+        UIAnim.SlideDownOut(_group, _panel, 70f, UIAnim.Normal, () => { if (_canvas != null) _canvas.enabled = false; });
+    }
 
     private void OnStartClicked()
     {
@@ -110,6 +129,7 @@ public class StageReadyUI : MonoBehaviour
         scaler.matchWidthOrHeight = 0f; // 폭 기준(세로 고정)
 
         canvasGO.AddComponent<GraphicRaycaster>();
+        _group = canvasGO.AddComponent<CanvasGroup>();
 
         // 제스처바/노치를 피하기 위한 안전영역 루트.
         var safeGO = new GameObject("SafeArea", typeof(RectTransform));
@@ -132,6 +152,7 @@ public class StageReadyUI : MonoBehaviour
         win.pivot = new Vector2(0.5f, 0f);
         win.anchoredPosition = new Vector2(0f, 40f);
         win.sizeDelta = new Vector2(520f, 150f);
+        _panel = win;
 
         var layout = winGO.AddComponent<VerticalLayoutGroup>();
         layout.spacing = 10f;
@@ -193,6 +214,7 @@ public class StageReadyUI : MonoBehaviour
 
         var button = go.AddComponent<Button>();
         button.targetGraphic = image;
+        go.AddComponent<UIButtonMotion>();
 
         var textGO = new GameObject("Text", typeof(RectTransform));
         textGO.transform.SetParent(go.transform, false);

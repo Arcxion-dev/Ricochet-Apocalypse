@@ -1,4 +1,5 @@
 using System.Collections;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.Rendering;
@@ -350,42 +351,43 @@ public class HitFeedbackManager : MonoBehaviour
 }
 
 /// <summary>
-/// <see cref="HitFeedbackManager"/>가 생성하는 데미지 팝업 하나의 수명(위로 떠오르며 페이드 후 자동 파괴).
+/// <see cref="HitFeedbackManager"/>가 생성하는 데미지 팝업 하나의 수명.
+/// 숫자가 톡 튀어나온 뒤 감속하며 떠오르고, 마지막 구간에서만 사라진다
+/// (처음부터 균일하게 흐려지면 정작 읽어야 할 순간에 희미하다).
 /// 실시간(unscaled) 기준으로 움직여 히트스톱 중에도 자연스럽게 보인다.
 /// </summary>
 public class DamagePopup : MonoBehaviour
 {
     private Camera _cam;
     private RectTransform _rect;
-    private Text _text;
 
     public void Begin(Camera cam, RectTransform rect, Text text, Vector3 worldPosition, float lifetime, float riseDistance)
     {
         _cam = cam;
         _rect = rect;
-        _text = text;
-        StartCoroutine(RiseAndFade(worldPosition, lifetime, riseDistance));
-    }
 
-    private IEnumerator RiseAndFade(Vector3 worldPosition, float lifetime, float riseDistance)
-    {
+        // 스크린 좌표 추적은 월드 기준 높이를 트윈해서 얻는다(카메라가 움직여도 따라붙게).
+        float height = 0f;
         Vector3 start = worldPosition;
-        Vector3 end = start + Vector3.up * riseDistance;
-        Color startColor = _text.color;
 
-        float t = 0f;
-        while (t < lifetime)
+        DOTween.To(() => height, h =>
         {
-            t += Time.unscaledDeltaTime;
-            float k = Mathf.Clamp01(t / lifetime);
-            Vector3 worldPos = Vector3.Lerp(start, end, k);
-            if (_cam != null) _rect.position = _cam.WorldToScreenPoint(worldPos);
+            height = h;
+            if (_cam != null && _rect != null)
+                _rect.position = _cam.WorldToScreenPoint(start + Vector3.up * height);
+        }, riseDistance, lifetime).SetEase(Ease.OutCubic).SetUpdate(true).SetLink(gameObject);
 
-            Color c = startColor;
-            c.a = Mathf.Lerp(startColor.a, 0f, k);
-            _text.color = c;
-            yield return null;
-        }
-        Destroy(gameObject);
+        // 등장: 작게 → 크게 → 제자리.
+        rect.localScale = Vector3.one * 0.4f;
+        rect.DOScale(1f, 0.18f).SetEase(Ease.OutBack).SetUpdate(true).SetLink(gameObject);
+
+        // 소멸: 수명의 뒤쪽 45%에서만 흐려진다.
+        float fadeDur = lifetime * 0.45f;
+        text.DOFade(0f, fadeDur)
+            .SetDelay(lifetime - fadeDur)
+            .SetEase(Ease.InQuad)
+            .SetUpdate(true)
+            .SetLink(gameObject)
+            .OnComplete(() => Destroy(gameObject));
     }
 }
