@@ -1,4 +1,5 @@
 using System.Collections;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
@@ -30,6 +31,8 @@ public class SceneTransition : MonoBehaviour
     private GameObject _loadingPanel;
     private Image _barFill;
     private Text _percentText;
+    private Tweener _barTween;          // 로딩바 하나를 계속 재사용한다.
+    private float _targetProgress = -1f;
 
     /// <summary>첫 씬 로드 후 매니저가 없으면 하나 만들어 둔다(항상 존재).</summary>
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -158,16 +161,19 @@ public class SceneTransition : MonoBehaviour
         IsTransitioning = false;
     }
 
+    /// <summary>암전/복귀 페이드. 들어갈 때는 빠르게 덮고, 나올 때는 천천히 열린다.</summary>
     private IEnumerator Fade(float from, float to)
     {
         if (_fadeDuration <= 0f) { SetAlpha(to); yield break; }
-        float t = 0f;
-        while (t < _fadeDuration)
-        {
-            t += Time.unscaledDeltaTime;
-            SetAlpha(Mathf.Lerp(from, to, t / _fadeDuration));
-            yield return null;
-        }
+
+        bool fadingOut = to > from;
+        SetAlpha(from);
+        var tween = _group.DOFade(to, _fadeDuration)
+                          .SetEase(fadingOut ? Ease.InQuad : Ease.OutQuad)
+                          .SetUpdate(true)
+                          .SetTarget(_group)
+                          .SetLink(gameObject);
+        yield return tween.WaitForCompletion();
         SetAlpha(to);
     }
 
@@ -181,16 +187,58 @@ public class SceneTransition : MonoBehaviour
 
     private void SetAlpha(float a) => _group.alpha = Mathf.Clamp01(a);
 
+    /// <summary>
+    /// 진행률은 계단식으로 튀지 않고 부드럽게 따라간다.
+    /// 이 메서드는 로딩 루프에서 매 프레임 불리므로 트윈을 새로 만들지 않고
+    /// 하나를 재사용해 목표값만 바꾼다(프레임마다 트윈을 생성/파괴하면 낭비다).
+    /// </summary>
     private void SetProgress(float p)
     {
         p = Mathf.Clamp01(p);
-        if (_barFill != null) _barFill.fillAmount = p;
+        if (_barFill != null && !Mathf.Approximately(p, _targetProgress))
+        {
+            _targetProgress = p;
+            if (_barTween == null || !_barTween.active)
+            {
+                _barTween = _barFill.DOFillAmount(p, 0.18f)
+                                    .SetEase(Ease.OutQuad)
+                                    .SetUpdate(true)
+                                    .SetAutoKill(false)
+                                    .SetLink(gameObject);
+            }
+            else
+            {
+                _barTween.ChangeEndValue(p, true).Restart();
+            }
+        }
         if (_percentText != null) _percentText.text = $"{Mathf.RoundToInt(p * 100f)}%";
     }
 
     private void ShowLoading(bool visible)
     {
-        if (_loadingPanel != null) _loadingPanel.SetActive(visible);
+        if (_loadingPanel == null) return;
+
+        var rt = _loadingPanel.transform as RectTransform;
+        if (visible)
+        {
+            // 새 로딩마다 0에서 다시 시작.
+            if (_barTween != null) { _barTween.Kill(); _barTween = null; }
+            _targetProgress = -1f;
+            if (_barFill != null) _barFill.fillAmount = 0f;
+            _loadingPanel.SetActive(true);
+            if (rt != null)
+            {
+                DOTween.Kill(rt);
+                rt.localScale = new Vector3(1f, 0.85f, 1f);
+                rt.DOScale(Vector3.one, 0.25f).SetEase(Ease.OutBack).SetUpdate(true)
+                  .SetTarget(rt).SetLink(_loadingPanel);
+            }
+        }
+        else
+        {
+            if (rt != null) { DOTween.Kill(rt); rt.localScale = Vector3.one; }
+            _loadingPanel.SetActive(false);
+        }
     }
 
     private void BuildCanvas()

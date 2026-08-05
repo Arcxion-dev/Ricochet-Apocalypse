@@ -211,6 +211,7 @@ public class SceneNavigatorUI : MonoBehaviour
         var button = go.AddComponent<Button>();
         button.targetGraphic = image;
         button.onClick.AddListener(onClick);
+        go.AddComponent<UIButtonMotion>();
 
         // 마우스 오버/클릭 시 색 변화(피드백).
         var colors = button.colors;

@@ -119,6 +119,9 @@ MonoBehaviour:
   _playButton: {fileID: 0}
   _settingsButton: {fileID: 0}
   _exitButton: {fileID: 0}
+  _entranceOrder: []
+  _logoLine1: {fileID: 4734046129354546661}
+  _logoLine2: {fileID: 4390424705671504089}
 --- !u!1 &913069245871276673
 GameObject:
   m_ObjectHideFlags: 0
@@ -269,6 +272,7 @@ GameObject:
   - component: {fileID: 2531143101994426857}
   - component: {fileID: 9054255882638805083}
   - component: {fileID: 6216262874745809070}
+  - component: {fileID: 5806061857279174221}
   m_Layer: 0
   m_Name: SettingsButton
   m_TagString: Untagged
@@ -394,6 +398,21 @@ MonoBehaviour:
   m_EffectColor: {r: 0.16470589, g: 0.23137255, b: 0.3019608, a: 0.6}
   m_EffectDistance: {x: 1.5, y: -1.5}
   m_UseGraphicAlpha: 1
+--- !u!114 &5806061857279174221
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 959775969395163333}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4571612a55146da47adda4d860563b2d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIButtonMotion
+  _pressedScale: 0.94
+  _hoverScale: 1.03
+  _punchOnClick: 1
 --- !u!1 &1338350909689419735
 GameObject:
   m_ObjectHideFlags: 0
@@ -606,6 +625,7 @@ GameObject:
   - component: {fileID: 5302063253732840802}
   - component: {fileID: 528769597185146552}
   - component: {fileID: 4932632336850954704}
+  - component: {fileID: 6042980343942983337}
   m_Layer: 0
   m_Name: ExitButton
   m_TagString: Untagged
@@ -731,6 +751,21 @@ MonoBehaviour:
   m_EffectColor: {r: 0.16470589, g: 0.23137255, b: 0.3019608, a: 0.6}
   m_EffectDistance: {x: 1.5, y: -1.5}
   m_UseGraphicAlpha: 1
+--- !u!114 &6042980343942983337
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2300151370479912295}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4571612a55146da47adda4d860563b2d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIButtonMotion
+  _pressedScale: 0.94
+  _hoverScale: 1.03
+  _punchOnClick: 1
 --- !u!1 &2320079389439886809
 GameObject:
   m_ObjectHideFlags: 0
@@ -1642,6 +1677,7 @@ GameObject:
   - component: {fileID: 7806043120187003688}
   - component: {fileID: 3888949548203892019}
   - component: {fileID: 4292163466946407975}
+  - component: {fileID: 1248099560256365434}
   m_Layer: 0
   m_Name: PlayButton
   m_TagString: Untagged
@@ -1768,6 +1804,21 @@ MonoBehaviour:
   m_EffectColor: {r: 0.20784314, g: 0.9411765, b: 1, a: 0.9}
   m_EffectDistance: {x: 1.5, y: -1.5}
   m_UseGraphicAlpha: 1
+--- !u!114 &1248099560256365434
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5911586124136157857}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4571612a55146da47adda4d860563b2d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIButtonMotion
+  _pressedScale: 0.94
+  _hoverScale: 1.03
+  _punchOnClick: 1
 --- !u!1 &6336256096313444211
 GameObject:
   m_ObjectHideFlags: 0

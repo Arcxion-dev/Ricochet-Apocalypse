@@ -499,6 +499,7 @@ GameObject:
   - component: {fileID: 6510033861026931405}
   - component: {fileID: 7686223727227265756}
   - component: {fileID: 3820561125975785597}
+  - component: {fileID: 4009087689566058181}
   m_Layer: 0
   m_Name: BuyButton
   m_TagString: Untagged
@@ -623,6 +624,21 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &4009087689566058181
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6315729562660265092}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4571612a55146da47adda4d860563b2d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIButtonMotion
+  _pressedScale: 0.94
+  _hoverScale: 1.03
+  _punchOnClick: 1
 --- !u!1 &7621961715429119710
 GameObject:
   m_ObjectHideFlags: 0

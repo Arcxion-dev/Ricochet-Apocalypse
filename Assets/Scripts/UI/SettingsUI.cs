@@ -17,10 +17,13 @@ public class SettingsUI : MonoBehaviour
     private static SettingsUI _instance;
 
     private Canvas _canvas;
+    private CanvasGroup _group;
+    private RectTransform _panelRect;
     private Font _font;
     private Text _masterVal, _bgmVal, _sfxVal, _fullscreenLabel, _resLabel;
     private Resolution[] _resolutions;
     private int _resIndex;
+    private bool _visible;
 
     /// <summary>설정 패널을 띄운다(없으면 생성).</summary>
     public static void Show()
@@ -47,13 +50,30 @@ public class SettingsUI : MonoBehaviour
         EnsureEventSystem();
         BuildResolutions();
         BuildCanvas();
-        SetVisible(false);
+
+        // 초기 상태는 연출 없이 즉시 숨김.
+        _visible = false;
+        if (_canvas != null) _canvas.enabled = false;
+        if (_group != null) { _group.alpha = 0f; _group.blocksRaycasts = false; }
     }
 
     private void SetVisible(bool visible)
     {
-        if (_canvas != null) _canvas.enabled = visible;
-        if (visible) SyncFromSettings();
+        if (_canvas == null) return;
+        if (_visible == visible) return;
+        _visible = visible;
+
+        if (visible)
+        {
+            SyncFromSettings();
+            _canvas.enabled = true;
+            _canvas.transform.SetAsLastSibling();
+            UIAnim.ShowPopup(_group, _panelRect, UIAnim.Normal, 0.88f);
+        }
+        else
+        {
+            UIAnim.HidePopup(_group, _panelRect, UIAnim.Fast, () => { if (_canvas != null) _canvas.enabled = false; });
+        }
     }
 
     // ───────────────────────── 구성 ─────────────────────────
@@ -97,6 +117,7 @@ public class SettingsUI : MonoBehaviour
         scaler.referenceResolution = new Vector2(1080f, 1920f);
         scaler.matchWidthOrHeight = 0f; // 폭 기준 → 세로로 긴 폰에서 좌우가 잘리지 않도록
         canvasGO.AddComponent<GraphicRaycaster>();
+        _group = canvasGO.AddComponent<CanvasGroup>();
 
         // 반투명 배경(뒤 클릭 차단). 노치까지 덮어야 하므로 SafeArea 밖.
         var dim = CreateStretch(canvasGO.transform, "Dim");
@@ -112,6 +133,7 @@ public class SettingsUI : MonoBehaviour
         pRt.anchorMin = pRt.anchorMax = new Vector2(0.5f, 0.5f);
         pRt.pivot = new Vector2(0.5f, 0.5f);
         pRt.sizeDelta = new Vector2(620f, 620f);
+        _panelRect = pRt;
 
         var layout = panel.AddComponent<VerticalLayoutGroup>();
         layout.padding = new RectOffset(28, 28, 24, 24);
@@ -307,6 +329,7 @@ public class SettingsUI : MonoBehaviour
         var img = go.AddComponent<Image>();
         img.color = new Color(0.3f, 0.38f, 0.26f, 1f);
         var btn = go.AddComponent<Button>();
+        go.AddComponent<UIButtonMotion>();
         btn.onClick.AddListener(onClick);
         var rt = go.GetComponent<RectTransform>();
         rt.anchorMin = rt.anchorMax = anchor; rt.pivot = anchor;
@@ -328,6 +351,7 @@ public class SettingsUI : MonoBehaviour
         var img = go.AddComponent<Image>();
         img.color = color;
         var btn = go.AddComponent<Button>();
+        go.AddComponent<UIButtonMotion>();
         btn.targetGraphic = img;
         btn.onClick.AddListener(onClick);
         var le = go.AddComponent<LayoutElement>(); le.preferredHeight = 46f;

@@ -2765,6 +2765,7 @@ GameObject:
   - component: {fileID: 7881322795909240203}
   - component: {fileID: 3985970465668584486}
   - component: {fileID: 8536732055826592858}
+  - component: {fileID: 5758706509612597669}
   m_Layer: 0
   m_Name: HudScreen
   m_TagString: Untagged
@@ -2868,10 +2869,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HudController
   _canvas: {fileID: 6336921782196319146}
+  _group: {fileID: 5758706509612597669}
+  _hpPanel: {fileID: 3069322757530240228}
   _hpValue: {fileID: 1595917239675270580}
   _hpBarFill: {fileID: 6371505427700671274}
   _stageInfo: {fileID: 5472580797784933421}
   _combo: {fileID: 8686269299663784083}
+  _goldPanel: {fileID: 9079987608369943580}
   _goldValue: {fileID: 340006561419747888}
   _itemHint: {fileID: 1972475569542043803}
   _itemContainer: {fileID: 4061703225430782528}
@@ -2883,6 +2887,18 @@ MonoBehaviour:
   _bulletContainer: {fileID: 2173708431010572353}
   _bulletRowPrefab: {fileID: 8996541682653891231, guid: 8138d13f69352944ba8ee1fb5727b35b, type: 3}
   _bulletEmptyLabel: {fileID: 4127627174879992387}
+--- !u!225 &5758706509612597669
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8044337234910236972}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1 &8078767183976262018
 GameObject:
   m_ObjectHideFlags: 0

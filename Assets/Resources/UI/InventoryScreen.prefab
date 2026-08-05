@@ -773,6 +773,7 @@ GameObject:
   - component: {fileID: 6377913654989223049}
   - component: {fileID: 6063135578281576340}
   - component: {fileID: 1115123213507039613}
+  - component: {fileID: 3656393531140395972}
   m_Layer: 0
   m_Name: Tab0
   m_TagString: Untagged
@@ -897,6 +898,21 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &3656393531140395972
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1787669976371526386}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4571612a55146da47adda4d860563b2d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIButtonMotion
+  _pressedScale: 0.94
+  _hoverScale: 1.03
+  _punchOnClick: 1
 --- !u!1 &2315473165690237729
 GameObject:
   m_ObjectHideFlags: 0
@@ -1233,6 +1249,7 @@ GameObject:
   - component: {fileID: 8528658600892931819}
   - component: {fileID: 5354982350927511369}
   - component: {fileID: 3204842954042841613}
+  - component: {fileID: 4301246165876524913}
   m_Layer: 0
   m_Name: Tab3
   m_TagString: Untagged
@@ -1357,6 +1374,21 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &4301246165876524913
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3650525022527812116}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4571612a55146da47adda4d860563b2d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIButtonMotion
+  _pressedScale: 0.94
+  _hoverScale: 1.03
+  _punchOnClick: 1
 --- !u!1 &3652046131751115225
 GameObject:
   m_ObjectHideFlags: 0
@@ -2693,6 +2725,7 @@ GameObject:
   - component: {fileID: 9026709450239992694}
   - component: {fileID: 6245513096547655954}
   - component: {fileID: 6977247392083200566}
+  - component: {fileID: 6077352969571849736}
   m_Layer: 0
   m_Name: Tab1
   m_TagString: Untagged
@@ -2817,6 +2850,21 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &6077352969571849736
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5823005394124822941}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4571612a55146da47adda4d860563b2d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIButtonMotion
+  _pressedScale: 0.94
+  _hoverScale: 1.03
+  _punchOnClick: 1
 --- !u!1 &6279984970521854973
 GameObject:
   m_ObjectHideFlags: 0
@@ -2830,6 +2878,7 @@ GameObject:
   - component: {fileID: 7992932093298816680}
   - component: {fileID: 8950003710499988832}
   - component: {fileID: 1471006210443785225}
+  - component: {fileID: 7682594944313396341}
   m_Layer: 0
   m_Name: InventoryScreen
   m_TagString: Untagged
@@ -2936,6 +2985,8 @@ MonoBehaviour:
   _toggleKey: 105
   _startVisible: 0
   _canvas: {fileID: 1757045143504576357}
+  _group: {fileID: 7682594944313396341}
+  _content: {fileID: 79976590188421844}
   _goldValue: {fileID: 7675393401904588147}
   _tabButtons:
   - {fileID: 1115123213507039613}
@@ -2950,6 +3001,18 @@ MonoBehaviour:
   _ammoContainer: {fileID: 1807146369392298497}
   _ammoRowPrefab: {fileID: 8996541682653891231, guid: 8138d13f69352944ba8ee1fb5727b35b, type: 3}
   _loadoutEmpty: {fileID: 553835190024068893}
+--- !u!225 &7682594944313396341
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6279984970521854973}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1 &6456782614835761249
 GameObject:
   m_ObjectHideFlags: 0
@@ -3268,6 +3331,7 @@ GameObject:
   - component: {fileID: 5031626899772203208}
   - component: {fileID: 7214921424552696459}
   - component: {fileID: 7685631867602754123}
+  - component: {fileID: 6914935807317383091}
   m_Layer: 0
   m_Name: Tab2
   m_TagString: Untagged
@@ -3392,6 +3456,21 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &6914935807317383091
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6856900340499402697}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4571612a55146da47adda4d860563b2d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIButtonMotion
+  _pressedScale: 0.94
+  _hoverScale: 1.03
+  _punchOnClick: 1
 --- !u!1 &7307875153090819206
 GameObject:
   m_ObjectHideFlags: 0

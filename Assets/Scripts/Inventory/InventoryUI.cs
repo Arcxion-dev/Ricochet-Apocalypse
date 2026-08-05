@@ -19,6 +19,8 @@ public class InventoryUI : MonoBehaviour
 
     [Header("루트")]
     [SerializeField] private Canvas _canvas;
+    [SerializeField] private CanvasGroup _group;
+    [SerializeField] private RectTransform _content;   // 열고 닫힐 때 스케일되는 루트(SafeArea)
     [SerializeField] private TMP_Text _goldValue;
 
     [Header("탭 (0=전체 1=탄환 2=파츠 3=아이템)")]
@@ -37,12 +39,15 @@ public class InventoryUI : MonoBehaviour
     [SerializeField] private GameObject _loadoutEmpty;
 
     private static InventoryUI _instance;
-    public static bool IsOpen => _instance != null && _instance._canvas != null && _instance._canvas.enabled;
+    // 닫히는 연출 동안에도 "닫힌 것"으로 봐야 입력이 곧바로 풀린다.
+    public static bool IsOpen => _instance != null && _instance._open;
 
     private static readonly ItemCategory[] TabCategory = { ItemCategory.Item /*unused for ALL*/, ItemCategory.Ammo, ItemCategory.GunPart, ItemCategory.Item };
     private Inventory _inventory;
     private PlayerShooter _shooter;
     private int _tab; // 0=ALL,1=Ammo,2=GunPart,3=Item
+    private bool _open;
+    private int _shownGold = int.MinValue;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
@@ -66,7 +71,10 @@ public class InventoryUI : MonoBehaviour
                 int idx = i;
                 if (_tabButtons[i] != null) _tabButtons[i].onClick.AddListener(() => SetTab(idx));
             }
+        if (_group == null && _canvas != null) _group = UIAnim.GroupOf(_canvas);
+        _open = _startVisible;
         if (_canvas != null) _canvas.enabled = _startVisible;
+        if (_group != null) _group.alpha = _startVisible ? 1f : 0f;
     }
 
     private void Start()
@@ -83,10 +91,25 @@ public class InventoryUI : MonoBehaviour
 
     private void Update()
     {
-        if (Input.GetKeyDown(_toggleKey) && _canvas != null)
+        if (Input.GetKeyDown(_toggleKey) && _canvas != null) SetOpen(!_open);
+    }
+
+    /// <summary>인벤토리를 연다/닫는다. 열 때는 살짝 커지며 나타나고, 닫을 때는 줄어들며 사라진다.</summary>
+    public void SetOpen(bool open)
+    {
+        if (_open == open || _canvas == null) return;
+        _open = open;
+
+        if (open)
         {
-            _canvas.enabled = !_canvas.enabled;
-            if (_canvas.enabled) { _canvas.transform.SetAsLastSibling(); Refresh(); }
+            _canvas.enabled = true;
+            _canvas.transform.SetAsLastSibling();
+            Refresh();
+            UIAnim.ShowPopup(_group, _content, UIAnim.Normal, 0.94f);
+        }
+        else
+        {
+            UIAnim.HidePopup(_group, _content, UIAnim.Fast, () => { if (_canvas != null) _canvas.enabled = false; });
         }
     }
 
@@ -94,12 +117,17 @@ public class InventoryUI : MonoBehaviour
 
     private void SetTab(int tab)
     {
-        _tab = Mathf.Clamp(tab, 0, 3);
-        HighlightTabs();
+        int next = Mathf.Clamp(tab, 0, 3);
+        bool changed = next != _tab;
+        _tab = next;
+        HighlightTabs(changed);
         Refresh();
+        if (changed && _tabButtons != null && _tab < _tabButtons.Length && _tabButtons[_tab] != null)
+            UIAnim.Punch(_tabButtons[_tab].transform, 0.12f, 0.28f);
     }
 
-    private void HighlightTabs()
+    /// <summary>선택된 탭이 스르륵 켜지고 나머지는 스르륵 꺼진다(색이 툭 바뀌지 않게).</summary>
+    private void HighlightTabs(bool animate = true)
     {
         if (_tabButtons == null) return;
         for (int i = 0; i < _tabButtons.Length; i++)
@@ -107,10 +135,21 @@ public class InventoryUI : MonoBehaviour
             var b = _tabButtons[i];
             if (b == null) continue;
             bool on = i == _tab;
+            Color bg = on ? new Color(0.071f,0.188f,0.235f,0.95f) : new Color(0.063f,0.102f,0.149f,0.85f);
+            Color fg = on ? UITheme.Cyan : UITheme.TextMid;
+
             var img = b.GetComponent<Image>();
-            if (img != null) img.color = on ? new Color(0.071f,0.188f,0.235f,0.95f) : new Color(0.063f,0.102f,0.149f,0.85f);
             var t = b.GetComponentInChildren<TMP_Text>();
-            if (t != null) t.color = on ? UITheme.Cyan : UITheme.TextMid;
+            if (animate)
+            {
+                UIAnim.ColorTo(img, bg, UIAnim.Fast);
+                UIAnim.ColorTo(t, fg, UIAnim.Fast);
+            }
+            else
+            {
+                if (img != null) img.color = bg;
+                if (t != null) t.color = fg;
+            }
         }
     }
 
@@ -123,7 +162,11 @@ public class InventoryUI : MonoBehaviour
 
     private void RefreshGold()
     {
-        if (_goldValue != null) _goldValue.text = ShopManager.CurrentGold.ToString("N0");
+        if (_goldValue == null) return;
+        int gold = ShopManager.CurrentGold;
+        if (_shownGold == int.MinValue) _goldValue.text = gold.ToString("N0");
+        else if (_shownGold != gold) UIAnim.CountTo(_goldValue, _shownGold, gold);
+        _shownGold = gold;
     }
 
     private void RefreshGrid()
@@ -158,6 +201,9 @@ public class InventoryUI : MonoBehaviour
             cell.Set(def, qty);
         }
         if (_gridEmpty != null) _gridEmpty.SetActive(items.Count == 0);
+
+        // 탭을 바꾸거나 목록이 달라지면 셀이 차례로 자리를 잡는다.
+        UIAnim.StaggerIn(_gridContent, UIAnim.StaggerStep * 0.7f, UIAnim.Normal, 0.8f);
     }
 
     private void RefreshLoadout()
@@ -172,6 +218,7 @@ public class InventoryUI : MonoBehaviour
             if (has)
                 foreach (var p in _shooter.EquippedParts)
                     if (p != null) { var c = Instantiate(_partChipPrefab, _partsContainer); c.Set(p.DisplayName); }
+            UIAnim.StaggerIn(_partsContainer, UIAnim.StaggerStep, UIAnim.Normal, 0.85f);
         }
         if (_ammoContainer != null && _ammoRowPrefab != null)
         {
@@ -185,6 +232,7 @@ public class InventoryUI : MonoBehaviour
                     row.Set(i + 1, choices[i].Definition, choices[i].Count, i == _shooter.SelectedIndex);
                 }
             }
+            UIAnim.StaggerIn(_ammoContainer);
         }
     }
 
