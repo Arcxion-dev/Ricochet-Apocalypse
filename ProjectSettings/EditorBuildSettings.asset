@@ -35,6 +35,18 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/Stage7.unity
     guid: d2fcd7dc5b71ceb42bd504326d723755
+  - enabled: 1
+    path: Assets/Scenes/SlideMaps/Tutorial1.unity
+    guid: 9bddd2f7ff143f0468830cb6c68e96a5
+  - enabled: 1
+    path: Assets/Scenes/SlideMaps/Tutorial2.unity
+    guid: f13e97fb7ce04f947a4144b0268efe2d
+  - enabled: 1
+    path: Assets/Scenes/SlideMaps/Tutorial3.unity
+    guid: 8e41a85142f1b354ba6da0f8d75f9404
+  - enabled: 1
+    path: Assets/Scenes/SlideMaps/Hard1.unity
+    guid: f936fd231d983a6419252687143d0365
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   m_UseUCBPForAssetBundles: 0
