@@ -11,10 +11,24 @@ using UnityEngine.UI;
 /// </summary>
 public class CylinderChamberView : MonoBehaviour
 {
+    [SerializeField] private CanvasGroup _group;      // 화면 가장자리 페이드(약실 전체)
     [SerializeField] private Image _ring;      // 약실 테두리(금속)
     [SerializeField] private RectTransform _upright;  // 회전을 상쇄해 항상 세워두는 컨테이너
     [SerializeField] private Image _icon;      // 탄환 아이콘
     [SerializeField] private TMP_Text _count;  // 보유 수량
+
+    /// <summary>
+    /// 화면 오른쪽 벽에 가려질 위치로 돌아갈 때의 투명도(1=완전히 보임, 0=사라짐).
+    /// 잘려나가는 대신 스르륵 사라지고 반대편에서 스르륵 나타나게 해 이질감을 없앤다.
+    /// </summary>
+    public float EdgeAlpha { get; private set; } = 1f;
+
+    /// <summary>가장자리 페이드 값을 적용한다. <see cref="_upright"/>의 장전 페이드와는 중첩되어 곱해진다.</summary>
+    public void SetEdgeFade(float alpha)
+    {
+        EdgeAlpha = Mathf.Clamp01(alpha);
+        if (_group != null) _group.alpha = EdgeAlpha;
+    }
 
     private RectTransform _rt;
     public RectTransform Rect => _rt != null ? _rt : (_rt = (RectTransform)transform);

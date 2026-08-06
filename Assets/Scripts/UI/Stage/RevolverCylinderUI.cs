@@ -55,6 +55,13 @@ public class RevolverCylinderUI : MonoBehaviour,
     [Header("조작감")]
     [Tooltip("약실 중심이 놓이는 반지름(px). 뒷판 스프라이트의 구멍 위치와 맞춰야 한다.")]
     [SerializeField] private float _orbitRadius = 123f;
+
+    [Header("화면 가장자리 페이드")]
+    [Tooltip("약실이 완전히 사라지는 가로 위치(실린더 중심 기준 오른쪽 +px). " +
+             "'화면 오른쪽 끝까지 거리 - 약실 반지름'으로 잡아야 잘리기 직전에 사라진다.")]
+    [SerializeField] private float _edgeVisibleX = 102f;
+    [Tooltip("페이드가 진행되는 가로 거리(px). 클수록 더 일찍부터 서서히 흐려진다.")]
+    [SerializeField] private float _edgeFadeWidth = 70f;
     [Tooltip("세로 드래그 모드에서 약실 한 칸을 넘기는 데 필요한 픽셀 거리.")]
     [SerializeField] private float _pixelsPerStep = 90f;
     [Tooltip("이 비율보다 중심에서 멀리 잡으면 '돌리기', 가까우면 '위아래로 끌기'가 된다.")]
@@ -91,6 +98,7 @@ public class RevolverCylinderUI : MonoBehaviour,
     {
         if (_root == null) _root = (RectTransform)transform;
         LayoutChambers();
+        ApplyRotation(_rotorAngle);   // 첫 프레임부터 가장자리 페이드가 맞게 보이도록.
     }
 
     private void OnEnable()
@@ -181,8 +189,9 @@ public class RevolverCylinderUI : MonoBehaviour,
 
         if (target != _selected)
         {
-            // 외부(숫자키 등)에서 선택이 바뀐 경우에도 실린더가 따라 돌아야 한다.
+            // 외부(숫자키 등)에서 선택이 바뀐 경우에도 실린더가 따라 돌고 같은 촉감을 준다.
             RotateToChamber(target, animate: true, feed: true);
+            PlaySeatFeedback(true);
         }
         else
         {
@@ -233,24 +242,30 @@ public class RevolverCylinderUI : MonoBehaviour,
         seq.Join(_mainIconRect.DOAnchorPos(Vector2.zero, _feedDuration).SetEase(Ease.OutBack, 1.9f));
         seq.Join(_mainIconRect.DOScale(1f, _feedDuration).SetEase(Ease.OutBack, 2.4f));
         seq.Join(g.DOFade(1f, _feedDuration * 0.6f).SetEase(UIAnim.EaseIn));
-        seq.OnComplete(OnRoundSeated);
         seq.SetUpdate(true).SetTarget(_mainIconRect).SetLink(gameObject);
     }
 
-    /// <summary>탄이 약실에 완전히 물린 순간. 링을 한 번 튕기고 카메라를 친다.</summary>
-    private void OnRoundSeated()
+    /// <summary>
+    /// 손을 떼는 순간의 촉감 — "찰칵" 소리 + 슬롯 펀치 + 총이 한 번 튀는 반동.
+    /// <paramref name="full"/>이면 카메라까지 친다(탄이 실제로 바뀐 경우).
+    /// 같은 약실로 되돌아온 헛 드래그에서는 가벼운 걸림감만 주고 카메라는 건드리지 않는다.
+    ///
+    /// 연출이 <b>끝날 때</b>가 아니라 손을 뗀 <b>그 순간</b>에 친다. 회전이 멎기를 기다렸다가
+    /// 치면 입력과 반응 사이가 벌어져 굼떠 보인다.
+    /// </summary>
+    private void PlaySeatFeedback(bool full)
     {
-        if (_mainSlot != null) UIAnim.Punch(_mainSlot, 0.16f, 0.26f);
+        if (!string.IsNullOrEmpty(_clickSfxId)) SoundManager.Instance?.PlaySfx(_clickSfxId);
+        if (_mainSlot != null) UIAnim.Punch(_mainSlot, full ? 0.16f : 0.08f, 0.26f);
 
-        // 총이 손에서 한 번 튀는 느낌 — 실린더 전체를 아주 살짝 눌렀다 놓는다.
         if (_root != null)
         {
             UIAnim.Stop(_root);
-            _root.DOPunchAnchorPos(new Vector2(0f, -7f), 0.22f, 10, 0.9f)
+            _root.DOPunchAnchorPos(new Vector2(full ? -9f : -4f, 0f), 0.22f, 10, 0.9f)
                  .SetUpdate(true).SetTarget(_root).SetLink(gameObject);
         }
 
-        HitFeedbackManager.Punch(_shakeMagnitude, _shakeDuration);
+        if (full) HitFeedbackManager.Punch(_shakeMagnitude, _shakeDuration);
     }
 
     // ───────────────────────── 회전 / 스내핑 ─────────────────────────
@@ -259,8 +274,29 @@ public class RevolverCylinderUI : MonoBehaviour,
     {
         _rotorAngle = angle;
         if (_rotor != null) _rotor.localEulerAngles = new Vector3(0f, 0f, angle);
+
         for (int i = 0; i < ChamberCount; i++)
-            if (_chambers[i] != null) _chambers[i].SetCounterRotation(angle);
+        {
+            if (_chambers[i] == null) continue;
+            _chambers[i].SetCounterRotation(angle);
+            _chambers[i].SetEdgeFade(EdgeFadeAt(i, angle));
+        }
+    }
+
+    /// <summary>
+    /// 실린더가 <paramref name="rotorAngle"/>도 돌아갔을 때 <paramref name="index"/>번 약실의 투명도.
+    ///
+    /// 실린더는 화면 오른쪽 벽에 붙어 있어서, 오른쪽으로 돌아간 약실은 화면 밖으로 잘려 나간다.
+    /// 잘린 채로 걸쳐 있으면 "묻힌" 것처럼 보이므로, 경계에 닿기 전에 알파로 사라지고
+    /// 반대편(아래)에서 알파로 다시 나타나게 한다. 판정은 세로가 아니라 <b>가로 위치</b> 기준이다 —
+    /// 잘리는 원인이 화면 오른쪽 끝이기 때문.
+    /// </summary>
+    private float EdgeFadeAt(int index, float rotorAngle)
+    {
+        float worldDeg = 90f + index * StepAngle + rotorAngle;
+        float x = _orbitRadius * Mathf.Cos(worldDeg * Mathf.Deg2Rad);
+        if (_edgeFadeWidth <= 0.01f) return x <= _edgeVisibleX ? 1f : 0f;
+        return Mathf.Clamp01((_edgeVisibleX - x) / _edgeFadeWidth);
     }
 
     /// <summary><paramref name="index"/>번 약실이 12시에 오도록 돌린다. 지금 각도에서 가장 가까운 등가 각도로 간다.</summary>
@@ -287,8 +323,6 @@ public class RevolverCylinderUI : MonoBehaviour,
             return;
         }
 
-        if (!string.IsNullOrEmpty(_clickSfxId)) SoundManager.Instance?.PlaySfx(_clickSfxId);
-
         DOTween.Kill(this);
         float from = _rotorAngle;
         // OutBack 으로 살짝 지나쳤다 되돌아오며 톱니에 물리는 느낌을 낸다.
@@ -297,13 +331,11 @@ public class RevolverCylinderUI : MonoBehaviour,
                .SetUpdate(true)
                .SetTarget(this)
                .SetLink(gameObject)
-               .OnComplete(() =>
-               {
-                   ApplyRotation(target);
-                   if (feed) SetMainSlot(def, count, animate: true);
-               });
+               .OnComplete(() => ApplyRotation(target));
 
-        if (!feed) SetMainSlot(def, count, animate: false);
+        // 회전이 끝나기를 기다리지 않고 "동시에" 탄이 물리기 시작한다.
+        // 예전처럼 회전 → 삽입으로 이으면 두 동작 길이가 더해져 굼뜨게 느껴진다.
+        SetMainSlot(def, count, animate: feed);
     }
 
     /// <summary>손을 뗀 자리에서 가장 가까운 "탄이 든" 약실 번호를 고른다. 빈 약실에는 멈추지 않는다.</summary>
@@ -323,12 +355,16 @@ public class RevolverCylinderUI : MonoBehaviour,
         return 0;
     }
 
-    /// <summary>스내핑 후 실제 선택을 PlayerShooter에 반영한다.</summary>
+    /// <summary>
+    /// 손을 뗀 뒤 스내핑하고 실제 선택을 PlayerShooter에 반영한다.
+    /// 회전·삽입 연출과 "찰칵" 촉감이 모두 이 순간 함께 시작한다.
+    /// </summary>
     private void CommitSelection(int index)
     {
         if (index < 0) return;
         bool changed = index != _selected;
         RotateToChamber(index, animate: true, feed: changed);
+        PlaySeatFeedback(changed);
         if (changed && _shooter != null) _shooter.SelectBullet(index);
     }
 
@@ -405,6 +441,8 @@ public class RevolverCylinderUI : MonoBehaviour,
         for (int i = 0; i < _filled; i++)
         {
             if (_chambers[i] == null) continue;
+            // 벽 뒤로 사라지는 중인 약실은 탭으로 고를 수 없다(보이지도 않는데 잡히면 혼란스럽다).
+            if (_chambers[i].EdgeAlpha < 0.5f) continue;
             float d = (inRotor - _chambers[i].Rect.anchoredPosition).sqrMagnitude;
             if (d < best) { best = d; bestIndex = i; }
         }

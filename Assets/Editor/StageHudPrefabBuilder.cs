@@ -43,6 +43,21 @@ public static class StageHudPrefabBuilder
     private const float OrbitRatio = 0.58875f;   // 188.4 / 320
     private const float HoleRatio = 0.21097f;    //  67.5 / 320
 
+    /// <summary>
+    /// 화면 오른쪽 끝에서 실린더 <b>중심</b>까지의 거리.
+    ///
+    /// 예전에는 60이라 뒷판과 약실이 화면 밖으로 잘려 나갔는데, 반원으로 의도한 것처럼 보이지 않고
+    /// 그냥 화면을 넘친 것처럼 읽혔다. 지금은 <b>아무것도 잘리지 않는</b> 값으로 잡고,
+    /// 오른쪽으로 돌아가는 약실은 잘리는 대신 알파로 사라진다(<see cref="RevolverCylinderUI"/>).
+    ///
+    /// 150이면 가운데 큰 슬롯(반지름 95)이 오른쪽 끝에서 55px 여유를 두고 완전히 들어오고,
+    /// 약실(반지름 48)은 중심 기준 +102px 지점에서 알파 0이 되어 경계에 닿기 전에 사라진다.
+    /// </summary>
+    private const float CylEdgeInset = 150f;
+
+    /// <summary>약실 반지름(px). 페이드 경계를 계산하는 데 쓴다.</summary>
+    private static float ChamberRadius => ChamberSize * 0.5f;
+
     private static float OrbitRadius => CylSize * 0.5f * OrbitRatio;
     private static float ChamberSize => CylSize * HoleRatio;   // 지름
 
@@ -365,8 +380,9 @@ public static class StageHudPrefabBuilder
 
     private static void BuildCylinder(RectTransform parent, SerializedObject so)
     {
+        // 화면 중앙 높이의 오른쪽 벽에 반쯤 걸쳐 붙인다.
         var root = Rect("Cylinder", parent);
-        Place(root, new Vector2(1f, 0f), new Vector2(1f, 0f), new Vector2(-Margin, 250f), new Vector2(CylSize, CylSize));
+        Place(root, new Vector2(1f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(-CylEdgeInset, 0f), new Vector2(CylSize, CylSize));
         root.gameObject.AddComponent<RevolverCylinderUI>();
 
         // 드래그를 받아야 하므로 루트 전체가 레이캐스트 대상이어야 한다.
@@ -375,17 +391,23 @@ public static class StageHudPrefabBuilder
         Stretch(catcher.rectTransform);
         catcher.raycastTarget = true;
 
-        var glow = Img("Glow", root, S("Glow_Radial"), UITheme.Cyan.A(0.5f));
-        Place(glow.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(CylSize * 1.42f, CylSize * 1.42f));
+        // 글로우 반지름은 화면 오른쪽 끝을 넘지 않게 잡는다(넘으면 경계에서 딱 잘린 자국이 보인다).
+        // 지름 = 여백(150)의 2배보다 살짝 큰 정도면 알파가 거의 0인 부분만 걸친다.
+        var glow = Img("Glow", root, S("Glow_Radial"), UITheme.Cyan.A(0.34f));
+        Place(glow.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(320f, 320f));
 
-        var dashRing = Img("DashRing", root, S("Ring_Dashed"), UITheme.Cyan.A(0.30f));
-        Place(dashRing.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(500f, 500f));
+        // 파선 링은 뺐다. 뒷판을 감추고 나니 실린더보다 큰 원은 화면 밖으로 잘려서
+        // "넘쳤다"는 인상만 남기고, 회전 가능하다는 신호는 약실 자체가 이미 주고 있다.
 
         var rotor = Rect("Rotor", root);
         Stretch(rotor);
 
-        var plate = Img("Plate", rotor, S("Cyl_Plate"), new Color(0.80f, 0.88f, 0.95f, 1f));
+        // 금속 뒷판은 감춘다. 오른쪽 벽에 붙이면 원판이 잘려서 반원 의도가 아니라
+        // 화면을 벗어난 것처럼 보였다. 약실과 가운데 슬롯만 남기면 벽에 붙은 다이얼로 읽힌다.
+        // (스프라이트/오브젝트는 남겨둬서 나중에 다시 켜기만 하면 되도록 했다.)
+        var plate = Img("Plate", rotor, S("Cyl_Plate"), new Color(0.80f, 0.88f, 0.95f, 0f));
         Stretch(plate.rectTransform);
+        plate.enabled = false;
 
         var chambers = new List<CylinderChamberView>();
         for (int i = 0; i < StageHudArtGenerator.ChamberCount; i++)
@@ -417,8 +439,11 @@ public static class StageHudPrefabBuilder
         Place(emptyLabel.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(160f, 90f));
 
         // 탄환 이름은 실린더 위쪽 빈 공간에 띄운다(뒷판을 가리지 않게).
-        var mainName = Text("Name", root, "", 27f, UITheme.TextHi, UITheme.Bold, TextAlignmentOptions.Center);
-        Place(mainName.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 0f), new Vector2(0f, 14f), new Vector2(440f, 42f));
+        // 실린더 중심이 화면 밖으로 치우쳐 있어 가운데 정렬하면 이름도 잘리므로,
+        // 오른쪽 정렬해 화면 끝에서 16px 안쪽에 맞춘다.
+        var mainName = Text("Name", root, "", 27f, UITheme.TextHi, UITheme.Bold, TextAlignmentOptions.Right);
+        Place(mainName.rectTransform, new Vector2(0.5f, 1f), new Vector2(1f, 0f),
+              new Vector2(CylEdgeInset - 16f, 14f), new Vector2(440f, 42f));
         mainName.outlineWidth = 0.2f;
         mainName.outlineColor = new Color32(4, 8, 14, 220);
 
@@ -428,7 +453,7 @@ public static class StageHudPrefabBuilder
         cso.FindProperty("_root").objectReferenceValue = root;
         cso.FindProperty("_rotor").objectReferenceValue = rotor;
         cso.FindProperty("_glow").objectReferenceValue = glow;
-        cso.FindProperty("_dashRing").objectReferenceValue = dashRing.rectTransform;
+        cso.FindProperty("_dashRing").objectReferenceValue = null;
         cso.FindProperty("_mainSlot").objectReferenceValue = mainSlot;
         cso.FindProperty("_mainRing").objectReferenceValue = mainRing;
         cso.FindProperty("_mainIconRect").objectReferenceValue = iconRect;
@@ -438,6 +463,9 @@ public static class StageHudPrefabBuilder
         cso.FindProperty("_emptyLabel").objectReferenceValue = emptyLabel.gameObject;
         cso.FindProperty("_fallbackBulletIcon").objectReferenceValue = S("Bullet_Icon");
         cso.FindProperty("_orbitRadius").floatValue = OrbitRadius;
+        // 약실이 화면 오른쪽 끝에 닿기 직전(중심 기준 +거리)에서 알파 0이 되도록 맞춘다.
+        cso.FindProperty("_edgeVisibleX").floatValue = CylEdgeInset - ChamberRadius;
+        cso.FindProperty("_edgeFadeWidth").floatValue = 70f;
 
         var chamberProp = cso.FindProperty("_chambers");
         chamberProp.arraySize = chambers.Count;
@@ -459,6 +487,10 @@ public static class StageHudPrefabBuilder
         Place(rt, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
               new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * OrbitRadius, new Vector2(size, size));
 
+        // 약실 전체(테두리 + 내용물)를 한 번에 흐리게 하는 그룹. 장전 표시용 Upright 그룹과
+        // 중첩되어 알파가 곱해지므로, 가장자리 페이드와 장전 페이드가 서로 덮어쓰지 않는다.
+        var group = rt.gameObject.AddComponent<CanvasGroup>();
+
         var ring = Img("Ring", rt, S("Cyl_Chamber"), Color.white);
         Stretch(ring.rectTransform);
 
@@ -474,6 +506,7 @@ public static class StageHudPrefabBuilder
 
         var view = rt.gameObject.AddComponent<CylinderChamberView>();
         var vso = new SerializedObject(view);
+        vso.FindProperty("_group").objectReferenceValue = group;
         vso.FindProperty("_ring").objectReferenceValue = ring;
         vso.FindProperty("_upright").objectReferenceValue = upright;
         vso.FindProperty("_icon").objectReferenceValue = icon;
