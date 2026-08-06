@@ -201,6 +201,22 @@ public static class MapSlideImporter
             }
         }
 
+        // 바깥 외벽: 그리드 테두리 전체를 강철벽(ArmoredWall)으로 채운다.
+        // 강철벽만 모든 탄종을 무조건 튕겨(철갑탄 관통 없음) 공이 맵 밖으로 못 나간다.
+        int perim = 0;
+        for (int x = 0; x < m.cols; x++)
+        {
+            wsTm.SetTile(new Vector3Int(x, 0, 0), wsTile);
+            wsTm.SetTile(new Vector3Int(x, m.rows - 1, 0), wsTile);
+            perim += 2;
+        }
+        for (int y = 1; y < m.rows - 1; y++)
+        {
+            wsTm.SetTile(new Vector3Int(0, y, 0), wsTile);
+            wsTm.SetTile(new Vector3Int(m.cols - 1, y, 0), wsTile);
+            perim += 2;
+        }
+
         FrameCamera(grid, m, cell);
         RepositionPlayer(grid, m);
         Rebake();
@@ -208,7 +224,7 @@ public static class MapSlideImporter
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene);
         AddSceneToBuildSettings(dst);
-        Debug.Log($"[MapSlideImporter] {m.scene} ({m.cols}×{m.rows}) — 벽 {walls}, 장애물 {obst}, 적 {enemies}, 미상 {unknown}");
+        Debug.Log($"[MapSlideImporter] {m.scene} ({m.cols}×{m.rows}) — 벽 {walls}, 외벽(강철) {perim}, 장애물 {obst}, 적 {enemies}, 미상 {unknown}");
     }
 
     static void PlacePrefab(GridModule grid, Transform root, string path, int x, int y)
@@ -292,7 +308,9 @@ public static class MapSlideImporter
     static void AddSceneToBuildSettings(string path)
     {
         var list = new List<EditorBuildSettingsScene>(EditorBuildSettings.scenes);
-        foreach (var s in list) if (s.path == path) return;
+        // 재생성(Delete+Copy)으로 씬 GUID가 바뀌므로, 같은 경로의 기존(구 GUID) 항목을 제거하고
+        // 현재 GUID로 새로 등록한다(빌드세팅이 dangling GUID를 참조해 로드 실패하는 것 방지).
+        list.RemoveAll(s => s.path == path);
         list.Add(new EditorBuildSettingsScene(path, true));
         EditorBuildSettings.scenes = list.ToArray();
     }
