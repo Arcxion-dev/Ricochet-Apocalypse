@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 58132475414318851}
   - component: {fileID: 2810784226829942348}
+  - component: {fileID: 3338719690176417479}
   m_Layer: 0
   m_Name: Visual
   m_TagString: Untagged
@@ -91,6 +92,28 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
+--- !u!95 &3338719690176417479
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5559723439962480985}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 22100000, guid: 2bfdc0486fc0a1f47bdd93588a298d84, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
 --- !u!1 &6181932784999267976
 GameObject:
   m_ObjectHideFlags: 0
@@ -109,7 +132,6 @@ GameObject:
   - component: {fileID: 9086602408139796121}
   - component: {fileID: 7705458999018727463}
   - component: {fileID: 1000000000000000003}
-  - component: {fileID: 8669645131369055953}
   m_Layer: 7
   m_Name: Enemy_Haste
   m_TagString: Enemy
@@ -258,6 +280,8 @@ MonoBehaviour:
   repathInterval: 0.3
   stoppingDistance: 0.1
   navMeshSampleRadius: 2
+  stuckNudgeAfter: 0.35
+  stuckNudgeStep: 0.25
 --- !u!114 &2531923413056819208
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -310,25 +334,3 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 30369f070a2170e408b261d1f752e789, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
---- !u!95 &8669645131369055953
-Animator:
-  serializedVersion: 7
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6181932784999267976}
-  m_Enabled: 1
-  m_Avatar: {fileID: 0}
-  m_Controller: {fileID: 0}
-  m_CullingMode: 0
-  m_UpdateMode: 0
-  m_ApplyRootMotion: 0
-  m_LinearVelocityBlending: 0
-  m_StabilizeFeet: 0
-  m_AnimatePhysics: 0
-  m_WarningMessage: 
-  m_HasTransformHierarchy: 1
-  m_AllowConstantClipSamplingOptimization: 1
-  m_KeepAnimatorStateOnDisable: 0
-  m_WriteDefaultValuesOnDisable: 0

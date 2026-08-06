@@ -119,3 +119,8 @@ InitTestScene*.unity*
 # 로컬 전용 문서 (공유 리포 제외)
 /docs/art-resource-requirements.md
 /docs/worklog/2026-08-01_main병합-충돌해결-Stealth개명-속성모델대응.md
+
+# MS Office 임시 잠금 파일 (문서 열려 있을 때 생성)
+~$*
+# 슬라이드 텍스트 덤프 등 임시 산출물
+/docs/_slides_*.txt

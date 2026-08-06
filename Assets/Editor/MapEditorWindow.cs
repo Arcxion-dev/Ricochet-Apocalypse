@@ -5,14 +5,20 @@ using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.Tilemaps;
 
 /// <summary>
-/// 그리드 맵 에디터. Scene 뷰에서 클릭으로 맵 구성 오브젝트(장애물/적/플레이어 스폰지점)를
-/// 활성 씬의 <see cref="GridModule"/> 칸에 스냅해 배치·삭제한다. 배치물은 씬의 "MapObjects"
-/// 루트 아래 실제 GameObject로 생성되어 씬 저장으로 영구화된다(별도 데이터 포맷 없음).
+/// 그리드 맵 에디터. Scene 뷰에서 클릭으로 맵을 구성한다.
 ///
-/// 사용: 상단 메뉴 Tools/Ricochet/맵 에디터 → 창에서 브러시 선택 → Scene 뷰 좌클릭 배치.
-/// 좌드래그로 연속 배치, Erase 모드(또는 배치 중 Shift+클릭)로 삭제, Ctrl+Z로 취소.
+/// 두 종류의 브러시를 지원한다:
+///  • 프리팹 브러시(적/스폰/나무·바위·수풀 등) — 활성 씬 <see cref="GridModule"/> 칸에 스냅해
+///    "MapObjects" 루트 아래 GameObject로 배치한다(기존 방식).
+///  • 타일 브러시(바닥/일반벽/강철벽/슬라임벽) — <see cref="MapTileLayers"/>의 Tilemap 레이어에
+///    RuleTile을 칠한다(9방향 오토타일). 벽 레이어는 CompositeCollider2D + ObstacleTypeMarker를
+///    가져 총알 리코셰/NavMesh와 그대로 연동된다.
+///
+/// 사용: Tools/Ricochet/맵 에디터 → 브러시 선택 → Scene 뷰 좌클릭. 드래그 연속 배치,
+/// Erase 모드(또는 Shift+클릭)로 삭제, Ctrl+Z 취소.
 /// </summary>
 public class MapEditorWindow : EditorWindow
 {
@@ -23,19 +29,27 @@ public class MapEditorWindow : EditorWindow
 
     private class PaletteEntry
     {
-        public GameObject prefab;
+        public GameObject prefab;       // 프리팹 브러시(타일 브러시면 null)
+        public TileBase tile;           // 타일 브러시(프리팹 브러시면 null)
+        public string tilemapLayer;     // 타일 브러시가 칠할 레이어 이름
+        public string label;            // 표시 이름(타일용)
         public string category;
-        public int rank;    // 정렬용: 장애물0 / 적1 / 특수2
+        public int rank;                // 정렬용: 타일0 / 장애물1 / 적2 / 특수3
+        public int order;               // 같은 rank 내 표시 순서(타일 순서 유지)
         public bool isSpawn;
+
+        public bool IsTile => tile != null;
+        public string Name => label ?? (prefab != null ? prefab.name : "?");
     }
 
     private bool _active = true;
     private Mode _mode = Mode.Paint;
     private bool _snap = true;
     private bool _overwrite;
+    private bool _eraseCurrentOnly;   // true면 지우개가 현재 브러시의 레이어만 삭제(바닥/벽 개별 삭제)
 
     private readonly List<PaletteEntry> _palette = new List<PaletteEntry>();
-    private GameObject _brush;
+    private PaletteEntry _brush;
     private Vector2 _scroll;
 
     // 편의 기능 상태
@@ -50,7 +64,7 @@ public class MapEditorWindow : EditorWindow
     private static void Open()
     {
         var w = GetWindow<MapEditorWindow>("맵 에디터");
-        w.minSize = new Vector2(300, 380);
+        w.minSize = new Vector2(300, 420);
     }
 
     private void OnEnable()
@@ -72,6 +86,20 @@ public class MapEditorWindow : EditorWindow
     {
         _palette.Clear();
 
+        // 1) 타일 브러시(RuleTile) — 바닥/일반벽/강철벽/슬라임벽
+        int tileOrder = 0;
+        foreach (var def in MapTileLayers.All)
+        {
+            var tile = AssetDatabase.LoadAssetAtPath<TileBase>(def.ruleTilePath);
+            if (tile == null) continue;
+            _palette.Add(new PaletteEntry
+            {
+                tile = tile, tilemapLayer = def.layerName, label = def.label,
+                category = "타일", rank = 0, order = tileOrder++,
+            });
+        }
+
+        // 2) 프리팹 브러시(장애물/적)
         var folders = new List<string>();
         foreach (var f in PaletteFolders)
             if (AssetDatabase.IsValidFolder(f)) folders.Add(f);
@@ -88,19 +116,24 @@ public class MapEditorWindow : EditorWindow
                 {
                     prefab = prefab,
                     category = isEnemy ? "적" : "장애물",
-                    rank = isEnemy ? 1 : 0,
+                    rank = isEnemy ? 2 : 1,
                 });
             }
         }
 
+        // 3) 스폰 마커(특수)
         var spawn = FindSpawnPrefab();
         if (spawn != null)
-            _palette.Add(new PaletteEntry { prefab = spawn, category = "특수", rank = 2, isSpawn = true });
+            _palette.Add(new PaletteEntry { prefab = spawn, category = "특수", rank = 3, isSpawn = true });
 
-        _palette.Sort((a, b) => a.rank != b.rank ? a.rank.CompareTo(b.rank)
-                                                 : string.CompareOrdinal(a.prefab.name, b.prefab.name));
+        _palette.Sort((a, b) =>
+        {
+            if (a.rank != b.rank) return a.rank.CompareTo(b.rank);
+            if (a.order != b.order) return a.order.CompareTo(b.order);
+            return string.CompareOrdinal(a.Name, b.Name);
+        });
 
-        if (_brush == null && _palette.Count > 0) _brush = _palette[0].prefab;
+        if (_brush == null && _palette.Count > 0) _brush = _palette[0];
     }
 
     private static GameObject FindSpawnPrefab()
@@ -114,10 +147,10 @@ public class MapEditorWindow : EditorWindow
         return null;
     }
 
-    private PaletteEntry CurrentEntry()
+    private static MapTileLayers.LayerDef FindLayerDef(string layerName)
     {
-        foreach (var e in _palette) if (e.prefab == _brush) return e;
-        return null;
+        foreach (var def in MapTileLayers.All) if (def.layerName == layerName) return def;
+        return MapTileLayers.Floor;
     }
 
     // ───────────────────────── 창 GUI ─────────────────────────
@@ -127,8 +160,9 @@ public class MapEditorWindow : EditorWindow
         EditorGUILayout.Space();
         _active = EditorGUILayout.ToggleLeft("배치 활성 (Scene 뷰에서 클릭)", _active);
         _mode = (Mode)GUILayout.Toolbar((int)_mode, new[] { "배치(Paint)", "삭제(Erase)" });
-        _snap = EditorGUILayout.ToggleLeft("그리드 스냅", _snap);
-        _overwrite = EditorGUILayout.ToggleLeft("같은 칸 덮어쓰기", _overwrite);
+        _snap = EditorGUILayout.ToggleLeft("그리드 스냅(프리팹)", _snap);
+        _overwrite = EditorGUILayout.ToggleLeft("같은 칸 덮어쓰기(프리팹)", _overwrite);
+        _eraseCurrentOnly = EditorGUILayout.ToggleLeft("지우개: 현재 브러시 레이어만 삭제(바닥/벽/오브젝트 개별)", _eraseCurrentOnly);
 
         using (new EditorGUILayout.HorizontalScope())
         {
@@ -137,9 +171,16 @@ public class MapEditorWindow : EditorWindow
         }
 
         var grid = FindGrid();
+        using (new EditorGUI.DisabledScope(grid == null))
+            if (GUILayout.Button("타일맵 레이어 생성/정렬"))
+            {
+                MapTileLayers.EnsureAllAligned(grid);
+                Debug.Log("[MapEditor] 타일맵 레이어(바닥/일반·강철·슬라임 벽) 생성/정렬 완료.");
+            }
+
         EditorGUILayout.HelpBox(
             grid != null
-                ? $"그리드 {grid.Columns}×{grid.Rows}, cell {grid.CellSize} · 좌클릭 배치 / Shift+클릭 또는 Erase로 삭제"
+                ? $"그리드 {grid.Columns}×{grid.Rows}, cell {grid.CellSize} · 좌클릭 배치 / Shift+클릭 또는 Erase로 삭제\n타일 브러시는 벽/바닥 타일맵에, 프리팹 브러시는 MapObjects에 배치됩니다."
                 : "활성 씬에 GridModule이 없어 배치할 수 없습니다. 맵 씬을 열어주세요.",
             grid != null ? MessageType.Info : MessageType.Warning);
 
@@ -147,7 +188,7 @@ public class MapEditorWindow : EditorWindow
 
         EditorGUILayout.LabelField("팔레트", EditorStyles.boldLabel);
         if (_palette.Count == 0)
-            EditorGUILayout.HelpBox("팔레트가 비었습니다. Assets/Prefabs/Obstacles·Enemies 확인 후 '팔레트 새로고침'.", MessageType.Info);
+            EditorGUILayout.HelpBox("팔레트가 비었습니다. RuleTile/프리팹 확인 후 '팔레트 새로고침'.", MessageType.Info);
 
         _scroll = EditorGUILayout.BeginScrollView(_scroll);
         string lastCat = null;
@@ -155,19 +196,32 @@ public class MapEditorWindow : EditorWindow
         {
             if (e.category != lastCat) { EditorGUILayout.LabelField(e.category, EditorStyles.miniBoldLabel); lastCat = e.category; }
 
-            bool sel = _brush == e.prefab;
-            var tex = AssetPreview.GetAssetPreview(e.prefab);
-            var content = new GUIContent("  " + e.prefab.name, tex);
+            bool sel = _brush == e;
+            var tex = GetPreview(e);
+            var content = new GUIContent("  " + e.Name, tex);
             var style = new GUIStyle(GUI.skin.button) { alignment = TextAnchor.MiddleLeft, fixedHeight = 34 };
 
             var bg = GUI.backgroundColor;
             if (sel) GUI.backgroundColor = new Color(0.4f, 0.8f, 1f);
-            if (GUILayout.Button(content, style)) _brush = e.prefab;
+            if (GUILayout.Button(content, style)) _brush = e;
             GUI.backgroundColor = bg;
         }
         EditorGUILayout.EndScrollView();
 
-        EditorGUILayout.LabelField("현재 브러시", _brush != null ? _brush.name : "(없음)");
+        EditorGUILayout.LabelField("현재 브러시", _brush != null ? _brush.Name + (_brush.IsTile ? " (타일)" : "") : "(없음)");
+    }
+
+    private static Texture GetPreview(PaletteEntry e)
+    {
+        if (e.prefab != null) return AssetPreview.GetAssetPreview(e.prefab);
+        if (e.tile != null)
+        {
+            var t = AssetPreview.GetAssetPreview(e.tile);
+            if (t != null) return t;
+            if (e.tile is RuleTile rt && rt.m_DefaultSprite != null)
+                return AssetPreview.GetAssetPreview(rt.m_DefaultSprite);
+        }
+        return null;
     }
 
     // ───────────────────────── 편의 기능 ─────────────────────────
@@ -184,9 +238,12 @@ public class MapEditorWindow : EditorWindow
                 _perimeterPrefab = (GameObject)EditorGUILayout.ObjectField("외벽 프리팹", _perimeterPrefab, typeof(GameObject), false);
                 using (new EditorGUILayout.HorizontalScope())
                 {
-                    if (GUILayout.Button("바깥 외벽 설치")) InstallPerimeter(grid);
+                    if (GUILayout.Button("외벽(프리팹) 설치")) InstallPerimeter(grid);
                     if (GUILayout.Button("외벽 제거")) RemovePerimeter(grid);
                 }
+                using (new EditorGUI.DisabledScope(_brush == null || !_brush.IsTile))
+                    if (GUILayout.Button(_brush != null && _brush.IsTile ? $"외벽(현재 타일: {_brush.Name}) 설치" : "외벽(타일) — 타일 브러시 선택 필요"))
+                        InstallPerimeterTile(grid, _brush);
 
                 EditorGUILayout.Space(4);
 
@@ -211,7 +268,7 @@ public class MapEditorWindow : EditorWindow
 
             // 3) 스테이지 복제(기본 세팅만)
             EditorGUILayout.LabelField("스테이지 복제", EditorStyles.miniBoldLabel);
-            EditorGUILayout.HelpBox("현재 씬을 복제해 배치물(장애물/적/스폰)을 비운 '기본 세팅만' 새 스테이지를 만들고 엽니다. Build Settings/SceneLoader에도 등록.", MessageType.None);
+            EditorGUILayout.HelpBox("현재 씬을 복제해 배치물(장애물/적/스폰/벽 타일)을 비운 '기본 세팅만' 새 스테이지를 만들고 엽니다. Build Settings/SceneLoader에도 등록.", MessageType.None);
             if (GUILayout.Button("기본 세팅만 새 스테이지 생성")) DuplicateStageBaseOnly();
         }
         EditorGUILayout.EndFoldoutHeaderGroup();
@@ -253,7 +310,32 @@ public class MapEditorWindow : EditorWindow
         Debug.Log($"[MapEditor] 바깥 외벽 {placed}칸 설치. 배치 후 'NavMesh 재베이크' 권장.");
     }
 
-    /// <summary>그리드 테두리 칸에 있는 배치물을 제거한다.</summary>
+    /// <summary>그리드 테두리 칸을 현재 타일 브러시(벽 RuleTile)로 채운다.</summary>
+    private void InstallPerimeterTile(GridModule grid, PaletteEntry entry)
+    {
+        if (grid == null || entry == null || !entry.IsTile) return;
+        var def = FindLayerDef(entry.tilemapLayer);
+        var tm = MapTileLayers.EnsureLayer(grid, def);
+
+        int group = Undo.GetCurrentGroup();
+        Undo.SetCurrentGroupName("외벽(타일) 설치");
+        Undo.RegisterCompleteObjectUndo(tm, "외벽(타일) 설치");
+
+        int placed = 0;
+        for (int x = 0; x < grid.Columns; x++)
+            for (int y = 0; y < grid.Rows; y++)
+            {
+                bool border = x == 0 || x == grid.Columns - 1 || y == 0 || y == grid.Rows - 1;
+                if (!border) continue;
+                tm.SetTile(new Vector3Int(x, y, 0), entry.tile);
+                placed++;
+            }
+        Undo.CollapseUndoOperations(group);
+        EditorSceneManager.MarkSceneDirty(tm.gameObject.scene);
+        Debug.Log($"[MapEditor] 외벽(타일:{entry.Name}) {placed}칸 설치. 'NavMesh 재베이크' 권장.");
+    }
+
+    /// <summary>그리드 테두리 칸에 있는 배치물(프리팹)을 제거한다.</summary>
     private void RemovePerimeter(GridModule grid)
     {
         var root = FindRoot(grid);
@@ -289,6 +371,9 @@ public class MapEditorWindow : EditorWindow
         var vis = grid.GetComponent<MapGridVisualizer>();
         if (vis != null) vis.Rebuild();
 
+        // 타일맵 Grid도 있으면 GridModule에 맞춰 정렬
+        MapTileLayers.EnsureAllAligned(grid);
+
         EditorSceneManager.MarkSceneDirty(grid.gameObject.scene);
         Debug.Log($"[MapEditor] 그리드 → {_gridCols}×{_gridRows}, cell {_gridCell}, origin {origin}");
     }
@@ -306,7 +391,6 @@ public class MapEditorWindow : EditorWindow
         string newName = NextStageName();
         string newPath = "Assets/Scenes/" + newName + ".unity";
 
-        // 현재 씬 저장 후 복제(디스크 복사).
         EditorSceneManager.SaveScene(cur);
         if (!AssetDatabase.CopyAsset(cur.path, newPath))
         {
@@ -322,7 +406,7 @@ public class MapEditorWindow : EditorWindow
 
         AddSceneToBuildSettings(newPath);
 
-        Debug.Log($"[MapEditor] 새 스테이지 '{newName}' 생성 완료(기본 세팅만). Build Settings 등록됨(SceneLoader가 번호순 자동 인식). 이 씬에서 맵을 제작하세요.");
+        Debug.Log($"[MapEditor] 새 스테이지 '{newName}' 생성 완료(기본 세팅만). Build Settings 등록됨. 이 씬에서 맵을 제작하세요.");
     }
 
     private static string NextStageName()
@@ -338,7 +422,7 @@ public class MapEditorWindow : EditorWindow
         return "Stage" + (max + 1);
     }
 
-    /// <summary>배치물(MapObjects 루트/장애물/적/스폰마커)을 지워 기본 세팅만 남긴다.</summary>
+    /// <summary>배치물(MapObjects/장애물/적/스폰마커) + 벽 타일맵 내용을 지워 기본 세팅만 남긴다.</summary>
     private static void StripToBase()
     {
         var scene = EditorSceneManager.GetActiveScene();
@@ -348,6 +432,15 @@ public class MapEditorWindow : EditorWindow
         foreach (var m in Object.FindObjectsOfType<ObstacleTypeMarker>()) if (m) Object.DestroyImmediate(m.gameObject);
         foreach (var e in Object.FindObjectsOfType<EnemyController>()) if (e) Object.DestroyImmediate(e.gameObject);
         foreach (var s in Object.FindObjectsOfType<PlayerSpawnMarker>()) if (s) Object.DestroyImmediate(s.gameObject);
+
+        // 벽/바닥 타일맵 내용 비우기(레이어 GameObject는 유지)
+        var grid = Object.FindObjectOfType<GridModule>();
+        if (grid != null)
+            foreach (var def in MapTileLayers.All)
+            {
+                var tm = MapTileLayers.FindLayer(grid, def.layerName);
+                if (tm != null) tm.ClearAllTiles();
+            }
     }
 
     private static void AddSceneToBuildSettings(string path)
@@ -398,6 +491,7 @@ public class MapEditorWindow : EditorWindow
                 {
                     bool erase = _mode == Mode.Erase || e.shift;
                     if (erase) EraseAt(grid, cell);
+                    else if (_brush.IsTile) PaintTile(grid, cell, _brush);
                     else PlaceAt(grid, cell, world);
                     e.Use();
                 }
@@ -422,11 +516,20 @@ public class MapEditorWindow : EditorWindow
 
     // ───────────────────────── 배치 / 삭제 ─────────────────────────
 
+    private void PaintTile(GridModule grid, Vector2Int cell, PaletteEntry entry)
+    {
+        var def = FindLayerDef(entry.tilemapLayer);
+        var tm = MapTileLayers.EnsureLayer(grid, def);
+        var v = new Vector3Int(cell.x, cell.y, 0);
+        Undo.RegisterCompleteObjectUndo(tm, "타일 배치");
+        tm.SetTile(v, entry.tile);
+        EditorSceneManager.MarkSceneDirty(tm.gameObject.scene);
+    }
+
     private void PlaceAt(GridModule grid, Vector2Int cell, Vector3 world)
     {
         var root = GetOrCreateRoot(grid);
-        var entry = CurrentEntry();
-        bool isSpawn = entry != null && entry.isSpawn;
+        bool isSpawn = _brush != null && _brush.isSpawn;
 
         var existing = FindOccupant(grid, root, cell);
         if (existing != null)
@@ -436,7 +539,7 @@ public class MapEditorWindow : EditorWindow
         }
         if (isSpawn) RemoveExistingSpawns();
 
-        var inst = (GameObject)PrefabUtility.InstantiatePrefab(_brush);
+        var inst = (GameObject)PrefabUtility.InstantiatePrefab(_brush.prefab);
         if (inst == null) return;
         Undo.RegisterCreatedObjectUndo(inst, "맵 오브젝트 배치");
         inst.transform.SetParent(root, true);
@@ -450,7 +553,49 @@ public class MapEditorWindow : EditorWindow
         Selection.activeGameObject = inst;
     }
 
+    /// <summary>
+    /// 지우개. 기본은 해당 칸의 프리팹 + 모든 타일 레이어를 한 번에 제거한다.
+    /// '현재 브러시 레이어만 삭제'가 켜져 있으면, 선택된 브러시가 가리키는 레이어(타일 브러시=그 타일맵,
+    /// 프리팹 브러시=MapObjects 프리팹)만 개별 삭제한다.
+    /// </summary>
     private void EraseAt(GridModule grid, Vector2Int cell)
+    {
+        var v = new Vector3Int(cell.x, cell.y, 0);
+
+        if (_eraseCurrentOnly && _brush != null)
+        {
+            if (_brush.IsTile)
+            {
+                var tm = MapTileLayers.FindLayer(grid, _brush.tilemapLayer);
+                if (tm != null && tm.HasTile(v))
+                {
+                    Undo.RegisterCompleteObjectUndo(tm, "타일 삭제");
+                    tm.SetTile(v, null);
+                    EditorSceneManager.MarkSceneDirty(tm.gameObject.scene);
+                }
+            }
+            else
+            {
+                EraseTopPrefab(grid, cell);
+            }
+            return;
+        }
+
+        // 전체 삭제: 프리팹 + 모든 타일 레이어
+        EraseTopPrefab(grid, cell);
+        foreach (var def in MapTileLayers.All)
+        {
+            var tm = MapTileLayers.FindLayer(grid, def.layerName);
+            if (tm != null && tm.HasTile(v))
+            {
+                Undo.RegisterCompleteObjectUndo(tm, "타일 삭제");
+                tm.SetTile(v, null);
+                EditorSceneManager.MarkSceneDirty(tm.gameObject.scene);
+            }
+        }
+    }
+
+    private static void EraseTopPrefab(GridModule grid, Vector2Int cell)
     {
         var root = FindRoot(grid);
         if (root == null) return;
@@ -520,7 +665,7 @@ public class MapEditorWindow : EditorWindow
             if (m == null) continue;
             Physics2D.SyncTransforms();
             m.Invoke(mb, null);
-            Debug.Log("[MapEditor] NavMesh 재베이크 완료");
+            Debug.Log("[MapEditor] NavMesh 재베이크 완료(타일맵 벽 포함).");
             return;
         }
         Debug.LogWarning("[MapEditor] 씬에서 NavMeshSurface를 찾지 못했습니다.");

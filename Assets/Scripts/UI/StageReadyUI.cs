@@ -55,7 +55,9 @@ public class StageReadyUI : MonoBehaviour
     /// <summary>스테이지 씬이면 준비 오버레이를 켜고 게임을 준비 상태로, 아니면 숨긴다.</summary>
     private void Evaluate(string sceneName)
     {
-        bool isStage = SceneLoader.IsStageScene(sceneName);
+        // 이름 규칙(Stage{n})에 없는 맵(SlideMaps/Tutorial·Hard 등 테스트용 씬)도
+        // 실제 플레이 가능한 맵(GridModule 존재)이면 준비 오버레이를 노출해 [시작]으로 테스트할 수 있게 한다.
+        bool isStage = SceneLoader.IsStageScene(sceneName) || FindObjectOfType<GridModule>() != null;
         if (isStage)
         {
             GameManager.Instance?.SetStageReady();

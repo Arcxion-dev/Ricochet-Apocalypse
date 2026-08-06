@@ -38,6 +38,16 @@ public class StageNavMeshBaker : MonoBehaviour
     private void Start()
     {
         Rebake();
+        // Tilemap 벽 콜라이더는 씬 로드 직후 지오메트리 생성이 한 박자 늦을 수 있어,
+        // 한 프레임(+물리 스텝) 뒤 한 번 더 구워 확실히 반영한다.
+        StartCoroutine(RebakeNextFrame());
+    }
+
+    private System.Collections.IEnumerator RebakeNextFrame()
+    {
+        yield return null;
+        yield return new WaitForFixedUpdate();
+        Rebake();
     }
 
     /// <summary>현재 씬 장애물 기준으로 navmesh를 다시 굽고 적 에이전트를 스냅한다.</summary>
