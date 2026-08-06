@@ -77,3 +77,13 @@ Ricochet-Apocalypse · Unity 6000.3.18f1 · 2D · Legacy Input Manager · URP ·
 - ⚠️ 표 충실 반영 원칙: 일부 슬라이드(예: 7)는 표엔 `일`(일반) 마커만 있는데 해법 텍스트엔 다른 적 타입/추가 적이 적혀 있어 **표 불일치**가 있음. 배치는 **표(테이블)를 기준**으로 그대로 옮김(해법과 적 수가 다를 수 있음). 문서가 "임시/변경가능"이라 피드백으로 조정 가능.
 - 슬라이드→씬: 7→Slide07(어려움맵2) … 16→Slide16(중간2). 원 문서의 내부 라벨(중간3/4, 어려움1 등)이 슬라이드 순서와 어긋나 **혼동 방지를 위해 슬라이드 번호로 명명**. Slide15(민간인 다수) 스크린샷으로 배치·외벽 검증.
 - Build Settings에 10개 씬 등록. 총 SlideMaps = 14개(Tutorial1~3, Hard1, Slide07~16).
+
+## 추가 (2026-08-06) — 좁은 통로 적 낑김 해결
+- 프롬프트: "슬라이드11 적들이 낑겨 못 빠져나옴 … 다른 맵에도 비슷". 플레이 계측으로 진단: NavMesh 경로는 정상(PathComplete)이나 (1) `HighQualityObstacleAvoidance` 지역 회피가 1칸 통로에서 데드락, (2) 회피를 꺼도 1칸 코너 스낵 잔존.
+- `EnemyAIModule` 수정: `obstacleAvoidanceType=NoObstacleAvoidance` + `NudgeIfStuck()`(경로 있는데 정지 시 다음 코너로 조금씩 Warp). Slide11 플레이 검증 stuck=0(전원 플레이어 도달). 자세한 내용 [[enemy-navmesh-setup]].
+
+## 추가 (2026-08-06) — 나머지 슬라이드 17~42 맵 26개 생성(전체 완료)
+- 프롬프트: "나머지 슬라이드 스테이지 전부 생성해줘" → 슬라이드 17~42(맵 아닌 1~2 제외)를 `SlideMaps/Slide17~Slide42`로 생성. 크기: 17~20=12×20, 21~42=17×24. 전부 강철 외벽 포함(12×20→60칸, 17×24→78칸).
+- 표 파싱→C# MapDef 자동 생성 후 임포터 `Maps()`에 삽입, `BuildMissing()`로 새 26개만 생성("26 생성, 14 건너뜀"). 미상 토큰 0(모든 셀 기호 매핑 완비). Slide25(미로) 스크린샷으로 검증.
+- **총 SlideMaps = 40개**(Tutorial1~3, Hard1, Slide07~42) 전부 Build Settings 등록. 슬라이드 40개 맵 세트 반영 완료.
+- 재생성 필요 시: 메뉴 `Tools/Ricochet/슬라이드→SlideMaps 생성(전체/없는 것만)`.

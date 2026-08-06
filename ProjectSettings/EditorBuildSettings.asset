@@ -77,6 +77,84 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/SlideMaps/Slide16.unity
     guid: d04df4eec1ca55b4b886f0d0aac0e6eb
+  - enabled: 1
+    path: Assets/Scenes/SlideMaps/Slide17.unity
+    guid: 19db91d01d8f9a649bed3990d6558639
+  - enabled: 1
+    path: Assets/Scenes/SlideMaps/Slide18.unity
+    guid: 522d8ab95a5369d4a9cfe449fe05ec14
+  - enabled: 1
+    path: Assets/Scenes/SlideMaps/Slide19.unity
+    guid: 6b5cddc579fc1cd48b24a7cc42206e51
+  - enabled: 1
+    path: Assets/Scenes/SlideMaps/Slide20.unity
+    guid: cd57768cabbc0144c8928fdd9c9d412f
+  - enabled: 1
+    path: Assets/Scenes/SlideMaps/Slide21.unity
+    guid: c80e11c148853534ba7dc22df5dda9d2
+  - enabled: 1
+    path: Assets/Scenes/SlideMaps/Slide22.unity
+    guid: 533150b6993bbe941812858c75c856db
+  - enabled: 1
+    path: Assets/Scenes/SlideMaps/Slide23.unity
+    guid: 8cfb49e0b31ae3345aa7535809115090
+  - enabled: 1
+    path: Assets/Scenes/SlideMaps/Slide24.unity
+    guid: c001aba4bd2ee954e8482f0ac0631f32
+  - enabled: 1
+    path: Assets/Scenes/SlideMaps/Slide25.unity
+    guid: 0bedda0bb32458c44b9cd5a30413d497
+  - enabled: 1
+    path: Assets/Scenes/SlideMaps/Slide26.unity
+    guid: 2fa7dc797025a5440b5d010e875724ba
+  - enabled: 1
+    path: Assets/Scenes/SlideMaps/Slide27.unity
+    guid: d43eccfb1311c9b46afda88efe6f9b82
+  - enabled: 1
+    path: Assets/Scenes/SlideMaps/Slide28.unity
+    guid: 1505358e0dd80974a855a3b59e1c878d
+  - enabled: 1
+    path: Assets/Scenes/SlideMaps/Slide29.unity
+    guid: 5ed6e1b092ddd404a86cd491d314f53d
+  - enabled: 1
+    path: Assets/Scenes/SlideMaps/Slide30.unity
+    guid: 08f76b53c09ebe74cb853f3cd6e66317
+  - enabled: 1
+    path: Assets/Scenes/SlideMaps/Slide31.unity
+    guid: 7d88ba0fe7261f145863fc65d8c75c35
+  - enabled: 1
+    path: Assets/Scenes/SlideMaps/Slide32.unity
+    guid: 47df49747a39447489a4ff9530438fcf
+  - enabled: 1
+    path: Assets/Scenes/SlideMaps/Slide33.unity
+    guid: 5a9741de29476a6439f4f58c73a62bca
+  - enabled: 1
+    path: Assets/Scenes/SlideMaps/Slide34.unity
+    guid: 5ea0d9f7c241c9d4d87e73ecc5a8e668
+  - enabled: 1
+    path: Assets/Scenes/SlideMaps/Slide35.unity
+    guid: 68cf396e90fdd8b4cb171ffa410490eb
+  - enabled: 1
+    path: Assets/Scenes/SlideMaps/Slide36.unity
+    guid: dd8bb6cde2e54fd439fa0806d84c8f21
+  - enabled: 1
+    path: Assets/Scenes/SlideMaps/Slide37.unity
+    guid: 1dc45d25a4664904bacde039ee7e50aa
+  - enabled: 1
+    path: Assets/Scenes/SlideMaps/Slide38.unity
+    guid: 979f9af3361cc02438b98b1fb45495b7
+  - enabled: 1
+    path: Assets/Scenes/SlideMaps/Slide39.unity
+    guid: eaf153d8fb1d11644b49d965e870117d
+  - enabled: 1
+    path: Assets/Scenes/SlideMaps/Slide40.unity
+    guid: 28ccdb670d853884caa8836f2f0b84e1
+  - enabled: 1
+    path: Assets/Scenes/SlideMaps/Slide41.unity
+    guid: a81a5eaea369ec545a9fd84855abfe74
+  - enabled: 1
+    path: Assets/Scenes/SlideMaps/Slide42.unity
+    guid: 89289c3ab39595a4081821b18afef83e
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   m_UseUCBPForAssetBundles: 0
