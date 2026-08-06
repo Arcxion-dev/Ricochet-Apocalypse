@@ -21,7 +21,7 @@ using UnityEngine.Tilemaps;
 public static class MapSlideImporter
 {
     const string Template = "Assets/Scenes/Stage7.unity";
-    const string OutDir = "Assets/Scenes/SlideMaps";
+    const string OutDir = "Assets/Scenes/Stages";
     const string MapRootName = "MapObjects";
 
     class MapDef { public string scene; public int cols; public int rows; public string[] top; }
@@ -49,7 +49,7 @@ public static class MapSlideImporter
 
     static List<MapDef> Maps() => new List<MapDef>
     {
-        new MapDef { scene = "Tutorial1", cols = 9, rows = 15, top = new[]
+        new MapDef { scene = "Stage_01", cols = 9, rows = 15, top = new[]
         {
             ".,.,.,.,.,.,.,.,.",
             ".,벽,벽,벽,벽,벽,벽,벽,.",
@@ -67,7 +67,7 @@ public static class MapSlideImporter
             ".,.,.,.,.,.,.,.,.",
             ".,.,.,.,.,.,.,.,.",
         }},
-        new MapDef { scene = "Tutorial2", cols = 9, rows = 15, top = new[]
+        new MapDef { scene = "Stage_02", cols = 9, rows = 15, top = new[]
         {
             ".,.,.,.,.,.,.,.,.",
             ".,벽,벽,벽,벽,벽,벽,벽,.",
@@ -85,7 +85,7 @@ public static class MapSlideImporter
             ".,.,.,.,.,.,.,.,.",
             ".,.,.,.,.,.,.,.,.",
         }},
-        new MapDef { scene = "Tutorial3", cols = 9, rows = 15, top = new[]
+        new MapDef { scene = "Stage_03", cols = 9, rows = 15, top = new[]
         {
             ".,.,.,.,.,.,.,.,.",
             ".,벽,벽,벽,벽,벽,벽,벽,.",
@@ -103,7 +103,7 @@ public static class MapSlideImporter
             ".,.,.,.,.,.,.,.,.",
             ".,.,.,.,.,.,.,.,.",
         }},
-        new MapDef { scene = "Hard1", cols = 12, rows = 20, top = new[]
+        new MapDef { scene = "Stage_04", cols = 12, rows = 20, top = new[]
         {
             ".,.,.,.,.,.,.,.,.,.,.,.",
             ".,나무,나무,나무,나무,나무,나무,나무,나무,나무,나무,.",
@@ -126,7 +126,7 @@ public static class MapSlideImporter
             ".,.,.,.,.,.,.,.,.,.,.,.",
             ".,.,.,.,.,.,.,.,.,.,.,.",
         }},
-        new MapDef { scene = "Slide07", cols = 12, rows = 20, top = new[]
+        new MapDef { scene = "Stage_05", cols = 12, rows = 20, top = new[]
         {
             ".,.,.,.,.,.,.,.,.,.,.,.",
             ".,벽,벽,벽,벽,벽,벽,벽,벽,벽,벽,.",
@@ -149,7 +149,7 @@ public static class MapSlideImporter
             ".,.,.,.,.,.,.,.,.,.,.,.",
             ".,.,.,.,.,.,.,.,.,.,.,.",
         }},
-        new MapDef { scene = "Slide08", cols = 12, rows = 20, top = new[]
+        new MapDef { scene = "Stage_06", cols = 12, rows = 20, top = new[]
         {
             ".,.,.,.,.,.,.,.,.,.,.,.",
             ".,벽,벽,벽,.,.,.,.,.,.,.,.",
@@ -172,7 +172,7 @@ public static class MapSlideImporter
             ".,.,.,.,.,.,.,.,.,.,.,.",
             ".,.,.,.,.,.,.,.,.,.,.,.",
         }},
-        new MapDef { scene = "Slide09", cols = 12, rows = 20, top = new[]
+        new MapDef { scene = "Stage_07", cols = 12, rows = 20, top = new[]
         {
             ".,.,.,.,.,.,.,.,.,.,.,.",
             ".,.,.,.,.,.,.,.,.,.,.,.",
@@ -195,7 +195,7 @@ public static class MapSlideImporter
             ".,.,.,.,.,.,.,.,.,.,.,.",
             ".,.,.,.,.,.,.,.,.,.,.,.",
         }},
-        new MapDef { scene = "Slide10", cols = 12, rows = 20, top = new[]
+        new MapDef { scene = "Stage_08", cols = 12, rows = 20, top = new[]
         {
             ".,.,.,.,.,.,.,.,.,.,.,.",
             ".,.,.,.,.,.,.,.,.,.,.,.",
@@ -218,7 +218,7 @@ public static class MapSlideImporter
             ".,.,.,.,.,.,.,.,.,.,.,.",
             ".,.,.,.,.,.,.,.,.,.,.,.",
         }},
-        new MapDef { scene = "Slide11", cols = 12, rows = 20, top = new[]
+        new MapDef { scene = "Stage_09", cols = 12, rows = 20, top = new[]
         {
             ".,.,.,.,.,.,.,.,.,.,.,.",
             ".,.,.,.,.,.,.,일,.,.,.,.",
@@ -241,7 +241,7 @@ public static class MapSlideImporter
             ".,.,.,.,.,.,.,.,.,.,.,.",
             ".,.,.,.,.,.,.,.,.,.,.,.",
         }},
-        new MapDef { scene = "Slide12", cols = 12, rows = 20, top = new[]
+        new MapDef { scene = "Stage_10", cols = 12, rows = 20, top = new[]
         {
             ".,.,.,.,.,.,.,.,.,.,.,.",
             ".,.,.,.,.,.,.,.,.,.,.,.",
@@ -264,7 +264,7 @@ public static class MapSlideImporter
             ".,.,.,.,.,.,.,.,.,.,.,.",
             ".,.,.,.,.,.,.,.,.,.,.,.",
         }},
-        new MapDef { scene = "Slide13", cols = 12, rows = 20, top = new[]
+        new MapDef { scene = "Stage_11", cols = 12, rows = 20, top = new[]
         {
             ".,.,.,.,.,.,.,.,.,.,.,.",
             ".,벽,벽,벽,벽,벽,벽,벽,벽,벽,벽,.",
@@ -287,7 +287,7 @@ public static class MapSlideImporter
             ".,벽,.,.,벽,.,.,.,.,.,벽,.",
             ".,.,.,.,.,.,.,.,.,.,.,.",
         }},
-        new MapDef { scene = "Slide14", cols = 12, rows = 20, top = new[]
+        new MapDef { scene = "Stage_12", cols = 12, rows = 20, top = new[]
         {
             ".,.,.,.,.,.,.,.,.,.,.,.",
             ".,벽,벽,벽,벽,벽,벽,벽,벽,벽,벽,.",
@@ -310,7 +310,7 @@ public static class MapSlideImporter
             ".,.,.,.,.,.,.,.,.,.,.,.",
             ".,.,.,.,.,.,.,.,.,.,.,.",
         }},
-        new MapDef { scene = "Slide15", cols = 12, rows = 20, top = new[]
+        new MapDef { scene = "Stage_13", cols = 12, rows = 20, top = new[]
         {
             ".,.,.,.,.,.,.,.,.,.,.,.",
             ".,.,.,.,.,.,.,.,벽,벽,.,.",
@@ -333,7 +333,7 @@ public static class MapSlideImporter
             ".,.,.,민간,.,.,.,.,.,민간,.,.",
             ".,.,.,.,.,.,.,.,.,.,.,.",
         }},
-        new MapDef { scene = "Slide16", cols = 12, rows = 20, top = new[]
+        new MapDef { scene = "Stage_14", cols = 12, rows = 20, top = new[]
         {
             ".,.,.,.,.,.,.,.,.,.,.,.",
             ".,.,.,.,.,.,.,.,.,.,.,.",
@@ -356,7 +356,7 @@ public static class MapSlideImporter
             ".,.,.,.,.,.,.,.,.,.,.,.",
             ".,.,.,.,.,.,.,.,.,.,.,.",
         }},
-        new MapDef { scene = "Slide17", cols = 12, rows = 20, top = new[]
+        new MapDef { scene = "Stage_15", cols = 12, rows = 20, top = new[]
         {
             ".,.,.,.,.,.,.,.,.,.,.,.",
             ".,벽,벽,벽,벽,벽,나무,벽,벽,벽,벽,.",
@@ -379,7 +379,7 @@ public static class MapSlideImporter
             ".,.,.,.,.,.,.,.,.,.,.,.",
             ".,.,.,.,.,.,.,.,.,.,.,.",
         }},
-        new MapDef { scene = "Slide18", cols = 12, rows = 20, top = new[]
+        new MapDef { scene = "Stage_16", cols = 12, rows = 20, top = new[]
         {
             ".,.,.,.,.,.,.,.,.,.,.,.",
             ".,.,.,.,.,.,.,.,.,.,나무,.",
@@ -402,7 +402,7 @@ public static class MapSlideImporter
             ".,.,.,.,.,.,.,.,.,.,.,.",
             ".,.,.,.,.,.,.,.,.,.,.,.",
         }},
-        new MapDef { scene = "Slide19", cols = 12, rows = 20, top = new[]
+        new MapDef { scene = "Stage_17", cols = 12, rows = 20, top = new[]
         {
             ".,.,.,.,.,.,.,.,.,.,.,.",
             ".,바위,바위,바위,바위,바위,바위,바위,바위,바위,바위,.",
@@ -425,7 +425,7 @@ public static class MapSlideImporter
             ".,바위,.,.,.,.,.,.,.,.,.,.",
             ".,.,.,.,.,.,.,.,.,.,.,.",
         }},
-        new MapDef { scene = "Slide20", cols = 12, rows = 20, top = new[]
+        new MapDef { scene = "Stage_18", cols = 12, rows = 20, top = new[]
         {
             ".,.,.,.,.,.,.,.,.,.,.,.",
             ".,.,.,신,.,.,.,.,.,.,.,.",
@@ -448,7 +448,7 @@ public static class MapSlideImporter
             ".,.,.,.,.,.,.,.,.,.,.,.",
             ".,.,.,.,.,.,.,.,.,.,.,.",
         }},
-        new MapDef { scene = "Slide21", cols = 17, rows = 24, top = new[]
+        new MapDef { scene = "Stage_19", cols = 17, rows = 24, top = new[]
         {
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
             ".,벽,벽,.,.,일,벽,벽,.,.,.,.,일,.,벽,벽,.",
@@ -475,7 +475,7 @@ public static class MapSlideImporter
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
         }},
-        new MapDef { scene = "Slide22", cols = 17, rows = 24, top = new[]
+        new MapDef { scene = "Stage_20", cols = 17, rows = 24, top = new[]
         {
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
@@ -502,7 +502,7 @@ public static class MapSlideImporter
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
         }},
-        new MapDef { scene = "Slide23", cols = 17, rows = 24, top = new[]
+        new MapDef { scene = "Stage_21", cols = 17, rows = 24, top = new[]
         {
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
             ".,바위,바위,바위,바위,바위,바위,바위,바위,바위,바위,바위,바위,바위,바위,바위,.",
@@ -529,7 +529,7 @@ public static class MapSlideImporter
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
         }},
-        new MapDef { scene = "Slide24", cols = 17, rows = 24, top = new[]
+        new MapDef { scene = "Stage_22", cols = 17, rows = 24, top = new[]
         {
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
             ".,벽,벽,벽,벽,벽,벽,벽,벽,벽,벽,벽,벽,벽,벽,벽,.",
@@ -556,7 +556,7 @@ public static class MapSlideImporter
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
         }},
-        new MapDef { scene = "Slide25", cols = 17, rows = 24, top = new[]
+        new MapDef { scene = "Stage_23", cols = 17, rows = 24, top = new[]
         {
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
             ".,벽,벽,벽,벽,벽,벽,벽,벽,벽,벽,벽,벽,벽,벽,벽,.",
@@ -583,7 +583,7 @@ public static class MapSlideImporter
             ".,벽,벽,벽,벽,벽,벽,벽,벽,벽,벽,벽,벽,벽,.,벽,.",
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
         }},
-        new MapDef { scene = "Slide26", cols = 17, rows = 24, top = new[]
+        new MapDef { scene = "Stage_24", cols = 17, rows = 24, top = new[]
         {
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
             ".,.,.,.,.,.,.,.,.,벽,.,.,일,.,.,.,.",
@@ -610,7 +610,7 @@ public static class MapSlideImporter
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
         }},
-        new MapDef { scene = "Slide27", cols = 17, rows = 24, top = new[]
+        new MapDef { scene = "Stage_25", cols = 17, rows = 24, top = new[]
         {
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
             ".,바위,바위,바위,바위,바위,바위,바위,바위,바위,바위,바위,바위,바위,바위,바위,.",
@@ -637,7 +637,7 @@ public static class MapSlideImporter
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
         }},
-        new MapDef { scene = "Slide28", cols = 17, rows = 24, top = new[]
+        new MapDef { scene = "Stage_26", cols = 17, rows = 24, top = new[]
         {
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
@@ -664,7 +664,7 @@ public static class MapSlideImporter
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
         }},
-        new MapDef { scene = "Slide29", cols = 17, rows = 24, top = new[]
+        new MapDef { scene = "Stage_27", cols = 17, rows = 24, top = new[]
         {
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
             ".,바위,바위,바위,바위,바위,바위,바위,바위,바위,바위,바위,철벽,.,.,.,.",
@@ -691,7 +691,7 @@ public static class MapSlideImporter
             ".,바위,바위,바위,바위,바위,바위,.,.,.,.,.,.,.,.,.,.",
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
         }},
-        new MapDef { scene = "Slide30", cols = 17, rows = 24, top = new[]
+        new MapDef { scene = "Stage_28", cols = 17, rows = 24, top = new[]
         {
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
             ".,바위,바위,바위,바위,바위,바위,바위,바위,바위,바위,바위,바위,바위,바위,바위,.",
@@ -718,7 +718,7 @@ public static class MapSlideImporter
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
         }},
-        new MapDef { scene = "Slide31", cols = 17, rows = 24, top = new[]
+        new MapDef { scene = "Stage_29", cols = 17, rows = 24, top = new[]
         {
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
             ".,.,.,.,일,바위,.,.,.,.,.,.,.,.,.,.,.",
@@ -745,7 +745,7 @@ public static class MapSlideImporter
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
         }},
-        new MapDef { scene = "Slide32", cols = 17, rows = 24, top = new[]
+        new MapDef { scene = "Stage_30", cols = 17, rows = 24, top = new[]
         {
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
             ".,풀,풀,풀,풀,풀,풀,풀,풀,풀,풀,풀,풀,풀,풀,풀,.",
@@ -772,7 +772,7 @@ public static class MapSlideImporter
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
         }},
-        new MapDef { scene = "Slide33", cols = 17, rows = 24, top = new[]
+        new MapDef { scene = "Stage_31", cols = 17, rows = 24, top = new[]
         {
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
             ".,벽,벽,벽,벽,벽,.,.,벽,벽,벽,벽,벽,벽,벽,벽,.",
@@ -799,7 +799,7 @@ public static class MapSlideImporter
             ".,벽,벽,벽,벽,벽,.,.,.,.,.,.,.,.,.,.,.",
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
         }},
-        new MapDef { scene = "Slide34", cols = 17, rows = 24, top = new[]
+        new MapDef { scene = "Stage_32", cols = 17, rows = 24, top = new[]
         {
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
             ".,벽,.,나무,.,.,철벽,.,.,.,.,.,.,나무,.,벽,.",
@@ -826,7 +826,7 @@ public static class MapSlideImporter
             ".,벽,.,.,.,.,.,.,.,.,.,.,.,.,.,벽,.",
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
         }},
-        new MapDef { scene = "Slide35", cols = 17, rows = 24, top = new[]
+        new MapDef { scene = "Stage_33", cols = 17, rows = 24, top = new[]
         {
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
             ".,벽,.,.,.,일,.,일,.,일,.,일,.,.,.,벽,.",
@@ -853,7 +853,7 @@ public static class MapSlideImporter
             ".,벽,벽,벽,벽,벽,벽,.,.,.,벽,벽,벽,벽,벽,벽,.",
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
         }},
-        new MapDef { scene = "Slide36", cols = 17, rows = 24, top = new[]
+        new MapDef { scene = "Stage_34", cols = 17, rows = 24, top = new[]
         {
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
             ".,벽,벽,벽,벽,벽,벽,벽,벽,벽,벽,벽,벽,벽,벽,벽,.",
@@ -880,7 +880,7 @@ public static class MapSlideImporter
             ".,벽,벽,벽,벽,벽,벽,.,.,.,벽,벽,벽,벽,벽,벽,.",
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
         }},
-        new MapDef { scene = "Slide37", cols = 17, rows = 24, top = new[]
+        new MapDef { scene = "Stage_35", cols = 17, rows = 24, top = new[]
         {
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
             ".,.,.,.,.,.,.,.,.,.,.,.,벽,.,일,.,.",
@@ -907,7 +907,7 @@ public static class MapSlideImporter
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
         }},
-        new MapDef { scene = "Slide38", cols = 17, rows = 24, top = new[]
+        new MapDef { scene = "Stage_36", cols = 17, rows = 24, top = new[]
         {
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
@@ -934,7 +934,7 @@ public static class MapSlideImporter
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
         }},
-        new MapDef { scene = "Slide39", cols = 17, rows = 24, top = new[]
+        new MapDef { scene = "Stage_37", cols = 17, rows = 24, top = new[]
         {
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
@@ -961,7 +961,7 @@ public static class MapSlideImporter
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
         }},
-        new MapDef { scene = "Slide40", cols = 17, rows = 24, top = new[]
+        new MapDef { scene = "Stage_38", cols = 17, rows = 24, top = new[]
         {
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
@@ -988,7 +988,7 @@ public static class MapSlideImporter
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
         }},
-        new MapDef { scene = "Slide41", cols = 17, rows = 24, top = new[]
+        new MapDef { scene = "Stage_39", cols = 17, rows = 24, top = new[]
         {
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
             ".,.,.,.,.,신,.,.,.,.,.,.,.,.,.,.,.",
@@ -1015,7 +1015,7 @@ public static class MapSlideImporter
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
         }},
-        new MapDef { scene = "Slide42", cols = 17, rows = 24, top = new[]
+        new MapDef { scene = "Stage_40", cols = 17, rows = 24, top = new[]
         {
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.,.",
             ".,.,.,.,.,.,.,.,.,.,.,.,.,.,철벽,철벽,.",
@@ -1054,7 +1054,7 @@ public static class MapSlideImporter
     static void Build(bool onlyMissing)
     {
         if (!AssetDatabase.IsValidFolder(OutDir))
-            AssetDatabase.CreateFolder("Assets/Scenes", "SlideMaps");
+            AssetDatabase.CreateFolder("Assets/Scenes", "Stages");
         int ok = 0, skip = 0;
         foreach (var m in Maps())
         {

@@ -21,14 +21,15 @@ public static class SceneLoader
         public const string Result = "Result";
 
         /// <summary>
-        /// 스테이지 씬 진행 순서. **Build Settings에 등록된 "Stage{숫자}" 씬들을 번호순으로** 자동 구성한다.
-        /// 새 스테이지를 추가하려면 그 씬을 Build Settings에 등록하기만 하면 된다(맵 에디터 '스테이지 복제'가 자동 등록).
-        /// 하나도 없으면 기본값(Stage1~3)으로 폴백한다. (소스 수정 불필요)
+        /// 스테이지 씬 진행 순서. **Build Settings에 등록된 "Stage_{숫자}" 씬들을 번호순으로** 자동 구성한다.
+        /// (본 게임 플레이 스테이지 = Assets/Scenes/Stages/Stage_01~Stage_40. 옛 "Stage1~5"는 규칙이 달라 제외됨.)
+        /// 새 스테이지를 추가하려면 "Stage_NN" 씬을 Build Settings에 등록하기만 하면 된다.
+        /// 하나도 없으면 기본값(Stage_01~03)으로 폴백한다. (소스 수정 불필요)
         /// </summary>
         public static string[] Stages => ResolveStagesFromBuildSettings();
 
         private static readonly System.Text.RegularExpressions.Regex StageNameRegex =
-            new System.Text.RegularExpressions.Regex(@"^Stage(\d+)$");
+            new System.Text.RegularExpressions.Regex(@"^Stage_(\d+)$");
 
         private static string[] ResolveStagesFromBuildSettings()
         {
@@ -44,7 +45,7 @@ public static class SceneLoader
             }
             found.Sort((a, b) => a.Key.CompareTo(b.Key));
 
-            if (found.Count == 0) return new[] { "Stage1", "Stage2", "Stage3" };
+            if (found.Count == 0) return new[] { "Stage_01", "Stage_02", "Stage_03" };
             var arr = new string[found.Count];
             for (int i = 0; i < found.Count; i++) arr[i] = found[i].Value;
             return arr;
