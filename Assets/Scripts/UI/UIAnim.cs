@@ -195,6 +195,14 @@ public static class UIAnim
         return Own(target.DOPunchScale(Vector3.one * strength, duration, 8, 0.9f), target);
     }
 
+    /// <summary>스케일을 부드럽게 바꾼다(버튼 눌림/떼기 같은 상태 전환용).</summary>
+    public static Tween ScaleTo(Transform target, float scale, float duration = Fast)
+    {
+        if (target == null) return null;
+        Stop(target);
+        return Own(target.DOScale(scale, duration).SetEase(EaseSoft), target);
+    }
+
     /// <summary>실패/거절 피드백용 좌우 흔들림.</summary>
     public static Tween Shake(RectTransform target, float strength = 14f, float duration = 0.3f)
     {
@@ -258,6 +266,26 @@ public static class UIAnim
         if (image == null) return null;
         Stop(image);
         return Own(image.DOFillAmount(Mathf.Clamp01(value), duration).SetEase(EaseSoft), image);
+    }
+
+    /// <summary>
+    /// 앵커 폭(anchorMax.x)으로 채워지는 게이지를 부드럽게 따라가게 한다.
+    /// <see cref="FillTo"/>와 달리 Image.type을 Filled로 강제하지 않으므로,
+    /// 9-slice 알약 스프라이트를 쓰는 게이지에서 끝단 모양이 뭉개지지 않는다.
+    /// 대상은 anchorMin.x = 0, 좌우 offset = 0 으로 세팅돼 있어야 한다.
+    /// </summary>
+    public static Tween FillRectTo(RectTransform fill, float value, float duration = Normal)
+    {
+        if (fill == null) return null;
+        Stop(fill);
+        float target = Mathf.Clamp01(value);
+        var tween = DOTween.To(() => fill.anchorMax.x, v =>
+        {
+            fill.anchorMax = new Vector2(v, 1f);
+            fill.offsetMax = new Vector2(0f, 0f);   // 앵커를 옮기면 offset이 따라 틀어지므로 매번 0으로 고정.
+            fill.offsetMin = new Vector2(0f, 0f);
+        }, target, duration).SetEase(EaseSoft);
+        return Own(tween, fill);
     }
 
     /// <summary>색을 부드럽게 전환한다(탭 선택, 슬롯 강조 등).</summary>

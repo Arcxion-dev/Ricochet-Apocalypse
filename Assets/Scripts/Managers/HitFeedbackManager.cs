@@ -259,20 +259,34 @@ public class HitFeedbackManager : MonoBehaviour
 
     // ───────────────────────── 카메라 펀치 ─────────────────────────
 
-    private void StartShake(float magnitude)
+    /// <summary>
+    /// 카메라를 한 번 흔든다. 전투 피드백 외의 연출(예: 리볼버 실린더가 탄을 물 때)에서도
+    /// 같은 흔들림 채널을 쓰도록 열어둔 진입점. duration을 생략하면 기본 피격 흔들림 길이.
+    /// </summary>
+    public static void Punch(float magnitude, float duration = -1f)
+    {
+        var inst = Instance;
+        if (inst == null) return;
+        // 전투 피드백 경로 밖에서 처음 불릴 수도 있다. 그때는 _cameraPan이 아직 null이라
+        // 조용히 아무 일도 안 일어나므로, 여기서 참조를 한 번 확보하고 시작한다.
+        inst.RefreshCameraRefs();
+        inst.StartShake(magnitude, duration);
+    }
+
+    private void StartShake(float magnitude, float duration = -1f)
     {
         if (_cameraPan == null || magnitude <= 0f) return;
         if (_shakeRoutine != null) StopCoroutine(_shakeRoutine);
-        _shakeRoutine = StartCoroutine(ShakeRoutine(magnitude));
+        _shakeRoutine = StartCoroutine(ShakeRoutine(magnitude, duration > 0f ? duration : _shakeDuration));
     }
 
-    private IEnumerator ShakeRoutine(float magnitude)
+    private IEnumerator ShakeRoutine(float magnitude, float duration)
     {
         float t = 0f;
-        while (t < _shakeDuration)
+        while (t < duration)
         {
             t += Time.unscaledDeltaTime;
-            float damper = 1f - Mathf.Clamp01(t / _shakeDuration);
+            float damper = 1f - Mathf.Clamp01(t / duration);
             Vector2 rand = Random.insideUnitCircle * (magnitude * damper);
             if (_cameraPan != null) _cameraPan.ExternalShakeOffset = new Vector3(rand.x, rand.y, 0f);
             yield return null;

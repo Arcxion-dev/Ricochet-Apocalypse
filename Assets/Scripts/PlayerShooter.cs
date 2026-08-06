@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 /// <summary>
 /// 플레이어의 사격 입력을 담당하는 컴포넌트. 플레이어는 고정 위치에서 마우스로 조준하고
@@ -277,13 +278,16 @@ public class PlayerShooter : MonoBehaviour
         // 탄환/아이템 변경 모드 또는 아이템 조준 모드가 활성이면, 일반 조준/격발 대신 그 처리를 한다.
         if (HandleItemModes()) return;
 
+        // 화면 버튼(이동/퀵슬롯/실린더) 위를 누른 탭은 조준·격발로 넘기지 않는다.
+        bool overUI = IsPointerOverUI();
+
         if (_phase == AimPhase.Free)
         {
             // 조준: 레이저가 마우스를 따라간다. 좌클릭 시 그 방향으로 조준을 고정(→호흡).
             Vector2 dir = GetAimDirection();
             UpdateLaser(dir, _laserColor);
 
-            if (Input.GetMouseButtonDown(0))
+            if (Input.GetMouseButtonDown(0) && !overUI)
             {
                 EnterBreath(dir);
             }
@@ -303,7 +307,7 @@ public class PlayerShooter : MonoBehaviour
                 ExitBreath();     // 우클릭 취소: 발사 없이 조준으로 복귀.
                 _effects?.Cancel(); // 연출 원상 복귀(흔들림/오버슈트 없음).
             }
-            else if (Input.GetMouseButtonDown(0))
+            else if (Input.GetMouseButtonDown(0) && !overUI)
             {
                 // 격발: 그 순간의 (흔들린) 방향으로 발사하고 조준으로 복귀.
                 bool fired = TryFire(dir);
@@ -620,6 +624,8 @@ public class PlayerShooter : MonoBehaviour
 
     private LineRenderer _itemIndicator; // 아이템 조준 시 효과 반경을 보여주는 원.
     private Vector2 _itemAimPoint;
+    /// <summary>조준 모드에 들어간 프레임. 진입을 유발한 그 클릭이 곧바로 "확정"으로 먹히는 것을 막는다.</summary>
+    private int _itemAimEnteredFrame = -1;
 
     /// <summary>탄환/아이템 변경·조준 모드를 처리한다. 활성이면 true(일반 조준/격발을 대체).</summary>
     private bool HandleItemModes()
@@ -710,7 +716,31 @@ public class PlayerShooter : MonoBehaviour
             return;
         }
         EnterMode(InputMode.ItemAim);
+        _itemAimEnteredFrame = Time.frameCount;
         if (_laser != null) _laser.enabled = false; // 조준선 숨기고 범위 원만 표시.
+    }
+
+    /// <summary>현재 아이템 조준(투척 지점 선택) 중인지. HUD 퀵슬롯이 눌림 상태를 표시하는 데 쓴다.</summary>
+    public bool IsAimingItem => _mode == InputMode.ItemAim;
+
+    /// <summary>
+    /// HUD 퀵슬롯에서 아이템을 고르고 곧바로 조준 모드로 들어간다.
+    /// 이미 같은 슬롯을 조준 중이면 취소(토글)한다. 실제 사용은 이후 월드를 한 번 탭했을 때.
+    /// </summary>
+    public void UseItemFromHud(int index)
+    {
+        if (index < 0 || index >= _itemChoices.Count) return;
+
+        // 이미 그 아이템을 조준 중이면 두 번째 탭은 취소로 받는다.
+        if (_mode == InputMode.ItemAim && index == _selectedItemIndex) { ExitMode(); return; }
+
+        // 조준/격발 중이거나 스테이지가 아직 안 굴러가면 무시.
+        if (InventoryUI.IsOpen || WeaponPartsUI.IsOpen) return;
+        if (GameManager.Instance != null && !GameManager.Instance.StageStarted) return;
+        if (_phase == AimPhase.Breath) { ExitBreath(); _effects?.Cancel(); }
+
+        SelectItem(index);
+        TryEnterItemAim();
     }
 
     /// <summary>아이템 조준 모드: 범위 원을 마우스(사거리 클램프) 지점에 표시하고, 좌클릭 확정/우클릭 취소.</summary>
@@ -729,7 +759,11 @@ public class PlayerShooter : MonoBehaviour
         UpdateItemIndicator(_itemAimPoint, item.effectRadius, ColorForItem(item.kind));
 
         if (Input.GetMouseButtonDown(1)) { ExitMode(); return; }        // 취소
-        if (Input.GetMouseButtonDown(0)) { UseItemAt(item, _itemAimPoint); ExitMode(); } // 확정
+
+        // 확정. 단, 조준을 시작시킨 그 클릭(HUD 퀵슬롯 탭)과 HUD 위를 누른 클릭은 흘려보낸다 —
+        // 그러지 않으면 슬롯을 누르자마자 발밑에 터지거나, 다른 버튼을 누를 수 없다.
+        if (Time.frameCount == _itemAimEnteredFrame) return;
+        if (Input.GetMouseButtonDown(0) && !IsPointerOverUI()) { UseItemAt(item, _itemAimPoint); ExitMode(); }
     }
 
     /// <summary>아이템 효과를 지점에 적용하고 1개 소비한다.</summary>
@@ -882,6 +916,21 @@ public class PlayerShooter : MonoBehaviour
         if (_selectedItemIndex >= 0 && _selectedItemIndex < _itemChoices.Count)
             return _itemChoices[_selectedItemIndex].Definition;
         return null;
+    }
+
+    /// <summary>
+    /// 지금 포인터가 HUD 위젯 위에 있는지. 이 컴포넌트는 EventSystem이 아니라 raw Input을 읽기 때문에,
+    /// 화면 버튼(이동 화살표·퀵슬롯·실린더)을 눌렀을 때 그 탭이 조준/격발로도 새는 것을 여기서 막는다.
+    /// </summary>
+    private static bool IsPointerOverUI()
+    {
+        var es = EventSystem.current;
+        if (es == null) return false;
+        if (es.IsPointerOverGameObject()) return true;
+        // 터치 입력은 포인터 ID가 손가락 인덱스라 별도로 확인해야 한다.
+        for (int i = 0; i < Input.touchCount; i++)
+            if (es.IsPointerOverGameObject(Input.GetTouch(i).fingerId)) return true;
+        return false;
     }
 
     /// <summary>마우스 위치를 기준으로 발사 방향(정규화)을 계산한다.</summary>

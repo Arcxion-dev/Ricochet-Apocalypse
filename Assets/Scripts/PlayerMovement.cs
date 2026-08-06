@@ -39,6 +39,15 @@ public class PlayerMovement : MonoBehaviour
     private Collider2D _collider;
     private ContactFilter2D _blockingFilter;
 
+    /// <summary>
+    /// 화면 위 좌/우 버튼이 넣어주는 가로 입력(-1~1). HUD가 매 프레임 갱신하고 손을 떼면 0으로 되돌린다.
+    /// 키보드 WASD와 합쳐지므로 둘 중 아무거나 써도 된다.
+    /// </summary>
+    public float ExternalHorizontal { get; set; }
+
+    /// <summary>세로 방향도 UI로 조작하고 싶을 때를 위해 같이 열어둔다(현재 HUD는 좌우만 쓴다).</summary>
+    public float ExternalVertical { get; set; }
+
     /// <summary>이동 속도(월드 유닛/초). 런타임에 읽고 쓸 수 있다.</summary>
     public float MoveSpeed
     {
@@ -95,8 +104,8 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
-    /// <summary>WASD 입력을 대각선 보정(정규화)까지 마친 방향 벡터로 읽는다.</summary>
-    private static Vector2 ReadInput()
+    /// <summary>WASD와 화면 버튼 입력을 합쳐 대각선 보정(정규화)까지 마친 방향 벡터로 읽는다.</summary>
+    private Vector2 ReadInput()
     {
         float x = 0f;
         float y = 0f;
@@ -104,6 +113,13 @@ public class PlayerMovement : MonoBehaviour
         if (Input.GetKey(KeyCode.D)) x += 1f;
         if (Input.GetKey(KeyCode.S)) y -= 1f;
         if (Input.GetKey(KeyCode.W)) y += 1f;
+
+        x += ExternalHorizontal;
+        y += ExternalVertical;
+
+        // 버튼과 키를 동시에 눌러도 속도가 2배가 되지 않도록 각 축을 먼저 -1~1로 자른다.
+        x = Mathf.Clamp(x, -1f, 1f);
+        y = Mathf.Clamp(y, -1f, 1f);
 
         // 대각선 이동이 빨라지지 않도록 정규화.
         return new Vector2(x, y).normalized;

@@ -141,16 +141,17 @@ public class StageReadyUI : MonoBehaviour
         safe.offsetMax = Vector2.zero;
         safeGO.AddComponent<SafeAreaFitter>();
 
-        // 하단 중앙 준비 패널(플레이 화면을 가리지 않도록 화면 전체를 덮지 않는다).
+        // 화면 중앙 준비 패널(플레이 화면을 가리지 않도록 화면 전체를 덮지 않는다).
+        // 하단은 StageHud의 이동 버튼·퀵슬롯·실린더가 차지하므로, 비어 있는 가운데에 띄운다.
         var winGO = new GameObject("ReadyPanel", typeof(RectTransform));
         winGO.transform.SetParent(safe, false);
         var winImg = winGO.AddComponent<Image>();
         winImg.color = new Color(0.08f, 0.10f, 0.14f, 0.92f);
         var win = winGO.GetComponent<RectTransform>();
-        win.anchorMin = new Vector2(0.5f, 0f);
-        win.anchorMax = new Vector2(0.5f, 0f);
-        win.pivot = new Vector2(0.5f, 0f);
-        win.anchoredPosition = new Vector2(0f, 40f);
+        win.anchorMin = new Vector2(0.5f, 0.5f);
+        win.anchorMax = new Vector2(0.5f, 0.5f);
+        win.pivot = new Vector2(0.5f, 0.5f);
+        win.anchoredPosition = Vector2.zero;
         win.sizeDelta = new Vector2(520f, 150f);
         _panel = win;
 

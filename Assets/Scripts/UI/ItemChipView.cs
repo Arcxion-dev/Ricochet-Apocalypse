@@ -3,7 +3,7 @@ using UnityEngine.UI;
 using TMPro;
 
 /// <summary>
-/// HUD 좌하단 "사용 아이템" 슬롯 한 칸(프리팹). <see cref="HudController"/>가 보유 사용 아이템 수만큼
+/// "사용 아이템" 슬롯 한 칸(프리팹). 소유 화면이 보유 사용 아이템 수만큼
 /// 인스턴스화하고 <see cref="Set"/>로 채운다. 현재 선택된 아이템은 시안 강조.
 /// </summary>
 public class ItemChipView : MonoBehaviour

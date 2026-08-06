@@ -214,10 +214,7 @@ public class InventoryUI : MonoBehaviour
 
         if (_partsContainer != null && _partChipPrefab != null)
         {
-            ClearChildren(_partsContainer);
-            if (has)
-                foreach (var p in _shooter.EquippedParts)
-                    if (p != null) { var c = Instantiate(_partChipPrefab, _partsContainer); c.Set(p.DisplayName); }
+            RefreshParts(has);
             UIAnim.StaggerIn(_partsContainer, UIAnim.StaggerStep, UIAnim.Normal, 0.85f);
         }
         if (_ammoContainer != null && _ammoRowPrefab != null)
@@ -234,6 +231,51 @@ public class InventoryUI : MonoBehaviour
             }
             UIAnim.StaggerIn(_ammoContainer);
         }
+    }
+
+    /// <summary>
+    /// 장착 파츠 칩을 "조절 가능한" 상태로 다시 만든다.
+    ///
+    /// - 파츠 칩: 탭하면 효과가 ON/OFF로 뒤집힌다(장착 목록에서 빼지는 않는다).
+    /// - 마지막 칩(강선): 탭할 때마다 한 단계 강화하고 현재 대미지 배율을 함께 보여준다.
+    ///
+    /// 별도 패널을 만들지 않고 기존 파츠 그리드를 그대로 쓴다 — 칸이 15개까지 들어가서
+    /// 장착 파츠(최대 5종) + 강선 칩을 담기에 충분하다.
+    /// </summary>
+    private void RefreshParts(bool hasShooter)
+    {
+        ClearChildren(_partsContainer);
+        if (!hasShooter) return;
+
+        foreach (var part in _shooter.EquippedParts)
+        {
+            if (part == null) continue;
+            var captured = part;
+            var chip = Instantiate(_partChipPrefab, _partsContainer);
+            bool active = _shooter.IsPartActive(captured);
+            chip.Bind(captured.DisplayName, active, UITheme.Arcane, () =>
+            {
+                _shooter.TogglePart(captured);
+                RefreshLoadout();   // 라벨/색을 즉시 되그린다.
+            });
+        }
+
+        // 강선 강화 칩. 위쪽 파츠 칩(강선 ON/OFF)과 구분되도록 "강화"라고 못박고,
+        // 칩 폭이 좁아 글자가 잘리므로 라벨은 짧게 유지한다.
+        // 강선 파츠가 없으면 강화할 수 없으므로 꺼진 칩으로 안내만 한다.
+        bool canUpgrade = HasRifling();
+        var tune = Instantiate(_partChipPrefab, _partsContainer);
+        tune.Bind(canUpgrade ? $"⬆ 강화 +{_shooter.RiflingLevel}" : "⬆ 강선 없음",
+                  canUpgrade, UITheme.Gold,
+                  canUpgrade ? (System.Action)(() => { _shooter.UpgradeRifling(); RefreshLoadout(); }) : null);
+    }
+
+    /// <summary>강선 파츠가 장착되어 있는지(강화도 0이어도 장착돼 있을 수 있다).</summary>
+    private bool HasRifling()
+    {
+        foreach (var part in _shooter.EquippedParts)
+            if (part is RiflingPartSO) return true;
+        return false;
     }
 
     private void EnsureEventSystem()

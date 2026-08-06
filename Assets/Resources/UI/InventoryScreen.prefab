@@ -2022,7 +2022,8 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "\uC7A5\uCC29 \uD30C\uCE20"
+  m_text: "\uC7A5\uCC29 \uD30C\uCE20  \xB7  \uD0ED\uD574\uC11C ON/OFF \xB7 \uAC15\uC120
+    \uD0ED\uD574\uC11C \uAC15\uD654"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 241bfbc897449a64eb0e76b7fe8e33b8, type: 2}
   m_sharedMaterial: {fileID: -1224950035838641914, guid: 241bfbc897449a64eb0e76b7fe8e33b8, type: 2}

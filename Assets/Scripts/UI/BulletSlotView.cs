@@ -4,7 +4,7 @@ using UnityEngine.UI;
 using TMPro;
 
 /// <summary>
-/// HUD 좌하단 탄환 목록의 한 행(프리팹). <see cref="HudController"/>가 선택 가능한 탄환 수만큼
+/// 인벤토리 로드아웃의 탄환 목록 한 행(프리팹). <see cref="InventoryUI"/>가 선택 가능한 탄환 수만큼
 /// 인스턴스화하고 <see cref="Set"/>로 채운다. 선택된 슬롯은 시안 강조 + ▶ 프리픽스.
 /// </summary>
 public class BulletSlotView : MonoBehaviour

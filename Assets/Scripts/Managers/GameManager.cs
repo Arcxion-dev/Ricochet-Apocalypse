@@ -68,6 +68,8 @@ public class GameManager : MonoBehaviour
     public int ShotsFired => _shotsFired;
     public int TotalKills => _totalKills;
     public int BestCombo => _bestCombo;
+    /// <summary>지금 날아가는(마지막으로 쏜) 탄환이 여기까지 처치한 수. HUD의 실시간 콤보 표시용.</summary>
+    public int CurrentCombo => _currentBulletKills;
     public int AliveEnemyCount => _aliveEnemies.Count;
 
     private void Awake()
