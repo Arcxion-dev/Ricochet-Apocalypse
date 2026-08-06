@@ -25,6 +25,13 @@ public class EnemyAIModule : MonoBehaviour, ISuppressible
     private SpeedModule speedModule;
     private float repathTimer;
 
+    [Header("낑김 방지")]
+    [Tooltip("경로는 있으나 이 시간(초) 이상 사실상 정지해 있으면 다음 경로 코너로 살짝 워프해 빠져나온다(좁은 코너 스낵 방지).")]
+    [SerializeField] private float stuckNudgeAfter = 0.35f;
+    [Tooltip("워프 한 번에 이동할 거리.")]
+    [SerializeField] private float stuckNudgeStep = 0.25f;
+    private float stuckTimer;
+
     /// <summary>"Civilian" 태그가 붙은 대상은 스테이지 내내 제자리에 가만히 있고 절대 추격하지 않는다.</summary>
     private bool isCivilian;
 
@@ -69,6 +76,10 @@ public class EnemyAIModule : MonoBehaviour, ISuppressible
         agent.updateRotation = false; // 2D 스프라이트가 3D 회전을 따라가지 않도록
         agent.updateUpAxis = false;   // NavMeshPlus로 XY 평면에 구운 메시 기준
         agent.stoppingDistance = stoppingDistance;
+        // 좁은 통로(1칸 지그재그·벽 사이 등)에서 지역 회피(HighQuality)가 서로/네비메시 경계를
+        // 과도하게 피하며 에이전트가 낑겨 멈추는 문제를 막는다. 회피를 끄면 적끼리 겹칠 수 있으나
+        // 이동은 여전히 navmesh 경로를 따르므로 벽은 그대로 준수한다(관통 아님).
+        agent.obstacleAvoidanceType = ObstacleAvoidanceType.NoObstacleAvoidance;
 
         if (isCivilian)
         {
@@ -139,6 +150,33 @@ public class EnemyAIModule : MonoBehaviour, ISuppressible
             if (NavMesh.SamplePosition(dest, out var hit, navMeshSampleRadius, NavMesh.AllAreas))
                 dest = hit.position;
             agent.SetDestination(dest);
+        }
+
+        NudgeIfStuck();
+    }
+
+    /// <summary>
+    /// 경로(hasPath)는 있는데 목적지가 아직 멀리 있음에도 사실상 정지 상태로 낑겨 있으면,
+    /// 다음 경로 코너(steeringTarget) 쪽으로 조금씩 Warp 해 좁은 코너를 빠져나오게 한다.
+    /// (지역 회피를 꺼도 1칸 통로/코너에서 남는 기하학적 스낵을 일반적으로 해소한다.)
+    /// </summary>
+    private void NudgeIfStuck()
+    {
+        bool pathed = agent.hasPath && !agent.pathPending && agent.remainingDistance > 1.0f;
+        bool crawling = agent.velocity.magnitude < agent.speed * 0.25f;
+        if (pathed && crawling)
+        {
+            stuckTimer += Time.deltaTime;
+            if (stuckTimer >= stuckNudgeAfter)
+            {
+                Vector3 nudged = Vector3.MoveTowards(transform.position, agent.steeringTarget, stuckNudgeStep);
+                agent.Warp(nudged);
+                stuckTimer = 0f;
+            }
+        }
+        else
+        {
+            stuckTimer = 0f;
         }
     }
 
