@@ -47,6 +47,36 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/SlideMaps/Hard1.unity
     guid: 83c1e99c1366aa14c88c87abd4c204c4
+  - enabled: 1
+    path: Assets/Scenes/SlideMaps/Slide07.unity
+    guid: 1753004e621f9d240aadd04af43b7847
+  - enabled: 1
+    path: Assets/Scenes/SlideMaps/Slide08.unity
+    guid: e01baa4d4e4f3114db4d6d343d7df408
+  - enabled: 1
+    path: Assets/Scenes/SlideMaps/Slide09.unity
+    guid: fea17d5c649092c4b8e692ea0f6da5e1
+  - enabled: 1
+    path: Assets/Scenes/SlideMaps/Slide10.unity
+    guid: f24cb782dbed6be48966162acfa779bf
+  - enabled: 1
+    path: Assets/Scenes/SlideMaps/Slide11.unity
+    guid: ad131a9837430ae4a84947c3b94143c7
+  - enabled: 1
+    path: Assets/Scenes/SlideMaps/Slide12.unity
+    guid: be2e79aa4bc21fc4095fbef42ae42420
+  - enabled: 1
+    path: Assets/Scenes/SlideMaps/Slide13.unity
+    guid: b2c66ed7e663acd408b1a1be303c1918
+  - enabled: 1
+    path: Assets/Scenes/SlideMaps/Slide14.unity
+    guid: d6088eb4889ce9d43bd9850a402bb9fa
+  - enabled: 1
+    path: Assets/Scenes/SlideMaps/Slide15.unity
+    guid: b200cbb1b84b94745b4afbc227bb9f7b
+  - enabled: 1
+    path: Assets/Scenes/SlideMaps/Slide16.unity
+    guid: d04df4eec1ca55b4b886f0d0aac0e6eb
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   m_UseUCBPForAssetBundles: 0
