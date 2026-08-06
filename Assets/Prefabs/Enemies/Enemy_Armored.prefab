@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5389922997125808919}
   - component: {fileID: 5382575559252982224}
+  - component: {fileID: 4187543243921162176}
   m_Layer: 0
   m_Name: Visual
   m_TagString: Untagged
@@ -91,6 +92,28 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
+--- !u!95 &4187543243921162176
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4398793868443674370}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 22100000, guid: c760b0b00f3e681479ebe2f6e43314ef, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
 --- !u!1 &8611839830574090688
 GameObject:
   m_ObjectHideFlags: 0
@@ -256,6 +279,9 @@ MonoBehaviour:
   target: {fileID: 0}
   repathInterval: 0.3
   stoppingDistance: 0.1
+  navMeshSampleRadius: 2
+  stuckNudgeAfter: 0.35
+  stuckNudgeStep: 0.25
 --- !u!114 &5748296364916498397
 MonoBehaviour:
   m_ObjectHideFlags: 0
