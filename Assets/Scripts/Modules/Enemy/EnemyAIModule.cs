@@ -25,6 +25,11 @@ public class EnemyAIModule : MonoBehaviour, ISuppressible
     private SpeedModule speedModule;
     private float repathTimer;
 
+    // 이동 애니메이션 전환용: 자식 "Visual"의 Animator에 IsMoving(bool)을 매 프레임 반영해 idle↔move 전환.
+    private Animator animator;
+    private static readonly int MovingHash = Animator.StringToHash("IsMoving");
+    const float moveThresholdSqr = 0.0025f; // 이동 판정 속도^2 (≈0.05 m/s 이상이면 이동)
+
     [Header("낑김 방지")]
     [Tooltip("경로는 있으나 이 시간(초) 이상 사실상 정지해 있으면 다음 경로 코너로 살짝 워프해 빠져나온다(좁은 코너 스낵 방지).")]
     [SerializeField] private float stuckNudgeAfter = 0.35f;
@@ -81,6 +86,9 @@ public class EnemyAIModule : MonoBehaviour, ISuppressible
         // 이동은 여전히 navmesh 경로를 따르므로 벽은 그대로 준수한다(관통 아님).
         agent.obstacleAvoidanceType = ObstacleAvoidanceType.NoObstacleAvoidance;
 
+        // 이동 애니메이션은 자식 "Visual"의 Animator가 담당(클립이 빈 path로 SpriteRenderer 애니).
+        animator = GetComponentInChildren<Animator>();
+
         if (isCivilian)
         {
             // 민간인: 목적지를 절대 설정하지 않아 제자리 고정. 에이전트도 멈춰둔다(navmesh 위일 때만 안전하게).
@@ -106,6 +114,10 @@ public class EnemyAIModule : MonoBehaviour, ISuppressible
         if (isCivilian) return; // 민간인은 절대 추격하지 않는다(제자리 고정).
 
         if (agent == null || !agent.isOnNavMesh) return;
+
+        // 실제 이동 속도로 걷기/대기 애니메이션 전환(컨트롤러의 IsMoving bool).
+        if (animator != null)
+            animator.SetBool(MovingHash, agent.velocity.sqrMagnitude > moveThresholdSqr);
 
         // 이동 저지(섬광탄/저지탄): 타이머를 깎고, 완전 저지면 이 프레임 이동을 멈춘다.
         bool fullyStopped = false;
