@@ -13,4 +13,5 @@ MonoBehaviour:
   m_Name: Part_Grip
   m_EditorClassIdentifier: Assembly-CSharp::GripPartSO
   partName: "\uC190\uC7A1\uC774"
+  icon: {fileID: 1911818593, guid: 16ebbbd406b40a84e9529b359ce427ed, type: 3}
   swayMultiplier: 0.5

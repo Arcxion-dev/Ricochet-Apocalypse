@@ -15,7 +15,7 @@ MonoBehaviour:
   id: item_grenade
   displayName: "\uC218\uB958\uD0C4"
   category: 0
-  icon: {fileID: 0}
+  icon: {fileID: -1890999322, guid: ad96b7be4e684794e9e8addbe120ff2e, type: 3}
   maxStack: 9
   description: 
   shopPrice: 40

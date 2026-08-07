@@ -173,11 +173,31 @@ public class WeaponPartsUI : MonoBehaviour
 
         var button = AddButton(_contentRoot, $"[{state}]  {part.DisplayName}",
                                active ? onColor : offColor);
+        AddIcon(button.transform, part.icon);
         button.onClick.AddListener(() =>
         {
             _shooter.TogglePart(part);
             Refresh(); // 라벨/색을 즉시 갱신.
         });
+    }
+
+    /// <summary>버튼 왼쪽에 파츠 아이콘을 얹는다(스프라이트가 없으면 아무것도 안 한다).</summary>
+    private void AddIcon(Transform buttonTransform, Sprite icon)
+    {
+        if (icon == null) return;
+
+        var go = new GameObject("Icon", typeof(RectTransform));
+        go.transform.SetParent(buttonTransform, false);
+        var img = go.AddComponent<Image>();
+        img.sprite = icon;
+        img.preserveAspect = true;
+
+        var rt = go.GetComponent<RectTransform>();
+        rt.anchorMin = new Vector2(0f, 0.5f);
+        rt.anchorMax = new Vector2(0f, 0.5f);
+        rt.pivot = new Vector2(0f, 0.5f);
+        rt.sizeDelta = new Vector2(32f, 32f);
+        rt.anchoredPosition = new Vector2(6f, 0f);
     }
 
     private void SetVisible(bool visible)

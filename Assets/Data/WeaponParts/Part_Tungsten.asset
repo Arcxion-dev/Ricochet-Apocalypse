@@ -13,3 +13,4 @@ MonoBehaviour:
   m_Name: Part_Tungsten
   m_EditorClassIdentifier: Assembly-CSharp::TungstenPartSO
   partName: "\uD145\uC2A4\uD150 \uD0C4\uD658"
+  icon: {fileID: -662274384, guid: 78681ce8f41c41a4b9ceb98c0d9fcb5a, type: 3}

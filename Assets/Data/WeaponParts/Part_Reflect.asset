@@ -13,5 +13,6 @@ MonoBehaviour:
   m_Name: Part_Reflect
   m_EditorClassIdentifier: Assembly-CSharp::ReflectionSightPartSO
   partName: "\uBC18\uC0AC \uC608\uCE21\uAE30"
+  icon: {fileID: 1394822952, guid: 0d370a75ca0f46e44a437673c67d12dc, type: 3}
   bounces: 2
   extraRange: 6

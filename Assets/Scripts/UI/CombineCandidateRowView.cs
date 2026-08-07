@@ -27,7 +27,12 @@ public class CombineCandidateRowView : MonoBehaviour
         Color col = UITheme.AbilityColor(tag);
 
         if (_name != null) _name.text = def.ResolvedName;
-        if (_icon != null) _icon.color = col;
+        if (_icon != null)
+        {
+            // 실제 아이콘이 있으면 원본 색, 없으면 기존처럼 능력색 스와치.
+            _icon.sprite = def.icon;
+            _icon.color = def.icon != null ? Color.white : col;
+        }
         if (_tag != null) { _tag.text = tag; _tag.color = col; }
         if (_tagBg != null) _tagBg.color = col.A(0.18f);
         if (_owned != null) _owned.text = "보유 " + owned;

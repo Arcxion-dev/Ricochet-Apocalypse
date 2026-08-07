@@ -257,7 +257,7 @@ public class InventoryUI : MonoBehaviour
             {
                 _shooter.TogglePart(captured);
                 RefreshLoadout();   // 라벨/색을 즉시 되그린다.
-            });
+            }, captured.icon);
         }
 
         // 강선 강화 칩. 위쪽 파츠 칩(강선 ON/OFF)과 구분되도록 "강화"라고 못박고,

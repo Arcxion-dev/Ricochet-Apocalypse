@@ -30,7 +30,10 @@ public class CombineSlotView : MonoBehaviour
         if (_icon != null)
         {
             _icon.enabled = true;
-            UIAnim.ColorTo(_icon, col);
+            // 실제 아이콘이 있으면 원본 색으로 보여주고, 없으면 기존처럼 능력색 스와치로.
+            _icon.sprite = def.icon;
+            if (def.icon != null) UIAnim.ColorTo(_icon, Color.white);
+            else UIAnim.ColorTo(_icon, col);
             if (wasEmpty) UIAnim.PopIn(_icon.rectTransform);
         }
         if (_name != null) { _name.text = def.ResolvedName; UIAnim.ColorTo(_name, UITheme.TextHi); }

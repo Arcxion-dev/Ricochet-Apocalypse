@@ -15,7 +15,7 @@ MonoBehaviour:
   id: bullet_split
   displayName: "\uBD84\uC5F4\uD0C4"
   category: 2
-  icon: {fileID: 0}
+  icon: {fileID: -815151285, guid: 194c80f19b425834eb818f02a7e9c438, type: 3}
   maxStack: 1
   description: 
   shopPrice: 80

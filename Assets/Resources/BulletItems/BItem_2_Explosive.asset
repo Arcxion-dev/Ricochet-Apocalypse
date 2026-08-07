@@ -15,7 +15,7 @@ MonoBehaviour:
   id: bullet_explosive
   displayName: "\uD3ED\uBC1C\uD0C4"
   category: 2
-  icon: {fileID: 0}
+  icon: {fileID: 1539786679, guid: bcdfd8756ecb74747bf06f172d2aeecb, type: 3}
   maxStack: 1
   description: 
   shopPrice: 80

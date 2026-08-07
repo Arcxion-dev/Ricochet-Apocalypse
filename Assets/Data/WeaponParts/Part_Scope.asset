@@ -13,4 +13,5 @@ MonoBehaviour:
   m_Name: Part_Scope
   m_EditorClassIdentifier: Assembly-CSharp::ScopePartSO
   partName: "\uC870\uC900\uACBD"
+  icon: {fileID: 1312849823, guid: 2221f5db4cb0769489d5289059996224, type: 3}
   headshotBonus: 0.2

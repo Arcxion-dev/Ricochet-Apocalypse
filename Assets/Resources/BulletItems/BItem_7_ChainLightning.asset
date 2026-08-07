@@ -15,7 +15,7 @@ MonoBehaviour:
   id: bullet_chain
   displayName: "\uC804\uB825\uD0C4"
   category: 2
-  icon: {fileID: 0}
+  icon: {fileID: 720995098, guid: 6af49e9bed5fbc34aa24cf44fa4f7421, type: 3}
   maxStack: 1
   description: 
   shopPrice: 80

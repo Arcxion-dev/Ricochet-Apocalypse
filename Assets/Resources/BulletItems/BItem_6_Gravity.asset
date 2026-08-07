@@ -15,7 +15,7 @@ MonoBehaviour:
   id: bullet_gravity
   displayName: "\uC911\uB825\uC790\uD0C4"
   category: 2
-  icon: {fileID: 0}
+  icon: {fileID: -766050058, guid: 44821c83a9051fa4dbef9a42984afdca, type: 3}
   maxStack: 1
   description: 
   shopPrice: 80

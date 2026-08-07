@@ -13,4 +13,5 @@ MonoBehaviour:
   m_Name: Part_Laser
   m_EditorClassIdentifier: Assembly-CSharp::LaserSightPartSO
   partName: "\uB808\uC774\uC800"
+  icon: {fileID: -657957510, guid: 74dc1a621ac5d6147af05e1fa3f20e48, type: 3}
   range: 8

@@ -15,7 +15,7 @@ MonoBehaviour:
   id: bullet_frost
   displayName: "\uB0C9\uAE30\uD0C4"
   category: 2
-  icon: {fileID: 0}
+  icon: {fileID: 1642884558, guid: b59dabdbf2292d5449cee94f1a0c0bb4, type: 3}
   maxStack: 1
   description: 
   shopPrice: 80

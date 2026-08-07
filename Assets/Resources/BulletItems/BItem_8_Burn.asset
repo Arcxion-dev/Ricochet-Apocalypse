@@ -15,7 +15,7 @@ MonoBehaviour:
   id: bullet_burn
   displayName: "\uD654\uC0C1\uD0C4"
   category: 2
-  icon: {fileID: 0}
+  icon: {fileID: -1469343190, guid: b6e33b8d154448c4c9a317a0821e0c8a, type: 3}
   maxStack: 1
   description: 
   shopPrice: 80

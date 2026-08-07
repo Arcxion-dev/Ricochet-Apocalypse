@@ -66,6 +66,9 @@ public abstract class WeaponPartSO : ScriptableObject
     [Tooltip("파츠 표시 이름(디버그/HUD용). 비워도 동작에는 영향 없음.")]
     public string partName;
 
+    [Tooltip("UI 아이콘(선택). 인벤토리 로드아웃/파츠 패널에서 표시.")]
+    public Sprite icon;
+
     /// <summary>UI 표시용 이름. partName이 비어 있으면 에셋 이름을 사용한다. (강선 등은 레벨을 붙여 override)</summary>
     public virtual string DisplayName => string.IsNullOrEmpty(partName) ? name : partName;
 

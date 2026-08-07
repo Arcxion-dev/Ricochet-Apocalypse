@@ -15,7 +15,7 @@ MonoBehaviour:
   id: bullet_ap
   displayName: "\uCCA0\uAC11\uD0C4"
   category: 2
-  icon: {fileID: 0}
+  icon: {fileID: -728337880, guid: 1875cc81d0493374f82d772dc4f7ef79, type: 3}
   maxStack: 1
   description: 
   shopPrice: 80

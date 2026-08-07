@@ -15,16 +15,28 @@ public class PartChipView : MonoBehaviour, IPointerClickHandler
 {
     [SerializeField] private Image _dot;
     [SerializeField] private TMP_Text _name;
+    [Tooltip("파츠 아이콘(선택). 비워두거나 스프라이트가 없으면 숨긴다.")]
+    [SerializeField] private Image _icon;
 
     private Action _onClick;
     private Image _background;
 
     private void Awake() => _background = GetComponent<Image>();
 
-    /// <summary>이름만 보여주는 기본 표시(비대화형).</summary>
-    public void Set(string partName)
+    /// <summary>파츠 아이콘 스프라이트를 반영한다(없으면 숨김).</summary>
+    private void SetIcon(Sprite icon)
+    {
+        if (_icon == null) return;
+        _icon.sprite = icon;
+        _icon.enabled = icon != null;
+        if (icon != null) _icon.color = Color.white;
+    }
+
+    /// <summary>이름(+아이콘)만 보여주는 기본 표시(비대화형).</summary>
+    public void Set(string partName, Sprite icon = null)
     {
         if (_name != null) _name.text = partName;
+        SetIcon(icon);
         _onClick = null;
     }
 
@@ -32,7 +44,7 @@ public class PartChipView : MonoBehaviour, IPointerClickHandler
     /// 탭 가능한 칩으로 만든다.
     /// <paramref name="active"/>가 false면 꺼진 상태(흐리게 + 붉은 점)로 보여준다.
     /// </summary>
-    public void Bind(string label, bool active, Color accent, Action onClick)
+    public void Bind(string label, bool active, Color accent, Action onClick, Sprite icon = null)
     {
         if (_name != null)
         {
@@ -43,6 +55,7 @@ public class PartChipView : MonoBehaviour, IPointerClickHandler
         if (_background != null)
             _background.color = active ? UITheme.PanelRaised.A(0.95f) : UITheme.PanelBg.A(0.7f);
 
+        SetIcon(icon);
         _onClick = onClick;
     }
 

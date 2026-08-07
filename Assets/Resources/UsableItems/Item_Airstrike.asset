@@ -15,7 +15,7 @@ MonoBehaviour:
   id: item_airstrike
   displayName: "\uD3ED\uACA9\uC9C0\uC6D0"
   category: 0
-  icon: {fileID: 0}
+  icon: {fileID: -1554788226, guid: a364c717dc651cc43b2a40cd12379323, type: 3}
   maxStack: 9
   description: 
   shopPrice: 60

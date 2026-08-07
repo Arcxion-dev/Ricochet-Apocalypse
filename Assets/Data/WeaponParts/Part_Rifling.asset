@@ -13,5 +13,6 @@ MonoBehaviour:
   m_Name: Part_Rifling
   m_EditorClassIdentifier: Assembly-CSharp::RiflingPartSO
   partName: "\uAC15\uC120"
+  icon: {fileID: 355858382, guid: f2e0624192ad283488bebba84854427e, type: 3}
   upgradeLevel: 0
   damagePerLevel: 0.25

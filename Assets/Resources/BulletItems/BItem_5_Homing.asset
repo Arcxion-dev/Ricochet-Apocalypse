@@ -15,7 +15,7 @@ MonoBehaviour:
   id: bullet_homing
   displayName: "\uC720\uB3C4\uD0C4"
   category: 2
-  icon: {fileID: 0}
+  icon: {fileID: -884086696, guid: 490cdeeb2ea73e544a306991aacac4e4, type: 3}
   maxStack: 1
   description: 
   shopPrice: 80

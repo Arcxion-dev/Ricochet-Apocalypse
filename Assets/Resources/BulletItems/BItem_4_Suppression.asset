@@ -15,7 +15,7 @@ MonoBehaviour:
   id: bullet_suppression
   displayName: "\uC800\uC9C0\uD0C4"
   category: 2
-  icon: {fileID: 0}
+  icon: {fileID: -1207016542, guid: c440ba1b02ed29f45bf92c7f0090a95e, type: 3}
   maxStack: 1
   description: 
   shopPrice: 80

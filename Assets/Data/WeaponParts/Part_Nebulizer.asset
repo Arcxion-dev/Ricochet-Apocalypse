@@ -13,4 +13,5 @@ MonoBehaviour:
   m_Name: Part_Nebulizer
   m_EditorClassIdentifier: Assembly-CSharp::NebulizerPartSO
   partName: "\uB124\uBDF8\uB77C\uC774\uC800"
+  icon: {fileID: -1556050711, guid: 6e9da4b71b023ce4492158fa3f8f69ed, type: 3}
   slowScaleMultiplier: 0.6
