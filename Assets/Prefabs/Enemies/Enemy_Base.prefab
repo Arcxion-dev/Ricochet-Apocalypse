@@ -27,8 +27,8 @@ Transform:
   m_GameObject: {fileID: 5941921385575660176}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.04, y: 0.04, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 3.1111114, y: 3.1111114, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 8255028408190060473}
@@ -80,9 +80,9 @@ SpriteRenderer:
   m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 0
+  m_SortingOrder: 5
   m_MaskInteraction: 0
-  m_Sprite: {fileID: -3203560292267993224, guid: 8a3846c024f18dc4a85a7c1ace8d8520, type: 3}
+  m_Sprite: {fileID: 1510541335, guid: c35c95afa84706d42a9522e4ca94de51, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -198,7 +198,7 @@ BoxCollider2D:
     drawMode: 0
     adaptiveTiling: 0
   m_AutoTiling: 0
-  m_Size: {x: 1, y: 1}
+  m_Size: {x: 1.4, y: 1.4}
   m_EdgeRadius: 0
 --- !u!50 &7183415537079344415
 Rigidbody2D:
@@ -279,6 +279,8 @@ MonoBehaviour:
   repathInterval: 0.3
   stoppingDistance: 0.1
   navMeshSampleRadius: 2
+  stuckNudgeAfter: 0.35
+  stuckNudgeStep: 0.25
 --- !u!114 &6465314946930252681
 MonoBehaviour:
   m_ObjectHideFlags: 0

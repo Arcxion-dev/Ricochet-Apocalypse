@@ -39,6 +39,11 @@ public class PlayerMovement : MonoBehaviour
     private Collider2D _collider;
     private ContactFilter2D _blockingFilter;
 
+    // Visual 자식의 Animator에 이동 상태를 반영한다(IsMoving=이동 여부, MoveX=좌/우 방향).
+    private Animator _animator;
+    private static readonly int MovingHash = Animator.StringToHash("IsMoving");
+    private static readonly int MoveXHash = Animator.StringToHash("MoveX");
+
     /// <summary>
     /// 화면 위 좌/우 버튼이 넣어주는 가로 입력(-1~1). HUD가 매 프레임 갱신하고 손을 떼면 0으로 되돌린다.
     /// 키보드 WASD와 합쳐지므로 둘 중 아무거나 써도 된다.
@@ -67,6 +72,8 @@ public class PlayerMovement : MonoBehaviour
 
         _blockingFilter = CollideAndSlide2D.CreateFilter(CollideAndSlide2D.ResolveDefaultWallMask(_blockingLayers));
 
+        _animator = GetComponentInChildren<Animator>();
+
         if (_collider == null)
         {
             Debug.LogWarning($"[PlayerMovement] {name}에 Collider2D가 없어 벽 충돌 처리를 건너뜁니다.", this);
@@ -92,7 +99,14 @@ public class PlayerMovement : MonoBehaviour
         position = CollideAndSlide2D.Depenetrate(_collider, position, _blockingFilter, _skinWidth);
 
         Vector2 input = ReadInput();
-        if (input != Vector2.zero)
+        bool moving = input.sqrMagnitude > 0.0001f;
+        if (_animator != null)
+        {
+            _animator.SetBool(MovingHash, moving);
+            // 이동 중일 때만 좌/우 방향을 갱신해 멈춰도 마지막 향을 유지한다.
+            if (moving) _animator.SetFloat(MoveXHash, input.x);
+        }
+        if (moving)
         {
             Vector2 delta = input * (_moveSpeed * Time.fixedDeltaTime);
             position = CollideAndSlide2D.Move(_collider, position, delta, _blockingFilter, _skinWidth);

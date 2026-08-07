@@ -32,6 +32,8 @@ public class StageClearUI : MonoBehaviour
     [SerializeField] private TMP_Text _comboValue;
     [SerializeField] private TMP_Text _shotsValue;
     [SerializeField] private TMP_Text _goldValue;
+    [Tooltip("골드 배너 하단의 내역 라벨(GoldBanner/Break). 콤보로 얻은 골드를 표시한다.")]
+    [SerializeField] private TMP_Text _goldBreakdown;
 
     [Header("드랍")]
     [SerializeField] private Transform _dropsContainer;
@@ -111,6 +113,14 @@ public class StageClearUI : MonoBehaviour
             _goldValue.text = "+ 0 G";
             var count = UIAnim.CountTo(_goldValue, 0, result.Reward, "+ ", " G", "N0", 0.7f);
             if (count != null) count.SetDelay(0.38f).OnComplete(() => UIAnim.Punch(_goldValue.rectTransform, 0.2f, 0.35f));
+        }
+
+        // 콤보로 인해 증가한 골드를 명시한다(콤보가 없으면 일반 합산 안내).
+        if (_goldBreakdown != null)
+        {
+            _goldBreakdown.text = result.ComboBonus > 0
+                ? $"콤보 ×{result.Combo} 보너스  + {result.ComboBonus:N0} G"
+                : "클리어 보상 · 처치 · 콤보 · 퍼펙트 합산";
         }
 
         if (_perfectPill != null && _perfectPill.activeSelf)

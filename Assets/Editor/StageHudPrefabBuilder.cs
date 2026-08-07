@@ -200,7 +200,9 @@ public static class StageHudPrefabBuilder
         Place(panel, new Vector2(0f, 1f), new Vector2(0f, 1f), new Vector2(Margin, -174f), new Vector2(330f, 84f));
         Decorate(panel, UITheme.Gold);
 
-        var coin = Img("Coin", panel, S("Icon_Coin"), UITheme.Gold);
+        // 실제 코인 스프라이트를 우선 사용하고, 없으면 생성된 Icon_Coin으로 폴백한다.
+        var coinSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Resources/실제 사용할 리소스/Coin.asset") ?? S("Icon_Coin");
+        var coin = Img("Coin", panel, coinSprite, Color.white);
         Place(coin.rectTransform, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(22f, 0f), new Vector2(46f, 46f));
 
         var value = Text("Value", panel, "0", 32f, UITheme.GoldText, UITheme.Bold, TextAlignmentOptions.Left);

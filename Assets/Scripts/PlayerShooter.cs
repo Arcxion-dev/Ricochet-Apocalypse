@@ -93,6 +93,11 @@ public class PlayerShooter : MonoBehaviour
     /// <summary>조준 단계. Free=마우스 추종, Breath=조준 고정+호흡 흔들림(격발 대기).</summary>
     private enum AimPhase { Free, Breath }
     private AimPhase _phase = AimPhase.Free;
+
+    // Visual 자식의 Animator를 캐시해 조준(IsAiming)/격발(Fire) 상태를 애니메이터에 반영한다.
+    private Animator _visualAnimator;
+    private static readonly int AimingHash = Animator.StringToHash("IsAiming");
+    private static readonly int FireHash = Animator.StringToHash("Fire");
     private Vector2 _lockedDir = Vector2.right; // 호흡 중 흔들림의 기준 방향
     private float _breathTime;                  // 호흡 누적 시간(속도 배율 반영)
     private float _breathSeed;                  // Perlin noise 시드(격발마다 달라짐)
@@ -175,6 +180,8 @@ public class PlayerShooter : MonoBehaviour
         if (_cameraPan == null) _cameraPan = FindObjectOfType<CameraPanController>();
         if (_effects == null) _effects = GetComponent<ChargeShotEffects>();
         if (_effects == null) _effects = FindObjectOfType<ChargeShotEffects>();
+
+        _visualAnimator = GetComponentInChildren<Animator>();
 
         // 가이드라인 반사 예측이 실제 탄환과 같은 벽 레이어를 쓰도록 탄환 프리팹에서 가져온다.
         if (_wallLayerMask.value == 0 && _bulletPrefab != null)
@@ -344,6 +351,7 @@ public class PlayerShooter : MonoBehaviour
         _breathTime = 0f;
         _breathSeed = Random.value * 100f;
         _phase = AimPhase.Breath;
+        if (_visualAnimator != null) _visualAnimator.SetBool(AimingHash, true);
 
         // 연출(확대)이 카메라 줌과 싸우지 않도록, 연출이 있으면 호흡 중 팬/줌을 잠근다.
         if ((_lockCameraDuringBreath || _effects != null) && _cameraPan != null)
@@ -357,6 +365,7 @@ public class PlayerShooter : MonoBehaviour
     private void ExitBreath()
     {
         _phase = AimPhase.Free;
+        if (_visualAnimator != null) _visualAnimator.SetBool(AimingHash, false);
 
         if ((_lockCameraDuringBreath || _effects != null) && _cameraPan != null)
             _cameraPan.ControlsEnabled = true; // 카메라 조작 복원
@@ -565,6 +574,7 @@ public class PlayerShooter : MonoBehaviour
         }
 
         _flashTimer = _laserFlashTime; // 발사 방향 강조
+        if (_visualAnimator != null) _visualAnimator.SetTrigger(FireHash);
         GameManager.Instance?.RegisterShot();
 
         FireBullet(data, dir);

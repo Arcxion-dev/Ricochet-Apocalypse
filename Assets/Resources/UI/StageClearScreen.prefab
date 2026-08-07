@@ -1747,6 +1747,7 @@ MonoBehaviour:
   _comboValue: {fileID: 3621486839256429038}
   _shotsValue: {fileID: 8232665050599760542}
   _goldValue: {fileID: 6009700975452616533}
+  _goldBreakdown: {fileID: 4561164308263009916}
   _dropsContainer: {fileID: 1599272738483878590}
   _dropsEmptyLabel: {fileID: 7468764266943360519}
   _dropCardPrefab: {fileID: 6935451053249454909, guid: 994b157b7b638514cbbddbb26899f613, type: 3}

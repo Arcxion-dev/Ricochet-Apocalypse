@@ -116,6 +116,8 @@ public class EnemyAIModule : MonoBehaviour, ISuppressible
         if (agent == null || !agent.isOnNavMesh) return;
 
         // 실제 이동 속도로 걷기/대기 애니메이션 전환(컨트롤러의 IsMoving bool).
+        // EnemyVisual이 Awake 이후에 Animator를 붙일 수 있으므로 없으면 지연 재획득한다.
+        if (animator == null) animator = GetComponentInChildren<Animator>();
         if (animator != null)
             animator.SetBool(MovingHash, agent.velocity.sqrMagnitude > moveThresholdSqr);
 

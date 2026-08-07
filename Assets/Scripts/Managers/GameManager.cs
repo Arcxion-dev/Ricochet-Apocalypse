@@ -10,7 +10,7 @@ using UnityEngine.SceneManagement;
 /// - 콤보/퍼펙트 스코어링을 위해 발사 수(RegisterShot)와 처치 수(ReportEnemyKilled)를 추적한다.
 ///   콤보 = "한 발의 탄환으로 처치한 최대 몬스터 수", 퍼펙트 = "단 1발로 스테이지 클리어".
 /// - 실패 판정(플레이어 사망)은 OnPlayerDeath로 들어온다.
-///   민간인 피격(OnCivilianHit)은 실패가 아니라 보상 재화 차감 + 콤보 초기화 페널티로 처리한다.
+///   보물상자(구 민간인) 파괴(OnTreasureChestHit)는 추가 보상 골드를 지급한다.
 ///
 /// 담당 범위 밖(적 AI/실제 데미지, 총알 실제 발사, 상점/재화, UI)은 public API/로그 스텁으로만 열어둔다.
 /// Enemy.cs / BulletController.cs 연결은 각 담당 팀원과 협의 후 붙인다. 그전까지는 아래 ContextMenu
@@ -30,9 +30,9 @@ public class GameManager : MonoBehaviour
     [SerializeField] private int _rewardPerCombo = 25;
     [SerializeField] private int _perfectBonus = 200;
 
-    [Header("민간인 피격 페널티")]
-    [Tooltip("민간인 피격 시 즉시 실패하지 않고 이만큼 보상 재화(골드)를 차감하고 콤보를 초기화한다.")]
-    [SerializeField] private int _civilianHitPenalty = 20;
+    [Header("보물상자 보상")]
+    [Tooltip("보물상자(구 민간인 오브젝트)를 탄환으로 파괴하면 지급하는 추가 골드.")]
+    [SerializeField] private int _treasureChestReward = 50;
 
     [Header("적 추격 지연")]
     [Tooltip("스테이지 시작 후 적은 제자리에 멈춰 있다가, 플레이어가 첫 발을 쏘면 이 시간(초) 뒤에 추격을 시작한다.")]
@@ -221,12 +221,13 @@ public class GameManager : MonoBehaviour
         StageStarted = false;
 
         bool isPerfect = _shotsFired == 1;
+        int comboBonus = _rewardPerCombo * _bestCombo;
         int reward = _baseClearReward
                      + _rewardPerKill * _totalKills
-                     + _rewardPerCombo * _bestCombo
+                     + comboBonus
                      + (isPerfect ? _perfectBonus : 0);
 
-        var result = new StageResult(true, isPerfect, _bestCombo, _totalKills, _shotsFired, reward);
+        var result = new StageResult(true, isPerfect, _bestCombo, _totalKills, _shotsFired, reward, comboBonus);
         Debug.Log($"[GameManager] 스테이지 클리어! {result}");
 
         // 골드 보상을 실제 재화로 지급(에셋이 없으면 경고만 남기고 넘어간다).
@@ -292,31 +293,22 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>
-    /// 민간인 피격 시 (BulletController에서 연결). 즉시 실패시키지 않고,
-    /// 보상 재화(골드)를 <see cref="_civilianHitPenalty"/>만큼 차감하고 콤보 수치를 초기화한다.
-    /// 보유 골드가 페널티보다 적으면 0까지만 차감된다(음수 불가).
+    /// 보물상자(구 민간인 오브젝트) 파괴 시 (BulletController에서 연결).
+    /// 추가 보상 골드를 <see cref="_treasureChestReward"/>만큼 지급한다. (기존 민간인 골드 차감 페널티는 폐지)
     /// </summary>
-    public void OnCivilianHit()
+    public void OnTreasureChestHit()
     {
-        // 클리어/실패로 이미 종료된 스테이지에서는 페널티를 적용하지 않는다.
         if (_stageEnded) return;
 
-        // 1) 보상 재화(골드) 차감.
-        int removed = 0;
         if (GoldDefinition != null)
         {
-            removed = InventoryManager.Instance?.Remove(GoldDefinition, _civilianHitPenalty) ?? 0;
+            InventoryManager.Instance?.Add(GoldDefinition, _treasureChestReward);
+            Debug.Log($"[GameManager] 보물상자 파괴! 골드 +{_treasureChestReward}");
         }
         else
         {
-            Debug.LogWarning("[GameManager] Resources/Currency/Gold 에셋을 찾을 수 없어 골드를 차감하지 못했습니다.");
+            Debug.LogWarning("[GameManager] Resources/Currency/Gold 에셋을 찾을 수 없어 보상을 지급하지 못했습니다.");
         }
-
-        // 2) 콤보 초기화(현재 탄환 콤보 + 스테이지 최고 콤보).
-        _currentBulletKills = 0;
-        _bestCombo = 0;
-
-        Debug.LogWarning($"[GameManager] 민간인 피격! 골드 -{removed} 차감, 콤보 초기화");
     }
 
     /// <summary>플레이어 사망 시 실패 (Player.DecreaseHP 사망 분기에서 연결).</summary>
@@ -345,8 +337,8 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    [ContextMenu("Debug/민간인 피격 (골드 차감 + 콤보 초기화)")]
-    private void DebugCivilianHit() => OnCivilianHit();
+    [ContextMenu("Debug/보물상자 파괴 (골드 +보상)")]
+    private void DebugTreasureChestHit() => OnTreasureChestHit();
 
     [ContextMenu("Debug/플레이어 사망 (실패)")]
     private void DebugPlayerDeath() => OnPlayerDeath();
@@ -361,8 +353,10 @@ public readonly struct StageResult
     public readonly int TotalKills;
     public readonly int ShotsFired;
     public readonly int Reward;
+    /// <summary>보상 중 "콤보"로 인해 증가한 골드(=콤보당 보상 × 최고 콤보). 결과 화면 표시용.</summary>
+    public readonly int ComboBonus;
 
-    public StageResult(bool isClear, bool isPerfect, int combo, int totalKills, int shotsFired, int reward)
+    public StageResult(bool isClear, bool isPerfect, int combo, int totalKills, int shotsFired, int reward, int comboBonus = 0)
     {
         IsClear = isClear;
         IsPerfect = isPerfect;
@@ -370,8 +364,9 @@ public readonly struct StageResult
         TotalKills = totalKills;
         ShotsFired = shotsFired;
         Reward = reward;
+        ComboBonus = comboBonus;
     }
 
     public override string ToString()
-        => $"[클리어={IsClear}, 퍼펙트={IsPerfect}, 콤보={Combo}, 처치={TotalKills}, 발사={ShotsFired}, 보상={Reward}]";
+        => $"[클리어={IsClear}, 퍼펙트={IsPerfect}, 콤보={Combo}(+{ComboBonus}G), 처치={TotalKills}, 발사={ShotsFired}, 보상={Reward}]";
 }

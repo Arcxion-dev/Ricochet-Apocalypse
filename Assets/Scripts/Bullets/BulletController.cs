@@ -429,11 +429,18 @@ private void HandleObstacleHit(Collider2D obstacle, BulletTargetType targetType,
     {
 
 
+        // 보물상자(구 민간인): 맞으면 +50 골드 지급 후 파괴되고, 총알은 일반 몹처럼 관통(반사/소멸 없음).
         if (targetType == BulletTargetType.Civilian)
         {
-            Debug.LogWarning("[BulletController] 민간인 피격! 골드 차감 + 콤보 초기화 페널티");
-            GameManager.Instance?.OnCivilianHit();
-            Die();
+            // Destroy는 프레임 끝에 처리되어 같은 프레임의 여러 FixedUpdate 스윕이 같은 상자를
+            // 재감지할 수 있으므로, 처음 닿았을 때만 보상/파괴하고 이후엔 관통만 한다(중복 보상 방지).
+            if (obstacle != _lastPenetratedWall)
+            {
+                GameManager.Instance?.OnTreasureChestHit();
+                PlayHitEffect(EffectKind.Explosion); // 파괴 연출
+                Destroy(obstacle.gameObject);
+            }
+            _lastPenetratedWall = obstacle;
             return;
         }
 
@@ -517,6 +524,10 @@ private void HandleObstacleHit(Collider2D obstacle, BulletTargetType targetType,
     /// </summary>
     public static BulletHitResult DetermineHitResult(BulletTargetType targetType, bool hasArmorPiercing)
     {
+        // 철갑탄은 철갑벽(ArmoredWall)에서만 튕기고, 나무/바위/일반벽/전자패널 등 그 외 모든 것은 관통한다.
+        if (hasArmorPiercing)
+            return targetType == BulletTargetType.ArmoredWall ? BulletHitResult.Bounce : BulletHitResult.Penetrate;
+
         switch (targetType)
         {
             case BulletTargetType.Wall:
