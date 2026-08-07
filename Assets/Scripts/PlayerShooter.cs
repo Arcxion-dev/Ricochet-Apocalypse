@@ -241,6 +241,24 @@ public class PlayerShooter : MonoBehaviour
         _inventory.Changed += RebuildItemChoices;
         RebuildChoices();
         RebuildItemChoices();
+
+        ApplyOwnedParts(); // 상점에서 구매해 보유 중인 파츠를 장착한다.
+    }
+
+    /// <summary>
+    /// 인벤토리의 GunPart(<see cref="PartItemDefinition"/>) 보유분을 슈터에 장착한다.
+    /// 상점 씬엔 슈터가 없으므로 구매 파츠는 여기(스테이지 로드 시)에서 반영된다.
+    /// 세이브가 인벤토리를 id로 영속화하므로 재접속에도 유지된다.
+    /// </summary>
+    private void ApplyOwnedParts()
+    {
+        if (_inventory == null) return;
+        foreach (var entry in _inventory.GetEntries(ItemCategory.GunPart))
+        {
+            if (entry == null || entry.Quantity <= 0) continue;
+            if (entry.Definition is PartItemDefinition p && p.part != null)
+                EquipPart(p.part);
+        }
     }
 
     private void OnDestroy()

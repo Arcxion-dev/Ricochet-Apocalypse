@@ -23,6 +23,12 @@ public class ShopUI : MonoBehaviour
     [SerializeField] private ShopBuyRowView _buyRowPrefab;
     [SerializeField] private GameObject _catalogEmpty;
 
+    [Header("구매 탭 (탄환 / 파츠)")]
+    [Tooltip("탄환+사용아이템 탭 버튼.")]
+    [SerializeField] private Button _tabBullets;
+    [Tooltip("무기 파츠 탭 버튼.")]
+    [SerializeField] private Button _tabParts;
+
     [Header("조합 슬롯")]
     [SerializeField] private CombineSlotView _slotA;
     [SerializeField] private CombineSlotView _slotB;
@@ -52,6 +58,7 @@ public class ShopUI : MonoBehaviour
     private int _catalogCount = -1, _candidateCount = -1;
     private int _pendingCandidatePunch = -1;   // 클릭한 행은 재생성 후 그 자리만 튕겨 준다.
     private bool _resultReady;
+    private bool _partsTab;                     // false=탄환, true=파츠.
 
     private void Awake()
     {
@@ -59,6 +66,33 @@ public class ShopUI : MonoBehaviour
         if (_combineButton != null) _combineButton.onClick.AddListener(OnCombineClicked);
         if (_startButton != null) _startButton.onClick.AddListener(() => SceneLoader.LaunchCurrentStage());
         if (_combineStatus != null) _combineStatus.text = "";
+
+        if (_tabBullets != null) _tabBullets.onClick.AddListener(() => SetTab(false));
+        if (_tabParts != null) _tabParts.onClick.AddListener(() => SetTab(true));
+        UpdateTabVisuals();
+    }
+
+    /// <summary>구매 탭 전환(탄환↔파츠). 카탈로그를 다시 그린다.</summary>
+    private void SetTab(bool parts)
+    {
+        _partsTab = parts;
+        UpdateTabVisuals();
+        RefreshCatalog();
+    }
+
+    private void UpdateTabVisuals()
+    {
+        HighlightTab(_tabBullets, !_partsTab);
+        HighlightTab(_tabParts, _partsTab);
+    }
+
+    private static void HighlightTab(Button b, bool active)
+    {
+        if (b == null) return;
+        if (b.targetGraphic is Image img)
+            img.color = active ? UITheme.PanelRaised.A(0.95f) : UITheme.PanelBg.A(0.7f);
+        var txt = b.GetComponentInChildren<TMP_Text>();
+        if (txt != null) txt.color = active ? UITheme.TextHi : UITheme.TextLo;
     }
 
     private void Start()
@@ -111,7 +145,7 @@ public class ShopUI : MonoBehaviour
         if (_catalogContainer == null || _buyRowPrefab == null) return;
         ClearChildren(_catalogContainer);
 
-        var catalog = ShopManager.GetCatalog();
+        var catalog = _partsTab ? ShopManager.GetPartCatalog() : ShopManager.GetCatalog();
         if (_catalogEmpty != null) _catalogEmpty.SetActive(catalog.Count == 0);
         foreach (var item in catalog)
         {
@@ -172,7 +206,14 @@ public class ShopUI : MonoBehaviour
         bool both = _selectedA != null && _selectedB != null;
         if (_resultName != null) _resultName.text = both ? "복합 탄환" : "결과";
         if (_resultTag != null) _resultTag.text = both ? $"{FirstTag(_selectedA)} + {FirstTag(_selectedB)}" : "";
-        if (_resultIcon != null) { _resultIcon.enabled = both; _resultIcon.color = UITheme.Magenta; }
+        if (_resultIcon != null)
+        {
+            _resultIcon.enabled = both;
+            // 복합탄 아이콘이 있으면 원본색으로, 없으면 기존 마젠타 스와치로.
+            var composite = BulletCombiner.CompositeIcon;
+            _resultIcon.sprite = composite;
+            _resultIcon.color = composite != null ? Color.white : UITheme.Magenta;
+        }
 
         // 두 슬롯이 다 차는 순간 결과 슬롯이 살아난다.
         if (both && !_resultReady && _resultName != null)

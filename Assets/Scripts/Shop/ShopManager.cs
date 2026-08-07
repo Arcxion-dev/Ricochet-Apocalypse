@@ -37,6 +37,17 @@ public static class ShopManager
         return catalog;
     }
 
+    /// <summary>상점 "파츠" 탭 목록. Resources/PartItems 중 shopPrice가 0보다 큰 것.</summary>
+    public static List<ItemDefinition> GetPartCatalog()
+    {
+        var catalog = new List<ItemDefinition>();
+        foreach (var part in Resources.LoadAll<PartItemDefinition>("PartItems"))
+        {
+            if (part != null && part.shopPrice > 0) catalog.Add(part);
+        }
+        return catalog;
+    }
+
     /// <summary>아이템을 구매한다. 골드가 부족하면 실패(reason에 사유).</summary>
     public static bool TryPurchase(ItemDefinition item, int quantity, out string reason)
     {
@@ -44,6 +55,13 @@ public static class ShopManager
         if (quantity <= 0) { reason = "수량 오류"; return false; }
         if (Gold == null) { reason = "재화 정의를 찾을 수 없음"; return false; }
         if (InventoryManager.Instance == null) { reason = "인벤토리 없음"; return false; }
+
+        // 파츠는 유니크: 이미 보유하고 있으면 재구매 불가.
+        if (item.category == ItemCategory.GunPart && InventoryManager.Instance.Inventory.GetQuantity(item) > 0)
+        {
+            reason = "이미 보유한 파츠입니다";
+            return false;
+        }
 
         int cost = item.shopPrice * quantity;
         if (CurrentGold < cost) { reason = $"골드 부족 (필요 {cost}, 보유 {CurrentGold})"; return false; }

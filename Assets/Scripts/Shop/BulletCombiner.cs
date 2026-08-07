@@ -11,6 +11,28 @@ using UnityEngine;
 /// </summary>
 public static class BulletCombiner
 {
+    private const string CompositeIconPath = "icon/bullet/합성탄(예시)";
+    private static Sprite _compositeIcon;
+    private static bool _compositeIconLoaded;
+
+    /// <summary>복합(조합) 탄환의 공용 아이콘. Resources에서 한 번만 로드해 캐시한다.
+    /// 원본 PNG가 Multiple 스프라이트 모드라 <see cref="Resources.Load"/>가 null이면 LoadAll로 폴백한다.</summary>
+    public static Sprite CompositeIcon
+    {
+        get
+        {
+            if (_compositeIconLoaded) return _compositeIcon;
+            _compositeIconLoaded = true;
+            _compositeIcon = Resources.Load<Sprite>(CompositeIconPath);
+            if (_compositeIcon == null)
+            {
+                var all = Resources.LoadAll<Sprite>(CompositeIconPath);
+                if (all != null && all.Length > 0) _compositeIcon = all[0];
+            }
+            return _compositeIcon;
+        }
+    }
+
     /// <summary>두 탄환을 조합할 수 있는지 확인한다. 실패 시 reason에 사유.</summary>
     public static bool CanCombine(BulletItemDefinition a, BulletItemDefinition b, out string reason)
     {
@@ -86,6 +108,7 @@ public static class BulletCombiner
         combinedItem.maxStack = 1; // OnValidate는 CreateInstance에서 실행되지 않으므로 직접 설정.
         combinedItem.bulletData = combinedData;
         combinedItem.abilityLabels = mergedLabels;
+        combinedItem.icon = CompositeIcon; // 복합탄 공용 아이콘(합성탄 예시).
         combinedItem.name = combinedItem.displayName;
 
         return combinedItem;

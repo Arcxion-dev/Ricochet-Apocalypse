@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 06f1bd7f300ba81408fdd3e605754376, type: 3}
+  m_Name: part_tungsten
+  m_EditorClassIdentifier: Assembly-CSharp::PartItemDefinition
+  id: part_tungsten
+  displayName: "\uD145\uC2A4\uD150 \uD0C4\uD658"
+  category: 1
+  icon: {fileID: -662274384, guid: 78681ce8f41c41a4b9ceb98c0d9fcb5a, type: 3}
+  maxStack: 1
+  description: "\uD145\uC2A4\uD150 \uD0C4\uD658 \uD30C\uCE20"
+  shopPrice: 200
+  part: {fileID: 11400000, guid: 25d9ca74917ae994090b4453c7b9f524, type: 2}

@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 06f1bd7f300ba81408fdd3e605754376, type: 3}
+  m_Name: part_grip
+  m_EditorClassIdentifier: Assembly-CSharp::PartItemDefinition
+  id: part_grip
+  displayName: "\uC190\uC7A1\uC774"
+  category: 1
+  icon: {fileID: 1911818593, guid: 16ebbbd406b40a84e9529b359ce427ed, type: 3}
+  maxStack: 1
+  description: "\uC190\uC7A1\uC774 \uD30C\uCE20"
+  shopPrice: 100
+  part: {fileID: 11400000, guid: a9ffe8026af316d438dde4e893bfc7ef, type: 2}
