@@ -1,4 +1,5 @@
 using DG.Tweening;
+using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -21,6 +22,12 @@ public class TitleMenuUI : MonoBehaviour
     [SerializeField] private Button _settingsButton;
     [SerializeField] private Button _exitButton;
 
+    [Header("PLAY 라벨 (세이브 유무로 이어하기/새로하기 토글)")]
+    [Tooltip("비워두면 PlayButton 자식 'Label'을 찾는다.")]
+    [SerializeField] private TMP_Text _playLabel;
+    [Tooltip("비워두면 PlayButton 자식 'Tag'를 찾는다. '▶ STAGE N' 형식.")]
+    [SerializeField] private TMP_Text _playTag;
+
     [Header("등장 연출")]
     [Tooltip("타이틀 진입 시 순서대로 나타나는 요소들. 비워두면 SafeArea 자식 전체를 순서대로 쓴다.")]
     [SerializeField] private RectTransform[] _entranceOrder;
@@ -36,7 +43,32 @@ public class TitleMenuUI : MonoBehaviour
         }
 
         WireButtons();
+        RefreshPlayButtonLabel();
         PlayEntrance();
+    }
+
+    /// <summary>
+    /// 세이브 유무에 따라 PLAY 버튼 라벨을 갱신한다.
+    /// - 세이브 있음 → "이어하기" + "▶ STAGE {복원된 진행 스테이지}"
+    /// - 세이브 없음 → "새로하기" + "▶ STAGE 1"
+    /// 세이브 삭제 후에는 SettingsUI가 타이틀을 다시 로드하므로 Start에서 이 메서드가 다시 돌아 반영된다.
+    /// </summary>
+    private void RefreshPlayButtonLabel()
+    {
+        bool hasSave = SaveManager.Instance != null && SaveManager.Instance.HasSave;
+
+        if (_playLabel == null && _playButton != null) _playLabel = FindChildText(_playButton.transform, "Label");
+        if (_playTag == null && _playButton != null) _playTag = FindChildText(_playButton.transform, "Tag");
+
+        if (_playLabel != null) _playLabel.text = hasSave ? "이어하기" : "새로하기";
+        // Start 앞부분에서 세이브가 있으면 Load()로 CurrentStageIndex가 복원돼 있고, 없으면 0(→ STAGE 1)이다.
+        if (_playTag != null) _playTag.text = $"▶ STAGE {SceneLoader.CurrentStageIndex + 1}";
+    }
+
+    private static TMP_Text FindChildText(Transform parent, string childName)
+    {
+        var child = parent.Find(childName);
+        return child != null ? child.GetComponent<TMP_Text>() : null;
     }
 
     // ───────────────────────── 등장 연출 ─────────────────────────
