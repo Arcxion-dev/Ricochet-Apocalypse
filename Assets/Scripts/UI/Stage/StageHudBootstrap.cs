@@ -12,24 +12,22 @@ using UnityEngine.EventSystems;
 ///
 /// 참고: 옛 개발용 씬(예: Scenes/Stage1)에 StageHud가 직접 배치돼 있으면 그 씬에서만 중복될 수 있다.
 /// 본 게임 흐름(Title + Stage_NN)에는 배치본이 없어 문제 없다.
+///
+/// 주의: 정적(static) "이미 생성함" 플래그를 두지 않는다. 이 프로젝트는 Enter Play Mode 옵션에서
+/// Domain Reload를 꺼둬(DisableDomainReload) static 값이 플레이 세션 간에 유지되는데, 플레이를 멈추면
+/// DontDestroyOnLoad 인스턴스는 파괴되므로 static 플래그만 true로 남아 다음 세션부터 생성을 건너뛰는
+/// 버그가 생긴다. RuntimeInitializeOnLoadMethod는 도메인 리로드 여부와 무관하게 매 플레이 세션마다
+/// 다시 호출되므로, "현재 씬에 인스턴스가 있는가"라는 런타임 조건만으로 판단한다.
 /// </summary>
 public static class StageHudBootstrap
 {
     private const string ResourcePath = "UI/StageHud";
 
-    private static bool _spawned;
-
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Spawn()
     {
-        if (_spawned) return;
-
-        // 이미 씬에 배치된 HUD가 있으면 그걸 쓰고 새로 만들지 않는다(개발용 씬 대비).
-        if (Object.FindObjectOfType<StageHud>() != null)
-        {
-            _spawned = true;
-            return;
-        }
+        // 이미 씬에 배치/생성된 HUD가 있으면 새로 만들지 않는다(개발용 씬·중복 방지).
+        if (Object.FindObjectOfType<StageHud>() != null) return;
 
         var prefab = Resources.Load<GameObject>(ResourcePath);
         if (prefab == null)
@@ -41,7 +39,6 @@ public static class StageHudBootstrap
         var instance = Object.Instantiate(prefab);
         instance.name = "StageHud (Persistent)";
         Object.DontDestroyOnLoad(instance);
-        _spawned = true;
 
         EnsureEventSystem();
     }
