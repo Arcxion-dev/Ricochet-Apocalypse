@@ -104,13 +104,13 @@ public class PlayerShooter : MonoBehaviour
 
     /// <summary>조작 스킴. Auto=모바일이면 터치·아니면 마우스. ForceMouse/ForceTouch는 에디터 테스트용 강제.</summary>
     private enum ControlScheme { Auto, ForceMouse, ForceTouch }
-    /// <summary>지금 터치 조작 경로를 쓰는지(마우스 경로와 배타적).</summary>
+    /// <summary>지금 터치 조작 경로를 쓰는지(마우스 경로와 배타적). Device Simulator도 모바일로 인식하도록 UnityEngine.Device 사용.</summary>
     private bool UseTouch =>
         _controlScheme == ControlScheme.ForceTouch ||
-        (_controlScheme == ControlScheme.Auto && Application.isMobilePlatform);
+        (_controlScheme == ControlScheme.Auto && UnityEngine.Device.Application.isMobilePlatform);
 
     /// <summary>활성 사수가 터치 조작 중인지(HUD가 키/마우스 문구를 감출 때 참조). 사수가 없으면 플랫폼으로 판정.</summary>
-    public static bool MobileControls => Active != null ? Active.UseTouch : Application.isMobilePlatform;
+    public static bool MobileControls => Active != null ? Active.UseTouch : UnityEngine.Device.Application.isMobilePlatform;
 
     // 터치 조준 추적 상태
     private int _aimFingerId = -1;   // 일반 조준에 쓰는 손가락(-1=없음)
@@ -389,10 +389,10 @@ public class PlayerShooter : MonoBehaviour
         if (_aimFingerId < 0)
         {
             // 두 손가락 이상이면 핀치/팬(카메라)에 양보하고 조준을 시작하지 않는다.
-            if (Input.touchCount == 1)
+            if (TouchInput.Count == 1)
             {
-                var t0 = Input.GetTouch(0);
-                if (t0.phase == TouchPhase.Began && !TouchInput.IsFingerOverUI(t0.fingerId))
+                var t0 = TouchInput.Get(0);
+                if (t0.phase == TouchPhase.Began && !t0.overUI)
                 {
                     _aimFingerId = t0.fingerId;
                     _aimPending = true;
@@ -404,7 +404,7 @@ public class PlayerShooter : MonoBehaviour
         }
 
         // 손가락 추적. 사라졌으면(안전) 발사 없이 종료.
-        if (!TouchInput.TryGetTouch(_aimFingerId, out var t)) { CancelTouchAim(); return; }
+        if (!TouchInput.TryGet(_aimFingerId, out var t)) { CancelTouchAim(); return; }
 
         Vector2 dir = AimDirFromScreen(t.position);
         bool ended = t.phase == TouchPhase.Ended || t.phase == TouchPhase.Canceled;
@@ -412,7 +412,7 @@ public class PlayerShooter : MonoBehaviour
         if (_aimPending)
         {
             // 확정 전 2번째 손가락 등장 → 핀치/팬으로 양보(조준 취소, 발사 없음).
-            if (Input.touchCount >= 2) { ResetAimTracking(); return; }
+            if (TouchInput.Count >= 2) { ResetAimTracking(); return; }
 
             UpdateLaser(dir, _laserColor); // 손가락 따라 조준선 표시(피드백)
             UpdateCancelRing(false, false); // 확정 전(호흡 전)엔 취소존 표시 안 함.
@@ -995,7 +995,7 @@ public class PlayerShooter : MonoBehaviour
             return;
         }
 
-        if (!TouchInput.TryGetTouch(_itemFingerId, out var t)) { ExitMode(); return; }
+        if (!TouchInput.TryGet(_itemFingerId, out var t)) { ExitMode(); return; }
 
         Vector2 world = _cam != null ? (Vector2)_cam.ScreenToWorldPoint(t.position) : origin;
         Vector2 to = world - origin;

@@ -122,13 +122,13 @@ public class CameraPanController : MonoBehaviour
     {
         if (_cam == null) return;
 
-        if (Input.touchCount != 2) { _twoFingerActive = false; return; }
+        if (TouchInput.Count != 2) { _twoFingerActive = false; return; }
 
-        var a = Input.GetTouch(0);
-        var b = Input.GetTouch(1);
+        var a = TouchInput.Get(0);
+        var b = TouchInput.Get(1);
 
         // 두 손가락 중 하나라도 UI 위면 제스처로 보지 않는다(버튼/슬롯 조작 보호).
-        if (TouchInput.IsFingerOverUI(a.fingerId) || TouchInput.IsFingerOverUI(b.fingerId))
+        if (a.overUI || b.overUI)
         {
             _twoFingerActive = false;
             return;
@@ -155,7 +155,7 @@ public class CameraPanController : MonoBehaviour
 
         // 팬: 두 손가락 중점 이동을 월드로 환산해 화면을 "끌어" 이동(카메라는 손가락 반대 방향).
         Vector2 midDelta = mid - _lastPinchMid;
-        float worldPerPixel = (_cam.orthographicSize * 2f) / Mathf.Max(1, Screen.height);
+        float worldPerPixel = (_cam.orthographicSize * 2f) / Mathf.Max(1, UnityEngine.Device.Screen.height);
         Vector3 pos = transform.position + new Vector3(-midDelta.x, -midDelta.y, 0f) * worldPerPixel;
         if (_useBounds)
         {

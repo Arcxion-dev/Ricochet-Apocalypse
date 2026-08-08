@@ -51,18 +51,19 @@ public class SafeAreaFitter : MonoBehaviour
         if (_rt == null) _rt = GetComponent<RectTransform>();
         if (_rt == null) return;
 
-        int sw = Screen.width;
-        int sh = Screen.height;
+        // UnityEngine.Device.Screen를 써야 Device Simulator에서도 시뮬레이트된 기기의 해상도/노치가 반영된다.
+        int sw = UnityEngine.Device.Screen.width;
+        int sh = UnityEngine.Device.Screen.height;
         if (sw <= 0 || sh <= 0) return;
 
-        Rect safe = Screen.safeArea;
+        Rect safe = UnityEngine.Device.Screen.safeArea;
         var screen = new Vector2Int(sw, sh);
-        if (safe == _lastSafeArea && screen == _lastScreen && Screen.orientation == _lastOrientation)
+        if (safe == _lastSafeArea && screen == _lastScreen && UnityEngine.Device.Screen.orientation == _lastOrientation)
             return;
 
         _lastSafeArea = safe;
         _lastScreen = screen;
-        _lastOrientation = Screen.orientation;
+        _lastOrientation = UnityEngine.Device.Screen.orientation;
 
         Vector2 min = safe.position;
         Vector2 max = safe.position + safe.size;
