@@ -270,11 +270,16 @@ public class ChargeShotEffects : MonoBehaviour
         if (_bloom != null) _bloom.intensity.value = 0f;
         if (_vignette != null) _vignette.intensity.value = 0f;
         if (_baseOrthoCaptured && _cam != null) _cam.orthographicSize = _baseOrthoSize;
+
+        // 연출이 완전히 끝났으니 다음 조준에서 (그 사이 핀치 줌으로 바뀌었을 수 있는)
+        // 현재 직교 크기를 새 기준으로 다시 캡처하도록 플래그를 푼다.
+        _baseOrthoCaptured = false;
     }
 
     private void CaptureBaseOrtho()
     {
         // 이미 차징 중(연출 진행 중)이면 확대된 값을 기준으로 잡지 않도록 한 번만 캡처.
+        // (연출 종료 시 FinalizeToNormal이 플래그를 풀어, 다음 조준엔 현재 줌을 다시 캡처한다.)
         if (_baseOrthoCaptured || _cam == null) return;
         _baseOrthoSize = _cam.orthographicSize;
         _baseOrthoCaptured = true;

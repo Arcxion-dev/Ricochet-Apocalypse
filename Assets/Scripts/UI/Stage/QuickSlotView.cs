@@ -36,7 +36,11 @@ public class QuickSlotView : MonoBehaviour, IPointerClickHandler
         _index = index;
         _hasItem = definition != null;
 
-        if (_hotkey != null) _hotkey.text = (index + 1).ToString();
+        if (_hotkey != null)
+        {
+            _hotkey.text = (index + 1).ToString();
+            _hotkey.enabled = !PlayerShooter.MobileControls; // 모바일엔 숫자 단축키가 없으니 숨긴다.
+        }
 
         if (_icon != null)
         {

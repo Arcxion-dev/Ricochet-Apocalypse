@@ -109,12 +109,16 @@ public class PlayerShooter : MonoBehaviour
         _controlScheme == ControlScheme.ForceTouch ||
         (_controlScheme == ControlScheme.Auto && Application.isMobilePlatform);
 
+    /// <summary>활성 사수가 터치 조작 중인지(HUD가 키/마우스 문구를 감출 때 참조). 사수가 없으면 플랫폼으로 판정.</summary>
+    public static bool MobileControls => Active != null ? Active.UseTouch : Application.isMobilePlatform;
+
     // 터치 조준 추적 상태
     private int _aimFingerId = -1;   // 일반 조준에 쓰는 손가락(-1=없음)
     private bool _aimPending;        // 눌렀지만 아직 호흡 미확정(즉발/핀치 판정 대기)
     private Vector2 _aimStartScreen; // 눌린 시작 스크린좌표(드래그 임계 판정)
     private float _aimPressTime;     // 눌린 시각(unscaledTime — 슬로우모션 무관)
     private int _itemFingerId = -1;  // 아이템 투척 조준에 쓰는 손가락(-1=없음)
+    private LineRenderer _cancelRing; // 조준 중 캐릭터 둘레 취소존 표시(드래그해 떼면 취소)
 
     /// <summary>조준 단계. Free=마우스 추종, Breath=조준 고정+호흡 흔들림(격발 대기).</summary>
     private enum AimPhase { Free, Breath }
@@ -313,6 +317,7 @@ public class PlayerShooter : MonoBehaviour
         if (uiOpen)
         {
             if (_mode != InputMode.Normal) ExitMode();
+            ResetAimTracking(); // UI 열림 중 진행하던 터치 조준/취소존 링 정리.
             return;
         }
 
@@ -323,6 +328,7 @@ public class PlayerShooter : MonoBehaviour
             if (_itemIndicator != null && _itemIndicator.enabled) _itemIndicator.enabled = false;
             if (_mode != InputMode.Normal) ExitMode();
             if (_phase == AimPhase.Breath) { ExitBreath(); _effects?.Cancel(); }
+            ResetAimTracking(); // 준비/종료 중 터치 조준 상태·취소존 링 정리.
             return;
         }
 
@@ -394,7 +400,7 @@ public class PlayerShooter : MonoBehaviour
                     _aimPressTime = Time.unscaledTime;
                 }
             }
-            if (_aimFingerId < 0) { if (_laser != null) _laser.enabled = false; return; }
+            if (_aimFingerId < 0) { if (_laser != null) _laser.enabled = false; UpdateCancelRing(false, false); return; }
         }
 
         // 손가락 추적. 사라졌으면(안전) 발사 없이 종료.
@@ -409,6 +415,7 @@ public class PlayerShooter : MonoBehaviour
             if (Input.touchCount >= 2) { ResetAimTracking(); return; }
 
             UpdateLaser(dir, _laserColor); // 손가락 따라 조준선 표시(피드백)
+            UpdateCancelRing(false, false); // 확정 전(호흡 전)엔 취소존 표시 안 함.
 
             if (ended) { FinishTouchAim(dir, t.position, wasBreath: false); return; } // 즉발 스냅샷
 
@@ -422,6 +429,7 @@ public class PlayerShooter : MonoBehaviour
         Vector2 breathDir = ApplyBreathSway(dir);
         bool cancelZone = IsInCancelZone(t.position);
         UpdateLaser(breathDir, cancelZone ? _cancelColor : _breathColor);
+        UpdateCancelRing(true, cancelZone); // 캐릭터 둘레에 "여기서 떼면 취소" 링 표시.
 
         if (ended) FinishTouchAim(breathDir, t.position, wasBreath: true);
     }
@@ -455,6 +463,7 @@ public class PlayerShooter : MonoBehaviour
     {
         _aimFingerId = -1;
         _aimPending = false;
+        UpdateCancelRing(false, false);
     }
 
     /// <summary>스크린 좌표가 플레이어(취소 반경) 안쪽인지 — 캐릭터로 드래그해 취소하는 판정.</summary>
@@ -464,6 +473,47 @@ public class PlayerShooter : MonoBehaviour
         Vector2 world = _cam.ScreenToWorldPoint(screenPos);
         Vector2 origin = _firePoint != null ? (Vector2)_firePoint.position : (Vector2)transform.position;
         return (world - origin).sqrMagnitude <= _cancelRadius * _cancelRadius;
+    }
+
+    /// <summary>
+    /// 조준 중 캐릭터 둘레에 취소존(반경 <see cref="_cancelRadius"/>) 링을 그린다. 손가락이 안쪽이면
+    /// 진하게(=여기서 떼면 취소). show=false면 숨긴다. 필요 시 LineRenderer를 지연 생성한다.
+    /// </summary>
+    private void UpdateCancelRing(bool show, bool inside)
+    {
+        if (!show)
+        {
+            if (_cancelRing != null && _cancelRing.enabled) _cancelRing.enabled = false;
+            return;
+        }
+
+        if (_cancelRing == null)
+        {
+            var go = new GameObject("CancelRing");
+            go.transform.SetParent(transform, false);
+            _cancelRing = go.AddComponent<LineRenderer>();
+            _cancelRing.useWorldSpace = true;
+            _cancelRing.loop = true;
+            _cancelRing.numCornerVertices = 2;
+            var shader = Shader.Find("Sprites/Default");
+            if (shader != null) _cancelRing.material = new Material(shader);
+            _cancelRing.widthMultiplier = 0.06f;
+            _cancelRing.positionCount = 40;
+        }
+
+        _cancelRing.enabled = true;
+        Color c = _cancelColor;
+        c.a = inside ? 0.95f : 0.35f; // 손가락이 취소존에 들어오면 진하게.
+        _cancelRing.startColor = c;
+        _cancelRing.endColor = c;
+
+        Vector2 origin = _firePoint != null ? (Vector2)_firePoint.position : (Vector2)transform.position;
+        int n = _cancelRing.positionCount;
+        for (int i = 0; i < n; i++)
+        {
+            float a = (i / (float)n) * Mathf.PI * 2f;
+            _cancelRing.SetPosition(i, new Vector3(origin.x + Mathf.Cos(a) * _cancelRadius, origin.y + Mathf.Sin(a) * _cancelRadius, 0f));
+        }
     }
 
     /// <summary>조준을 고정하고 호흡(격발 대기) 상태로 진입한다.</summary>
@@ -766,7 +816,9 @@ public class PlayerShooter : MonoBehaviour
             {
                 case InputMode.BulletChange: return "탄환 변경 (휠/클릭)";
                 case InputMode.ItemChange: return "아이템 변경 (휠/클릭)";
-                case InputMode.ItemAim: return "아이템 조준 (좌클릭 사용 / 우클릭 취소)";
+                case InputMode.ItemAim: return MobileControls
+                    ? "아이템 조준 · 드래그해 위치, 손 떼면 사용 (캐릭터로 끌면 취소)"
+                    : "아이템 조준 (좌클릭 사용 / 우클릭 취소)";
                 default: return string.Empty;
             }
         }
@@ -854,6 +906,7 @@ public class PlayerShooter : MonoBehaviour
         _mode = InputMode.Normal;
         _itemFingerId = -1; // 터치 투척 조준 손가락 추적 해제.
         if (_itemIndicator != null) _itemIndicator.enabled = false;
+        UpdateCancelRing(false, false);
         if (_cameraPan != null) _cameraPan.ControlsEnabled = true;
     }
 
@@ -938,6 +991,7 @@ public class PlayerShooter : MonoBehaviour
             Vector2 fwd = _lockedDir.sqrMagnitude > 0.01f ? _lockedDir : Vector2.up;
             Vector2 preview = origin + fwd * Mathf.Min(item.maxRange * 0.6f, 3f);
             UpdateItemIndicator(preview, item.effectRadius, ColorForItem(item.kind));
+            UpdateCancelRing(false, false);
             return;
         }
 
@@ -950,6 +1004,7 @@ public class PlayerShooter : MonoBehaviour
 
         bool cancel = IsInCancelZone(t.position);
         UpdateItemIndicator(_itemAimPoint, item.effectRadius, cancel ? _cancelColor : ColorForItem(item.kind));
+        UpdateCancelRing(true, cancel); // 아이템도 캐릭터로 끌면 취소 — 취소존 링 표시.
 
         if (t.phase == TouchPhase.Ended || t.phase == TouchPhase.Canceled)
         {

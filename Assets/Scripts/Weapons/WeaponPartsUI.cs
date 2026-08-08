@@ -115,8 +115,10 @@ public class WeaponPartsUI : MonoBehaviour
         var bg = panel.gameObject.AddComponent<Image>();
         bg.color = new Color(0f, 0f, 0f, 0.55f);
 
-        AddText(panel, $"무기 파츠  ( {_toggleKey} 키로 토글 · 클릭해서 켜고 끄기 )",
-                20, new Color(1f, 0.9f, 0.5f), FontStyle.Bold);
+        string title = PlayerShooter.MobileControls
+            ? "무기 파츠  ( 탭해서 켜고 끄기 )"
+            : $"무기 파츠  ( {_toggleKey} 키로 토글 · 클릭해서 켜고 끄기 )";
+        AddText(panel, title, 20, new Color(1f, 0.9f, 0.5f), FontStyle.Bold);
 
         // 모바일에서 키 없이 닫을 수 있도록 닫기 버튼을 얹는다.
         var closeBtn = AddButton(panel, "✕ 닫기", new Color(0.30f, 0.16f, 0.16f, 0.95f));
