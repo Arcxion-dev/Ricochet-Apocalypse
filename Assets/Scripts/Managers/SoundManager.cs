@@ -62,6 +62,22 @@ public class SoundManager : MonoBehaviour
 
         _musicSource = gameObject.AddComponent<AudioSource>();
         _musicSource.playOnAwake = false;
+
+        // 설정의 BGM/SFX 볼륨을 실제 재생에 연동(각각 독립). 마스터는 GameSettings가 AudioListener로 전역 반영.
+        GameSettings.Changed += ApplyVolumesFromSettings;
+        ApplyVolumesFromSettings();
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this) GameSettings.Changed -= ApplyVolumesFromSettings;
+    }
+
+    /// <summary>설정(BGM/SFX) 볼륨을 실제 재생 볼륨에 반영한다. <see cref="GameSettings.Changed"/>에 연결.</summary>
+    private void ApplyVolumesFromSettings()
+    {
+        SetSfxVolume(GameSettings.SfxVolume);
+        SetMusicVolume(GameSettings.BgmVolume);
     }
 
     private static Dictionary<string, Sound> BuildLookup(Sound[] sounds)
@@ -128,6 +144,19 @@ public class SoundManager : MonoBehaviour
         _musicSource.clip = sound.clip;
         _musicSource.loop = sound.loop;
         _musicSource.volume = sound.volume * _musicVolume;
+        _musicSource.Play();
+    }
+
+    /// <summary>인스펙터 등록 없이 AudioClip을 직접 BGM으로 재생한다(기본 루프). 같은 클립이 이미 재생 중이면 무시.</summary>
+    public void PlayMusicClip(AudioClip clip, bool loop = true)
+    {
+        if (clip == null) return;
+        if (_currentMusic != null && _currentMusic.clip == clip && _musicSource.isPlaying) return;
+
+        _currentMusic = new Sound { id = clip.name, clip = clip, volume = 1f, loop = loop };
+        _musicSource.clip = clip;
+        _musicSource.loop = loop;
+        _musicSource.volume = _currentMusic.volume * _musicVolume;
         _musicSource.Play();
     }
 
