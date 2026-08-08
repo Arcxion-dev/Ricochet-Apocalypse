@@ -95,8 +95,10 @@ public class InventoryUI : MonoBehaviour
         rt.sizeDelta = new Vector2(96f, 96f);
         rt.anchoredPosition = new Vector2(-28f, -28f);
 
+        // 배경은 거의 투명(네모 박스처럼 안 보이게). 알파가 낮아도 raycastTarget이 켜져 있어 탭은 된다.
         var img = go.AddComponent<Image>();
-        img.color = new Color(0.10f, 0.14f, 0.20f, 0.92f);
+        img.color = new Color(0.10f, 0.14f, 0.20f, 0.16f);
+        img.raycastTarget = true;
 
         var btn = go.AddComponent<Button>();
         btn.targetGraphic = img;
@@ -108,10 +110,14 @@ public class InventoryUI : MonoBehaviour
         trt.anchorMin = Vector2.zero; trt.anchorMax = Vector2.one;
         trt.offsetMin = Vector2.zero; trt.offsetMax = Vector2.zero;
         var txt = txtGO.AddComponent<TextMeshProUGUI>();
-        txt.text = "✕";
+        // "✕"(U+2715)는 NotoSans에 없어 두부박스(네모)로 보였다. ASCII 'X' + Bold 폰트로 선명하게.
+        if (UITheme.Bold != null) txt.font = UITheme.Bold;
+        txt.text = "X";
+        txt.fontStyle = FontStyles.Bold;
         txt.alignment = TextAlignmentOptions.Center;
-        txt.fontSize = 48f;
+        txt.fontSize = 60f;
         txt.color = UITheme.Cyan;
+        txt.raycastTarget = false;
 
         go.transform.SetAsLastSibling(); // 다른 콘텐츠 위로 올려 항상 눌리게.
     }
