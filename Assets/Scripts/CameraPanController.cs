@@ -29,6 +29,14 @@ public class CameraPanController : MonoBehaviour
     [Tooltip("가장 축소(큰 orthographicSize).")]
     [SerializeField] private float _maxZoom = 15f;
 
+    [Header("줌/팬 (모바일 터치)")]
+    [Tooltip("핀치 시 두 손가락 거리 1픽셀 변화당 바뀌는 직교 크기.")]
+    [SerializeField] private float _pinchZoomSpeed = 0.02f;
+
+    private bool _twoFingerActive;
+    private Vector2 _lastPinchMid;
+    private float _lastPinchDist;
+
     private Camera _cam;
 
     /// <summary>
@@ -53,10 +61,11 @@ public class CameraPanController : MonoBehaviour
 
     private void Update()
     {
-        if (!ControlsEnabled) return;
+        if (!ControlsEnabled) { _twoFingerActive = false; return; }
 
-        HandlePan();
-        HandleZoom();
+        HandlePan();     // 방향키(에디터/데스크톱)
+        HandleZoom();    // 마우스 휠(에디터/데스크톱)
+        HandleTouch();   // 두 손가락 핀치 줌 + 팬(모바일)
     }
 
     private void LateUpdate()
@@ -102,5 +111,60 @@ public class CameraPanController : MonoBehaviour
         // 휠을 위로(+)는 확대(size 감소), 아래로(-)는 축소(size 증가).
         float size = _cam.orthographicSize - scroll * _zoomSpeed;
         _cam.orthographicSize = Mathf.Clamp(size, _minZoom, _maxZoom);
+    }
+
+    /// <summary>
+    /// 두 손가락 제스처: 벌리면 확대·오므리면 축소(핀치), 함께 밀면 화면 이동(팬).
+    /// 조준 중에는 PlayerShooter가 <see cref="ControlsEnabled"/>를 꺼 이 메서드가 호출되지 않으므로
+    /// "조준 중 확대/축소 불가"가 자동으로 성립한다.
+    /// </summary>
+    private void HandleTouch()
+    {
+        if (_cam == null) return;
+
+        if (Input.touchCount != 2) { _twoFingerActive = false; return; }
+
+        var a = Input.GetTouch(0);
+        var b = Input.GetTouch(1);
+
+        // 두 손가락 중 하나라도 UI 위면 제스처로 보지 않는다(버튼/슬롯 조작 보호).
+        if (TouchInput.IsFingerOverUI(a.fingerId) || TouchInput.IsFingerOverUI(b.fingerId))
+        {
+            _twoFingerActive = false;
+            return;
+        }
+
+        Vector2 mid = (a.position + b.position) * 0.5f;
+        float dist = Vector2.Distance(a.position, b.position);
+
+        // 제스처 시작 프레임(또는 손가락이 새로 눌린 프레임): 기준값만 잡고 다음 프레임부터 반영.
+        if (!_twoFingerActive || a.phase == TouchPhase.Began || b.phase == TouchPhase.Began)
+        {
+            _twoFingerActive = true;
+            _lastPinchMid = mid;
+            _lastPinchDist = dist;
+            return;
+        }
+
+        // 핀치 줌: 손가락을 벌리면(dist↑) 확대(orthographicSize↓).
+        if (_cam.orthographic)
+        {
+            float size = _cam.orthographicSize - (dist - _lastPinchDist) * _pinchZoomSpeed;
+            _cam.orthographicSize = Mathf.Clamp(size, _minZoom, _maxZoom);
+        }
+
+        // 팬: 두 손가락 중점 이동을 월드로 환산해 화면을 "끌어" 이동(카메라는 손가락 반대 방향).
+        Vector2 midDelta = mid - _lastPinchMid;
+        float worldPerPixel = (_cam.orthographicSize * 2f) / Mathf.Max(1, Screen.height);
+        Vector3 pos = transform.position + new Vector3(-midDelta.x, -midDelta.y, 0f) * worldPerPixel;
+        if (_useBounds)
+        {
+            pos.x = Mathf.Clamp(pos.x, _minBounds.x, _maxBounds.x);
+            pos.y = Mathf.Clamp(pos.y, _minBounds.y, _maxBounds.y);
+        }
+        transform.position = pos;
+
+        _lastPinchMid = mid;
+        _lastPinchDist = dist;
     }
 }

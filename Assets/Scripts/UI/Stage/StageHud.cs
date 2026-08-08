@@ -81,6 +81,7 @@ public class StageHud : MonoBehaviour
 
     private void Awake()
     {
+        EnsureSafeArea();
         if (_group == null && _canvas != null) _group = UIAnim.GroupOf(_canvas);
         if (_hpFillImage != null) _hpBaseColor = _hpFillImage.color;
 
@@ -91,6 +92,43 @@ public class StageHud : MonoBehaviour
         if (_canvas != null) _canvas.enabled = false;
         if (_group != null) _group.alpha = 0f;
         _visible = false;
+    }
+
+    /// <summary>
+    /// 노치/제스처바를 피하도록 캔버스의 모든 자식을 전체 스트레치 SafeArea 아래로 옮기고
+    /// <see cref="SafeAreaFitter"/>를 붙인다(프리팹 수정 없이 런타임에서만). 코너에 붙은 HUD
+    /// 위젯들이 안전영역 안으로 밀려 들어간다. 이미 SafeArea가 있으면 아무 것도 하지 않는다.
+    /// </summary>
+    private void EnsureSafeArea()
+    {
+        if (_canvas == null) return;
+        var canvasT = _canvas.transform;
+        if (canvasT.Find("SafeArea") != null) return;
+
+        var go = new GameObject("SafeArea", typeof(RectTransform));
+        var safe = (RectTransform)go.transform;
+        safe.SetParent(canvasT, false);
+        safe.anchorMin = Vector2.zero;
+        safe.anchorMax = Vector2.one;
+        safe.offsetMin = Vector2.zero;
+        safe.offsetMax = Vector2.zero;
+
+        // 캔버스 직속 자식(SafeArea 제외)을 순서 유지하며 SafeArea 아래로 옮긴다.
+        int guard = 0;
+        while (guard++ < 512)
+        {
+            Transform child = null;
+            for (int i = 0; i < canvasT.childCount; i++)
+            {
+                var c = canvasT.GetChild(i);
+                if (c != safe) { child = c; break; }
+            }
+            if (child == null) break;
+            child.SetParent(safe, false); // SafeArea가 캔버스와 동일 rect라 화면 위치 보존.
+            child.SetAsLastSibling();      // 원래 순서(드로우 순서) 유지.
+        }
+
+        go.AddComponent<SafeAreaFitter>();
     }
 
     private void Update()

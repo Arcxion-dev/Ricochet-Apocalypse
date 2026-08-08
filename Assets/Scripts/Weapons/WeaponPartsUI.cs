@@ -118,6 +118,10 @@ public class WeaponPartsUI : MonoBehaviour
         AddText(panel, $"무기 파츠  ( {_toggleKey} 키로 토글 · 클릭해서 켜고 끄기 )",
                 20, new Color(1f, 0.9f, 0.5f), FontStyle.Bold);
 
+        // 모바일에서 키 없이 닫을 수 있도록 닫기 버튼을 얹는다.
+        var closeBtn = AddButton(panel, "✕ 닫기", new Color(0.30f, 0.16f, 0.16f, 0.95f));
+        closeBtn.onClick.AddListener(() => SetVisible(false));
+
         _contentRoot = CreateVerticalPanel(panel, "Content");
     }
 

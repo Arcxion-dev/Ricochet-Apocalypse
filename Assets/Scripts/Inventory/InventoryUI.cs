@@ -72,9 +72,48 @@ public class InventoryUI : MonoBehaviour
                 if (_tabButtons[i] != null) _tabButtons[i].onClick.AddListener(() => SetTab(idx));
             }
         if (_group == null && _canvas != null) _group = UIAnim.GroupOf(_canvas);
+        EnsureCloseButton();
         _open = _startVisible;
         if (_canvas != null) _canvas.enabled = _startVisible;
         if (_group != null) _group.alpha = _startVisible ? 1f : 0f;
+    }
+
+    /// <summary>
+    /// 모바일에서 I 키 없이도 닫을 수 있도록 우상단에 ✕ 버튼을 코드로 얹는다(프리팹 수정 불필요).
+    /// 이미 있으면 재생성하지 않는다. 닫힐 때 스케일되는 _content 아래에 두어 팝업 연출과 함께 움직인다.
+    /// </summary>
+    private void EnsureCloseButton()
+    {
+        Transform parent = _content != null ? (Transform)_content : (_canvas != null ? _canvas.transform : transform);
+        if (parent == null || parent.Find("CloseButton") != null) return;
+
+        var go = new GameObject("CloseButton", typeof(RectTransform));
+        go.transform.SetParent(parent, false);
+        var rt = (RectTransform)go.transform;
+        rt.anchorMin = rt.anchorMax = new Vector2(1f, 1f);
+        rt.pivot = new Vector2(1f, 1f);
+        rt.sizeDelta = new Vector2(96f, 96f);
+        rt.anchoredPosition = new Vector2(-28f, -28f);
+
+        var img = go.AddComponent<Image>();
+        img.color = new Color(0.10f, 0.14f, 0.20f, 0.92f);
+
+        var btn = go.AddComponent<Button>();
+        btn.targetGraphic = img;
+        btn.onClick.AddListener(() => SetOpen(false));
+
+        var txtGO = new GameObject("X", typeof(RectTransform));
+        txtGO.transform.SetParent(go.transform, false);
+        var trt = (RectTransform)txtGO.transform;
+        trt.anchorMin = Vector2.zero; trt.anchorMax = Vector2.one;
+        trt.offsetMin = Vector2.zero; trt.offsetMax = Vector2.zero;
+        var txt = txtGO.AddComponent<TextMeshProUGUI>();
+        txt.text = "✕";
+        txt.alignment = TextAlignmentOptions.Center;
+        txt.fontSize = 48f;
+        txt.color = UITheme.Cyan;
+
+        go.transform.SetAsLastSibling(); // 다른 콘텐츠 위로 올려 항상 눌리게.
     }
 
     private void Start()

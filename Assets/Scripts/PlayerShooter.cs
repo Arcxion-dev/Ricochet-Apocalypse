@@ -90,6 +90,32 @@ public class PlayerShooter : MonoBehaviour
     [Tooltip("LockThenBreath=조준→클릭(조준 고정)→호흡 흔들림→격발. FollowMouseBreath=조준→클릭(차징 진입)→마우스 추종 유지→격발. 두 방식 모두 차징 연출은 동일.")]
     [SerializeField] private FiringMode _firingMode = FiringMode.LockThenBreath;
 
+    [Header("모바일 터치")]
+    [Tooltip("Auto=모바일 플랫폼이면 터치, 아니면 마우스. ForceTouch/ForceMouse로 에디터 테스트를 강제한다.")]
+    [SerializeField] private ControlScheme _controlScheme = ControlScheme.Auto;
+    [Tooltip("조준 확정(호흡 진입) 전 필요한 홀드 시간(초). 이보다 짧게 떼면 차징 없이 즉발(스냅샷).")]
+    [SerializeField] private float _touchAimHoldTime = 0.12f;
+    [Tooltip("이 픽셀 이상 드래그하면 홀드 시간과 무관하게 즉시 조준을 확정한다.")]
+    [SerializeField] private float _touchAimMoveThreshold = 24f;
+    [Tooltip("조준 중 이 반경(월드 유닛) 안쪽으로 손을 떼면 발사를 취소한다(캐릭터로 드래그해 취소).")]
+    [SerializeField] private float _cancelRadius = 1.1f;
+    [Tooltip("취소존(캐릭터 근처)에 손가락이 있을 때 조준선/범위원 색.")]
+    [SerializeField] private Color _cancelColor = new Color(0.6f, 0.6f, 0.6f, 0.9f);
+
+    /// <summary>조작 스킴. Auto=모바일이면 터치·아니면 마우스. ForceMouse/ForceTouch는 에디터 테스트용 강제.</summary>
+    private enum ControlScheme { Auto, ForceMouse, ForceTouch }
+    /// <summary>지금 터치 조작 경로를 쓰는지(마우스 경로와 배타적).</summary>
+    private bool UseTouch =>
+        _controlScheme == ControlScheme.ForceTouch ||
+        (_controlScheme == ControlScheme.Auto && Application.isMobilePlatform);
+
+    // 터치 조준 추적 상태
+    private int _aimFingerId = -1;   // 일반 조준에 쓰는 손가락(-1=없음)
+    private bool _aimPending;        // 눌렀지만 아직 호흡 미확정(즉발/핀치 판정 대기)
+    private Vector2 _aimStartScreen; // 눌린 시작 스크린좌표(드래그 임계 판정)
+    private float _aimPressTime;     // 눌린 시각(unscaledTime — 슬로우모션 무관)
+    private int _itemFingerId = -1;  // 아이템 투척 조준에 쓰는 손가락(-1=없음)
+
     /// <summary>조준 단계. Free=마우스 추종, Breath=조준 고정+호흡 흔들림(격발 대기).</summary>
     private enum AimPhase { Free, Breath }
     private AimPhase _phase = AimPhase.Free;
@@ -303,6 +329,9 @@ public class PlayerShooter : MonoBehaviour
         // 탄환/아이템 변경 모드 또는 아이템 조준 모드가 활성이면, 일반 조준/격발 대신 그 처리를 한다.
         if (HandleItemModes()) return;
 
+        // 모바일: 꾹 눌러 조준→드래그→손 떼기(격발) 터치 경로로 처리한다(마우스 경로와 배타적).
+        if (UseTouch) { HandleTouchAimFire(); return; }
+
         // 화면 버튼(이동/퀵슬롯/실린더) 위를 누른 탭은 조준·격발로 넘기지 않는다.
         bool overUI = IsPointerOverUI();
 
@@ -342,6 +371,99 @@ public class PlayerShooter : MonoBehaviour
                 else _effects?.Cancel();
             }
         }
+    }
+
+    /// <summary>
+    /// 모바일 터치 조준/격발: 화면을 꾹 눌러 조준→누른 채 드래그로 방향 조정→손 떼기로 발사.
+    /// 손을 뗄 때 캐릭터(취소 반경) 안쪽이면 발사하지 않고 취소한다. 짧은 탭은 차징 없이 즉발(스냅샷).
+    /// </summary>
+    private void HandleTouchAimFire()
+    {
+        // 활성 조준 손가락이 없으면: 새 프레스(1손가락, UI 밖)를 기다린다.
+        if (_aimFingerId < 0)
+        {
+            // 두 손가락 이상이면 핀치/팬(카메라)에 양보하고 조준을 시작하지 않는다.
+            if (Input.touchCount == 1)
+            {
+                var t0 = Input.GetTouch(0);
+                if (t0.phase == TouchPhase.Began && !TouchInput.IsFingerOverUI(t0.fingerId))
+                {
+                    _aimFingerId = t0.fingerId;
+                    _aimPending = true;
+                    _aimStartScreen = t0.position;
+                    _aimPressTime = Time.unscaledTime;
+                }
+            }
+            if (_aimFingerId < 0) { if (_laser != null) _laser.enabled = false; return; }
+        }
+
+        // 손가락 추적. 사라졌으면(안전) 발사 없이 종료.
+        if (!TouchInput.TryGetTouch(_aimFingerId, out var t)) { CancelTouchAim(); return; }
+
+        Vector2 dir = AimDirFromScreen(t.position);
+        bool ended = t.phase == TouchPhase.Ended || t.phase == TouchPhase.Canceled;
+
+        if (_aimPending)
+        {
+            // 확정 전 2번째 손가락 등장 → 핀치/팬으로 양보(조준 취소, 발사 없음).
+            if (Input.touchCount >= 2) { ResetAimTracking(); return; }
+
+            UpdateLaser(dir, _laserColor); // 손가락 따라 조준선 표시(피드백)
+
+            if (ended) { FinishTouchAim(dir, t.position, wasBreath: false); return; } // 즉발 스냅샷
+
+            bool moved = (t.position - _aimStartScreen).sqrMagnitude >= _touchAimMoveThreshold * _touchAimMoveThreshold;
+            bool held = (Time.unscaledTime - _aimPressTime) >= _touchAimHoldTime;
+            if (moved || held) { EnterBreath(dir); _aimPending = false; }
+            return;
+        }
+
+        // 호흡(조준 확정): 손가락 추종 + 흔들림, 취소존이면 취소색으로 표시.
+        Vector2 breathDir = ApplyBreathSway(dir);
+        bool cancelZone = IsInCancelZone(t.position);
+        UpdateLaser(breathDir, cancelZone ? _cancelColor : _breathColor);
+
+        if (ended) FinishTouchAim(breathDir, t.position, wasBreath: true);
+    }
+
+    /// <summary>터치 조준 종료: 취소존이면 발사 취소, 아니면 그 방향으로 발사한다.</summary>
+    private void FinishTouchAim(Vector2 dir, Vector2 screenPos, bool wasBreath)
+    {
+        bool cancel = IsInCancelZone(screenPos);
+        if (wasBreath) ExitBreath();
+
+        if (cancel)
+        {
+            _effects?.Cancel();
+        }
+        else
+        {
+            bool fired = TryFire(dir);
+            if (wasBreath) { if (fired) _effects?.Fire(); else _effects?.Cancel(); }
+        }
+        ResetAimTracking();
+    }
+
+    /// <summary>진행 중이던 터치 조준을 발사 없이 되돌린다(손가락 소실 등 안전 경로).</summary>
+    private void CancelTouchAim()
+    {
+        if (_phase == AimPhase.Breath) { ExitBreath(); _effects?.Cancel(); }
+        ResetAimTracking();
+    }
+
+    private void ResetAimTracking()
+    {
+        _aimFingerId = -1;
+        _aimPending = false;
+    }
+
+    /// <summary>스크린 좌표가 플레이어(취소 반경) 안쪽인지 — 캐릭터로 드래그해 취소하는 판정.</summary>
+    private bool IsInCancelZone(Vector2 screenPos)
+    {
+        if (_cam == null) return false;
+        Vector2 world = _cam.ScreenToWorldPoint(screenPos);
+        Vector2 origin = _firePoint != null ? (Vector2)_firePoint.position : (Vector2)transform.position;
+        return (world - origin).sqrMagnitude <= _cancelRadius * _cancelRadius;
     }
 
     /// <summary>조준을 고정하고 호흡(격발 대기) 상태로 진입한다.</summary>
@@ -730,6 +852,7 @@ public class PlayerShooter : MonoBehaviour
     private void ExitMode()
     {
         _mode = InputMode.Normal;
+        _itemFingerId = -1; // 터치 투척 조준 손가락 추적 해제.
         if (_itemIndicator != null) _itemIndicator.enabled = false;
         if (_cameraPan != null) _cameraPan.ControlsEnabled = true;
     }
@@ -777,6 +900,9 @@ public class PlayerShooter : MonoBehaviour
         var item = ResolveSelectedItem();
         if (item == null) { ExitMode(); return; }
 
+        // 모바일: 총알과 동일한 제스처(꾹 눌러 드래그→손 떼기, 캐릭터로 드래그하면 취소).
+        if (UseTouch) { HandleItemAimTouch(item); return; }
+
         Vector2 origin = _firePoint != null ? (Vector2)_firePoint.position : (Vector2)transform.position;
         Vector2 mouse = _cam != null ? (Vector2)_cam.ScreenToWorldPoint(Input.mousePosition) : origin;
         Vector2 to = mouse - origin;
@@ -792,6 +918,44 @@ public class PlayerShooter : MonoBehaviour
         // 그러지 않으면 슬롯을 누르자마자 발밑에 터지거나, 다른 버튼을 누를 수 없다.
         if (Time.frameCount == _itemAimEnteredFrame) return;
         if (Input.GetMouseButtonDown(0) && !IsPointerOverUI()) { UseItemAt(item, _itemAimPoint); ExitMode(); }
+    }
+
+    /// <summary>
+    /// 모바일 아이템 투척 조준: 월드를 꾹 눌러 드래그로 지점(사거리 클램프)을 정하고 손 떼기로 사용.
+    /// 손 뗄 때 캐릭터(취소 반경) 안쪽이면 사용하지 않고 취소한다. 진입을 유발한 퀵슬롯 탭 프레임은 흘려보낸다.
+    /// </summary>
+    private void HandleItemAimTouch(UsableItemSO item)
+    {
+        Vector2 origin = _firePoint != null ? (Vector2)_firePoint.position : (Vector2)transform.position;
+
+        if (_itemFingerId < 0)
+        {
+            // 진입 프레임(퀵슬롯 탭)은 무시하고, 그 다음 월드 프레스(UI 밖)를 조준 손가락으로 잡는다.
+            if (Time.frameCount != _itemAimEnteredFrame && TouchInput.TryGetBeganOffUI(out var began))
+                _itemFingerId = began.fingerId;
+
+            // 아직 안 눌렀으면 "여기를 눌러 던지세요" 힌트로 전방에 범위 원만 살짝 보여준다.
+            Vector2 fwd = _lockedDir.sqrMagnitude > 0.01f ? _lockedDir : Vector2.up;
+            Vector2 preview = origin + fwd * Mathf.Min(item.maxRange * 0.6f, 3f);
+            UpdateItemIndicator(preview, item.effectRadius, ColorForItem(item.kind));
+            return;
+        }
+
+        if (!TouchInput.TryGetTouch(_itemFingerId, out var t)) { ExitMode(); return; }
+
+        Vector2 world = _cam != null ? (Vector2)_cam.ScreenToWorldPoint(t.position) : origin;
+        Vector2 to = world - origin;
+        if (to.magnitude > item.maxRange) world = origin + to.normalized * item.maxRange; // 사거리 밖은 클램프.
+        _itemAimPoint = world;
+
+        bool cancel = IsInCancelZone(t.position);
+        UpdateItemIndicator(_itemAimPoint, item.effectRadius, cancel ? _cancelColor : ColorForItem(item.kind));
+
+        if (t.phase == TouchPhase.Ended || t.phase == TouchPhase.Canceled)
+        {
+            if (!cancel) UseItemAt(item, _itemAimPoint);
+            ExitMode();
+        }
     }
 
     /// <summary>아이템 효과를 지점에 적용하고 1개 소비한다.</summary>
@@ -969,10 +1133,16 @@ public class PlayerShooter : MonoBehaviour
             Debug.LogWarning("[PlayerShooter] 카메라가 없어 오른쪽(Vector2.right)으로 조준합니다.");
             return Vector2.right;
         }
+        return AimDirFromScreen(Input.mousePosition);
+    }
 
-        Vector2 mouseWorld = _cam.ScreenToWorldPoint(Input.mousePosition);
+    /// <summary>주어진 스크린 좌표(마우스/터치)를 향하는 발사 방향(정규화)을 계산한다.</summary>
+    private Vector2 AimDirFromScreen(Vector2 screenPos)
+    {
+        if (_cam == null) return Vector2.right;
+        Vector2 world = _cam.ScreenToWorldPoint(screenPos);
         Vector2 origin = _firePoint != null ? (Vector2)_firePoint.position : (Vector2)transform.position;
-        Vector2 dir = mouseWorld - origin;
+        Vector2 dir = world - origin;
         return dir.sqrMagnitude > 0.0001f ? dir.normalized : Vector2.right;
     }
 
