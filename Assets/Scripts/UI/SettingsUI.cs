@@ -172,6 +172,13 @@ public class SettingsUI : MonoBehaviour
             SceneLoader.LoadTitle();
         });
 
+        AddButton(pRt, "메인 메뉴로", new Color(0.20f, 0.28f, 0.40f), () =>
+        {
+            Time.timeScale = 1f;   // 일시정지(인벤 등) 상태에서 나갈 수 있으니 복구.
+            SetVisible(false);
+            SceneLoader.LoadTitle();
+        });
+
         AddButton(pRt, "닫기", new Color(0.25f, 0.35f, 0.22f), () => SetVisible(false));
     }
 
