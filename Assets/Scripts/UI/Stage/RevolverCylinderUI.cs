@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using DG.Tweening;
 using TMPro;
 using UnityEngine;
@@ -91,14 +92,51 @@ public class RevolverCylinderUI : MonoBehaviour,
     private float _lastPointerAngle;
     private Vector2 _pressPosition;
 
-    private int ChamberCount => _chambers != null ? _chambers.Length : 0;
-    private float StepAngle => ChamberCount > 0 ? 360f / ChamberCount : 360f;
+    // 약실을 인벤토리 탄환 종류 수에 맞춰 동적으로 늘리는 런타임 풀.
+    // 직렬화된 _chambers를 시드로 쓰고, 부족하면 첫 약실을 템플릿으로 복제한다.
+    private readonly List<CylinderChamberView> _pool = new List<CylinderChamberView>();
+    private CylinderChamberView _template;   // 복제 원본(= 첫 직렬화 약실)
+    private Transform _chamberParent;        // 복제 약실을 붙일 부모(= 회전하는 _rotor 아래)
+    private int _serializedCount;            // 프리팹에 박힌 약실 수(= 최소 약실 수, 리볼버 모양 유지)
+    private int _active;                     // 현재 활성 약실 수(= Max(_serializedCount, 탄종 수))
+
+    private int ChamberCount => _active;
+    private float StepAngle => _active > 0 ? 360f / _active : 360f;
 
     private void Awake()
     {
         if (_root == null) _root = (RectTransform)transform;
+
+        // 직렬화된 약실들을 풀에 시드하고, 첫 약실을 복제 템플릿으로 삼는다.
+        if (_chambers != null)
+            foreach (var c in _chambers)
+                if (c != null) _pool.Add(c);
+        _serializedCount = _pool.Count;
+        _template = _pool.Count > 0 ? _pool[0] : null;
+        _chamberParent = _template != null ? _template.transform.parent : (_rotor != null ? _rotor : transform);
+        _active = _pool.Count;
+
         LayoutChambers();
         ApplyRotation(_rotorAngle);   // 첫 프레임부터 가장자리 페이드가 맞게 보이도록.
+    }
+
+    /// <summary>활성 약실 수를 n으로 맞춘다(모자라면 템플릿 복제, 넘치면 비활성). n≥1.</summary>
+    private void EnsureChambers(int n)
+    {
+        n = Mathf.Max(1, n);
+        if (_template != null)
+        {
+            while (_pool.Count < n)
+            {
+                var clone = Instantiate(_template.gameObject, _chamberParent);
+                clone.name = "Chamber_" + _pool.Count;
+                _pool.Add(clone.GetComponent<CylinderChamberView>());
+            }
+            for (int i = 0; i < _pool.Count; i++)
+                if (_pool[i] != null && _pool[i].gameObject.activeSelf != (i < n))
+                    _pool[i].gameObject.SetActive(i < n);
+        }
+        _active = Mathf.Min(n, _pool.Count);
     }
 
     private void OnEnable()
@@ -141,11 +179,11 @@ public class RevolverCylinderUI : MonoBehaviour,
     /// <summary>약실들을 12시부터 반시계 방향으로 원둘레에 늘어놓는다(뒷판 스프라이트의 구멍과 같은 규칙).</summary>
     private void LayoutChambers()
     {
-        for (int i = 0; i < ChamberCount; i++)
+        for (int i = 0; i < _active; i++)
         {
-            if (_chambers[i] == null) continue;
+            if (_pool[i] == null) continue;
             float a = (90f + i * StepAngle) * Mathf.Deg2Rad;
-            _chambers[i].Rect.anchoredPosition = new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * _orbitRadius;
+            _pool[i].Rect.anchoredPosition = new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * _orbitRadius;
         }
     }
 
@@ -168,26 +206,39 @@ public class RevolverCylinderUI : MonoBehaviour,
     private void Refresh()
     {
         var choices = _shooter.Choices;
-        _filled = Mathf.Min(choices.Count, ChamberCount);
 
-        for (int i = 0; i < ChamberCount; i++)
+        int prevActive = _active;
+        int desired = Mathf.Max(_serializedCount, choices.Count);
+        EnsureChambers(desired);   // 탄종 수에 맞춰 약실을 늘리고(부족분 복제) 활성화.
+        LayoutChambers();          // 바뀐 StepAngle로 재배치.
+        bool countChanged = _active != prevActive;
+
+        _filled = Mathf.Min(choices.Count, _active);
+        for (int i = 0; i < _active; i++)
         {
-            if (_chambers[i] == null) continue;
-            if (i < _filled) _chambers[i].Set(choices[i].Definition, choices[i].Count, _fallbackBulletIcon);
-            else _chambers[i].Set(null, 0, _fallbackBulletIcon);
+            if (_pool[i] == null) continue;
+            if (i < _filled) _pool[i].Set(choices[i].Definition, choices[i].Count, _fallbackBulletIcon);
+            else _pool[i].Set(null, 0, _fallbackBulletIcon);
         }
 
         if (_emptyLabel != null) _emptyLabel.SetActive(_filled == 0);
 
-        int target = Mathf.Clamp(_shooter.SelectedIndex, 0, Mathf.Max(0, _filled - 1));
         if (_filled == 0)
         {
             _selected = -1;
             SetMainSlot(null, 0, animate: false);
+            ApplyRotation(_rotorAngle);
             return;
         }
 
-        if (target != _selected)
+        int target = Mathf.Clamp(_shooter.SelectedIndex, 0, _filled - 1);
+
+        if (countChanged)
+        {
+            // 약실 수가 바뀌면 각 칸의 각도가 달라지므로 애니메이션 없이 선택칸을 12시로 스냅.
+            RotateToChamber(target, animate: false, feed: false);
+        }
+        else if (target != _selected)
         {
             // 외부(숫자키 등)에서 선택이 바뀐 경우에도 실린더가 따라 돌고 같은 촉감을 준다.
             RotateToChamber(target, animate: true, feed: true);
@@ -275,11 +326,11 @@ public class RevolverCylinderUI : MonoBehaviour,
         _rotorAngle = angle;
         if (_rotor != null) _rotor.localEulerAngles = new Vector3(0f, 0f, angle);
 
-        for (int i = 0; i < ChamberCount; i++)
+        for (int i = 0; i < _active; i++)
         {
-            if (_chambers[i] == null) continue;
-            _chambers[i].SetCounterRotation(angle);
-            _chambers[i].SetEdgeFade(EdgeFadeAt(i, angle));
+            if (_pool[i] == null) continue;
+            _pool[i].SetCounterRotation(angle);
+            _pool[i].SetEdgeFade(EdgeFadeAt(i, angle));
         }
     }
 
@@ -302,15 +353,15 @@ public class RevolverCylinderUI : MonoBehaviour,
     /// <summary><paramref name="index"/>번 약실이 12시에 오도록 돌린다. 지금 각도에서 가장 가까운 등가 각도로 간다.</summary>
     private void RotateToChamber(int index, bool animate, bool feed)
     {
-        if (index < 0 || index >= ChamberCount) return;
+        if (index < 0 || index >= _active) return;
 
         float raw = -index * StepAngle;
         // raw 와 360도 차이나는 값들 중 현재 각도에 가장 가까운 것 — 괜히 한 바퀴 되돌아가지 않게.
         float target = raw + Mathf.Round((_rotorAngle - raw) / 360f) * 360f;
 
         _selected = index;
-        for (int i = 0; i < ChamberCount; i++)
-            if (_chambers[i] != null) _chambers[i].SetLoaded(i == index);
+        for (int i = 0; i < _active; i++)
+            if (_pool[i] != null) _pool[i].SetLoaded(i == index);
 
         var choices = _shooter != null ? _shooter.Choices : null;
         BulletItemDefinition def = choices != null && index < choices.Count ? choices[index].Definition : null;
@@ -440,10 +491,10 @@ public class RevolverCylinderUI : MonoBehaviour,
 
         for (int i = 0; i < _filled; i++)
         {
-            if (_chambers[i] == null) continue;
+            if (_pool[i] == null) continue;
             // 벽 뒤로 사라지는 중인 약실은 탭으로 고를 수 없다(보이지도 않는데 잡히면 혼란스럽다).
-            if (_chambers[i].EdgeAlpha < 0.5f) continue;
-            float d = (inRotor - _chambers[i].Rect.anchoredPosition).sqrMagnitude;
+            if (_pool[i].EdgeAlpha < 0.5f) continue;
+            float d = (inRotor - _pool[i].Rect.anchoredPosition).sqrMagnitude;
             if (d < best) { best = d; bestIndex = i; }
         }
 

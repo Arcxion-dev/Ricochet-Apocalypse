@@ -694,8 +694,9 @@ public class PlayerShooter : MonoBehaviour
                     // 같은 종류는 수량을 합친다(기본탄 스택 + 동일 id 강화탄).
                     _choices[idx] = new BulletChoice(_choices[idx].Definition, _choices[idx].Count + entry.Quantity);
                 }
-                else if (_choices.Count < MaxSelectableBullets)
+                else
                 {
+                    // 인벤토리의 모든 탄환 종류를 담는다(상한 없음). 실린더가 동적으로 전부 표시/순환한다.
                     _choices.Add(new BulletChoice(bullet, entry.Quantity));
                 }
             }
