@@ -1,0 +1,27 @@
+plugins {
+    // If you are changing the Android Gradle Plugin version, make sure it is compatible with the Gradle version preinstalled with Unity
+    // See which Gradle version is preinstalled with Unity here https://docs.unity3d.com/Manual/android-gradle-overview.html
+    // See official Gradle and Android Gradle Plugin compatibility table here https://developer.android.com/studio/releases/gradle-plugin#updating-gradle
+    // To specify a custom Gradle version in Unity, go do "Preferences > External Tools", uncheck "Gradle Installed with Unity (recommended)" and specify a path to a custom Gradle version
+    id 'com.android.application' version '9.0.0' apply false
+    id 'com.android.library' version '9.0.0' apply false
+    **BUILD_SCRIPT_DEPS**
+}
+
+tasks.register('clean', Delete) {
+    delete rootProject.layout.buildDirectory
+}
+
+// [빌드 픽스] Play Billing/IAP 플러그인이 끌어오는 구버전 kotlin-stdlib-jdk7/jdk8(1.6.21)와
+// Unity의 kotlin-stdlib(1.8.22) 사이 중복 클래스(:launcher:checkReleaseDuplicateClasses) 해소.
+// kotlin 1.8.x부터 jdk7/jdk8 아티팩트가 본체(stdlib)로 병합되어, 1.8.22로 강제 정렬하면
+// jdk7/jdk8 jar가 빈 스텁이 되어 중복이 사라진다. allprojects라 :launcher 모듈에도 적용된다.
+allprojects {
+    configurations.all {
+        resolutionStrategy {
+            force 'org.jetbrains.kotlin:kotlin-stdlib:1.8.22'
+            force 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22'
+            force 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22'
+        }
+    }
+}
