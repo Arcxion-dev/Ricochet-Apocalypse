@@ -17,7 +17,7 @@ MonoBehaviour:
   category: 2
   icon: {fileID: -728337880, guid: 1875cc81d0493374f82d772dc4f7ef79, type: 3}
   maxStack: 1
-  description: 
+  description: 벽을 관통하며, 철갑을 두른 적에게 추가 피해를 줍니다.
   shopPrice: 40
   isBasic: 0
   bulletData: {fileID: 11400000, guid: 83d5b1c004995ff4fab5dfd0d96141b7, type: 2}

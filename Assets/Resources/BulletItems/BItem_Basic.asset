@@ -17,7 +17,7 @@ MonoBehaviour:
   category: 2
   icon: {fileID: 1113245189, guid: fa931f95b238ef543a1681a41579767b, type: 3}
   maxStack: 999
-  description: 
+  description: 특수 효과 없는 기본 탄환입니다.
   shopPrice: 20
   isBasic: 1
   bulletData: {fileID: 11400000, guid: fcc660fe00ada6c47963c99927a656bd, type: 2}
