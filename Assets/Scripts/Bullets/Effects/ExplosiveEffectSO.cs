@@ -39,6 +39,9 @@ public class ExplosiveEffectSO : BulletEffectSO
 
         Vector2 pos = bullet.transform.position;
 
+        // 폭발 연출: 폭발 이펙트 PNG를 폭발 반경에 맞춰 1.2초간 생겼다 사라지게 재생.
+        ExplosionSpriteEffect.Spawn(pos, explosionRadius * 2f, 1.2f);
+
         bool hasArmorPiercing = bullet.Data.HasEffect<ArmorPiercingEffectSO>();
         var enemyHits = Physics2D.OverlapCircleAll(pos, explosionRadius, bullet.EnemyLayerMask);
         foreach (var hit in enemyHits)
