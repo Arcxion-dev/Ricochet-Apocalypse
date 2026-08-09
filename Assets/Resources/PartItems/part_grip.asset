@@ -18,5 +18,5 @@ MonoBehaviour:
   icon: {fileID: 1911818593, guid: 16ebbbd406b40a84e9529b359ce427ed, type: 3}
   maxStack: 1
   description: "\uC190\uC7A1\uC774 \uD30C\uCE20"
-  shopPrice: 100
+  shopPrice: 50
   part: {fileID: 11400000, guid: a9ffe8026af316d438dde4e893bfc7ef, type: 2}

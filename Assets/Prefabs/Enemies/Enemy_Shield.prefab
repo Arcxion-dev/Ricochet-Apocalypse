@@ -53,4 +53,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4c1a0f834277e28468ffd53d0493566f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShieldModule
-  shieldHealth: 10
+  shieldHealth: 16

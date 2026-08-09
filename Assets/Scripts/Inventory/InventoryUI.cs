@@ -231,10 +231,32 @@ public class InventoryUI : MonoBehaviour
         PopulateGrid(list);
     }
 
+    /// <summary>
+    /// 같은 id의 슬롯을 하나로 합쳐서 담는다. 강화 탄환처럼 스택 불가(maxStack 1)라
+    /// 구매/획득 때마다 슬롯이 개별로 늘어나는 아이템도, 그리드에는 "종류당 1칸 + 개수"로 보여야
+    /// 매번 새 아이템처럼 보이지 않는다(PlayerShooter.RebuildChoices와 동일한 병합 규칙).
+    /// </summary>
     private void CollectCategory(ItemCategory c, List<(ItemDefinition, int)> list)
     {
         foreach (var e in _inventory.GetEntries(c))
-            if (e.Definition != null && e.Quantity > 0) list.Add((e.Definition, e.Quantity));
+        {
+            if (e.Definition == null || e.Quantity <= 0) continue;
+
+            int idx = FindIndex(list, e.Definition);
+            if (idx >= 0) list[idx] = (list[idx].Item1, list[idx].Item2 + e.Quantity);
+            else list.Add((e.Definition, e.Quantity));
+        }
+    }
+
+    private static int FindIndex(List<(ItemDefinition def, int qty)> list, ItemDefinition definition)
+    {
+        for (int i = 0; i < list.Count; i++)
+        {
+            var def = list[i].def;
+            if (def == definition) return i;
+            if (def != null && !string.IsNullOrEmpty(def.id) && def.id == definition.id) return i;
+        }
+        return -1;
     }
 
     private void PopulateGrid(List<(ItemDefinition def, int qty)> items)

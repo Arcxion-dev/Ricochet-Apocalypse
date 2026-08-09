@@ -262,7 +262,8 @@ public class RevolverCylinderUI : MonoBehaviour,
             if (has)
             {
                 _mainIcon.sprite = definition.icon != null ? definition.icon : _fallbackBulletIcon;
-                _mainIcon.color = CylinderChamberView.BulletTint(definition);
+                // 탄환마다 전용 스프라이트가 있으므로 종류별 색 변형 없이 원화 그대로 띄운다.
+                _mainIcon.color = Color.white;
             }
         }
         if (_mainCount != null)
@@ -275,8 +276,8 @@ public class RevolverCylinderUI : MonoBehaviour,
             _mainName.enabled = has;
             if (has) _mainName.text = definition.ResolvedName;
         }
-        if (_mainRing != null && has)
-            _mainRing.color = Color.Lerp(Color.white, CylinderChamberView.BulletTint(definition), 0.45f);
+        // 링은 금속 원화 그대로 — 장전된 탄 종류에 따라 물들이지 않는다.
+        if (_mainRing != null && has) _mainRing.color = Color.white;
 
         if (!animate || !has || _mainIconRect == null) return;
 
@@ -512,13 +513,8 @@ public class RevolverCylinderUI : MonoBehaviour,
         return local - new Vector2(r.center.x, r.center.y);
     }
 
-    private Color GlowColor(float alpha)
-    {
-        Color c = _selected >= 0 && _shooter != null && _selected < _shooter.Choices.Count
-            ? CylinderChamberView.BulletTint(_shooter.Choices[_selected].Definition)
-            : UITheme.Cyan;
-        return c.A(alpha);
-    }
+    /// <summary>글로우 색. 장전된 탄 종류와 무관하게 HUD 기본 시안으로 고정한다.</summary>
+    private static Color GlowColor(float alpha) => UITheme.Cyan.A(alpha);
 
     private static Vector2 Rotate(Vector2 p, float deg)
     {

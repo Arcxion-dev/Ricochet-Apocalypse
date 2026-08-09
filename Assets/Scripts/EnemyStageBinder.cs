@@ -16,10 +16,17 @@ public class EnemyStageBinder : MonoBehaviour
 {
     private Enemy _enemy;
     private bool _registered;
+    private bool _isSpecialEnemy;
 
     private void Awake()
     {
         _enemy = GetComponent<Enemy>();
+
+        // 특수 몹(도망/시체산/방패/소환) 판정: 해당 전용 모듈 중 하나라도 있으면 특수 처치 보상 단가를 적용한다.
+        _isSpecialEnemy = GetComponent<FleeOnHitModule>() != null
+            || GetComponent<CorpseOnDeathModule>() != null
+            || GetComponent<ShieldModule>() != null
+            || GetComponent<SummonOnHitModule>() != null;
     }
 
     private void Start()
@@ -41,7 +48,7 @@ public class EnemyStageBinder : MonoBehaviour
 
         if (GameManager.Instance != null)
         {
-            GameManager.Instance.ReportEnemyKilled();
+            GameManager.Instance.ReportEnemyKilled(_isSpecialEnemy);
             GameManager.Instance.UnregisterEnemy(_enemy);
         }
     }

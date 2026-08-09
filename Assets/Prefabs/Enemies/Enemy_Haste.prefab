@@ -132,6 +132,7 @@ GameObject:
   - component: {fileID: 9086602408139796121}
   - component: {fileID: 7705458999018727463}
   - component: {fileID: 1000000000000000003}
+  - component: {fileID: 6967466768383991006}
   m_Layer: 7
   m_Name: Enemy_Haste
   m_TagString: Enemy
@@ -334,3 +335,25 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 30369f070a2170e408b261d1f752e789, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &6967466768383991006
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6181932784999267976}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ce81bfe3f62f1ad498878dd52d5c6f52, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AttributeModule
+  weaknessTable:
+  - attackerAttribute: 8
+    damageMultiplier: 1
+    zoneTickMultiplier: 0.8
+    oneShotZoneTick: 0
+  - attackerAttribute: 9
+    damageMultiplier: 1
+    zoneTickMultiplier: 0.8
+    oneShotZoneTick: 0
+  defaultMultiplier: 1
