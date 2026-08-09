@@ -17,7 +17,7 @@ MonoBehaviour:
   category: 2
   icon: {fileID: 1539786679, guid: bcdfd8756ecb74747bf06f172d2aeecb, type: 3}
   maxStack: 1
-  description: 
+  description: 명중한 자리에서 폭발해 주변 적과 바위에 범위 피해를 줍니다.
   shopPrice: 35
   isBasic: 0
   bulletData: {fileID: 11400000, guid: fb0c7ccfca215dc4490e23a2c79d89c2, type: 2}

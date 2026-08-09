@@ -17,7 +17,7 @@ MonoBehaviour:
   category: 2
   icon: {fileID: -1207016542, guid: c440ba1b02ed29f45bf92c7f0090a95e, type: 3}
   maxStack: 1
-  description: 
+  description: 적에게 맞으면 일정 시간 이동을 멈추게 합니다.
   shopPrice: 35
   isBasic: 0
   bulletData: {fileID: 11400000, guid: 6d4d05f9c4ad927458e960dd6d2d6838, type: 2}

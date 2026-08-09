@@ -17,7 +17,7 @@ MonoBehaviour:
   category: 2
   icon: {fileID: -884086696, guid: 490cdeeb2ea73e544a306991aacac4e4, type: 3}
   maxStack: 1
-  description: 
+  description: 가까운 적을 자동으로 추적해 명중합니다.
   shopPrice: 35
   isBasic: 0
   bulletData: {fileID: 11400000, guid: 62a305e32295c9d4b8816add47c2f118, type: 2}

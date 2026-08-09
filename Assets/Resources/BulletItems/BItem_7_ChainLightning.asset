@@ -17,7 +17,7 @@ MonoBehaviour:
   category: 2
   icon: {fileID: 720995098, guid: 6af49e9bed5fbc34aa24cf44fa4f7421, type: 3}
   maxStack: 1
-  description: 
+  description: 명중한 적을 시작으로 근처 적들에게 피해가 연쇄로 전이됩니다.
   shopPrice: 35
   isBasic: 0
   bulletData: {fileID: 11400000, guid: 56bfb5f498b87a74ea576fd6ec53c91d, type: 2}
