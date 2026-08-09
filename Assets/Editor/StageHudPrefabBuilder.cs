@@ -431,7 +431,8 @@ public static class StageHudPrefabBuilder
         Place(iconRect, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 16f), new Vector2(88f, 88f));
         iconRect.gameObject.AddComponent<CanvasGroup>();
 
-        var mainIcon = Img("Icon", iconRect, S("Bullet_Icon"), UITheme.Cyan);
+        // 탄환 아이콘은 종류별 전용 스프라이트를 원화 그대로 쓴다 — 틴트 없음(흰색).
+        var mainIcon = Img("Icon", iconRect, S("Bullet_Icon"), Color.white);
         Stretch(mainIcon.rectTransform);
 
         var mainCount = Text("Count", mainSlot, "×0", 26f, UITheme.TextHi, UITheme.Bold, TextAlignmentOptions.Center);
@@ -500,7 +501,7 @@ public static class StageHudPrefabBuilder
         Stretch(upright);
         upright.gameObject.AddComponent<CanvasGroup>();
 
-        var icon = Img("Icon", upright, S("Bullet_Icon"), UITheme.Cyan);
+        var icon = Img("Icon", upright, S("Bullet_Icon"), Color.white);
         Place(icon.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0f, 8f), new Vector2(44f, 44f));
 
         var count = Text("Count", upright, "0", 18f, UITheme.TextHi, UITheme.Bold, TextAlignmentOptions.Center);

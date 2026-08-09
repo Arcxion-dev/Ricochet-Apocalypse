@@ -47,7 +47,8 @@ public class CylinderChamberView : MonoBehaviour
             if (HasRound)
             {
                 _icon.sprite = definition.icon != null ? definition.icon : fallbackIcon;
-                _icon.color = BulletTint(definition);
+                // 탄환마다 전용 스프라이트가 그려져 있으므로 색은 건드리지 않는다(원화 그대로).
+                _icon.color = Color.white;
             }
         }
 
@@ -76,15 +77,5 @@ public class CylinderChamberView : MonoBehaviour
     public void SetCounterRotation(float rotorAngle)
     {
         if (_upright != null) _upright.localEulerAngles = new Vector3(0f, 0f, -rotorAngle);
-    }
-
-    /// <summary>탄환의 대표 색. 능력 라벨이 있으면 그 속성 색, 없으면 시안.</summary>
-    public static Color BulletTint(BulletItemDefinition definition)
-    {
-        if (definition == null) return UITheme.Cyan;
-        if (definition.isBasic) return UITheme.TextHi;
-
-        var labels = definition.GetAbilityLabels();
-        return labels != null && labels.Count > 0 ? UITheme.AbilityColor(labels[0]) : UITheme.Cyan;
     }
 }
