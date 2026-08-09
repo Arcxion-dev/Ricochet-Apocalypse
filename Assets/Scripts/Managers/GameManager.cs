@@ -25,14 +25,14 @@ public class GameManager : MonoBehaviour
     [SerializeField] private bool _goToShopOnClear = true;
 
     [Header("보상 계산 (임시 밸런스)")]
-    [SerializeField] private int _baseClearReward = 100;
     [Tooltip("특수 몹(도망/시체산/방패/소환)을 제외한 모든 적 처치 보상.")]
     [SerializeField] private int _normalKillReward = 20;
     [Tooltip("특수 몹(도망/시체산/방패/소환) 처치 보상.")]
     [SerializeField] private int _specialKillReward = 25;
     [Tooltip("최고 콤보 1당 지급되는 보상.")]
     [SerializeField] private int _rewardPerCombo = 5;
-    [SerializeField] private int _perfectBonus = 200;
+    [Tooltip("단 1발로 스테이지를 클리어했을 때 지급되는 추가 보너스.")]
+    [SerializeField] private int _perfectBonus = 100;
 
     [Header("보물상자 보상")]
     [Tooltip("보물상자(구 민간인 오브젝트)를 탄환으로 파괴하면 지급하는 추가 골드.")]
@@ -230,8 +230,7 @@ public class GameManager : MonoBehaviour
 
         bool isPerfect = _shotsFired == 1;
         int comboBonus = _rewardPerCombo * _bestCombo;
-        int reward = _baseClearReward
-                     + _killRewardTotal
+        int reward = _killRewardTotal
                      + comboBonus
                      + (isPerfect ? _perfectBonus : 0);
 
