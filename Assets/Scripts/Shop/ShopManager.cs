@@ -8,7 +8,7 @@ using UnityEngine;
 public static class ShopManager
 {
     /// <summary>탄환 조합에 드는 고정 비용(골드). 개별 아이템 가격과 달리 게임 규칙이라 상수로 둔다.</summary>
-    public const int CombineCost = 10;
+    public const int CombineCost = 30;
 
     private static ItemDefinition _gold;
     private static ItemDefinition Gold =>

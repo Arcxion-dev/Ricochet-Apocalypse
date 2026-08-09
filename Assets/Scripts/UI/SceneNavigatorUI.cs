@@ -31,7 +31,15 @@ public class SceneNavigatorUI : MonoBehaviour
     [Tooltip("화면 좌상단으로부터의 여백(px)")]
     [SerializeField] private Vector2 _margin = new Vector2(24f, 24f);
 
+    [Header("디버그 표시")]
+    [Tooltip("시작할 때 디버그 로더(타이틀/상점/다음/초기화)와 스테이지 인덱스를 보일지 여부. 기본 꺼짐.")]
+    [SerializeField] private bool _visibleOnStart = false;
+
+    [Tooltip("디버그 로더를 켜고 끄는 토글 키(개발용).")]
+    [SerializeField] private KeyCode _toggleKey = KeyCode.F1;
+
     private static SceneNavigatorUI _instance;
+    private bool _visible;
 
     private Canvas _canvas;
     private RectTransform _panel;
@@ -60,6 +68,24 @@ public class SceneNavigatorUI : MonoBehaviour
 
         SceneManager.sceneLoaded += OnSceneLoaded;
         RebuildButtons(SceneManager.GetActiveScene().name);
+
+        _visible = _visibleOnStart;
+        ApplyVisibility();
+    }
+
+    private void Update()
+    {
+        if (Input.GetKeyDown(_toggleKey))
+        {
+            _visible = !_visible;
+            ApplyVisibility();
+        }
+    }
+
+    /// <summary>현재 표시 상태를 캔버스에 반영한다(꺼지면 렌더/클릭 모두 비활성).</summary>
+    private void ApplyVisibility()
+    {
+        if (_canvas != null) _canvas.enabled = _visible;
     }
 
     private void OnDestroy()
