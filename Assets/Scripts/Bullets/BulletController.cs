@@ -281,6 +281,9 @@ public class BulletController : MonoBehaviour
         Target = newTarget;
     }
 
+    /// <summary>현재 이동 속력(월드 단위/초). 자력 등 외부 시스템이 속도에 비례한 힘을 줄 때 참조한다.</summary>
+    public float CurrentSpeed => _rb != null ? _rb.linearVelocity.magnitude : (Data != null ? Data.speed : 0f);
+
     /// <summary>
     /// 물리엔진(바람) 담당 시스템이 매 프레임 호출해서 힘을 더해줄 수 있는 진입점.
     /// (예: WindZone.OnTriggerStay2D -> bullet.ApplyExternalForce(windForce))
