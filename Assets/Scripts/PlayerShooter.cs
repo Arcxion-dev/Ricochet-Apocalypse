@@ -1060,7 +1060,8 @@ public class PlayerShooter : MonoBehaviour
                     }
                 }
             }
-            PlayItemVfx(point);
+            // 수류탄/폭격지원: 폭발 이펙트 PNG를 효과 반경에 맞춰 1.2초간 재생.
+            ExplosionSpriteEffect.Spawn(point, item.effectRadius * 2f, 1.2f);
             Debug.Log($"[PlayerShooter] {item.KindLabel}! {point} 반경 {item.effectRadius} 피해 {item.damage} → {damaged}체 적중");
         }
 
