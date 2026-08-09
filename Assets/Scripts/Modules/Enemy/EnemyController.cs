@@ -104,10 +104,10 @@ public bool OnBulletHit(float baseDamage, BulletSO bulletData, bool isArmorPierc
         if (defenseModule != null && defenseModule.TryBlockHit())
             return false; // 무적 판정으로 피해 무시
 
-        // 방패 몹: 방패가 깨지기 전까지는 직격 총알에 완전 무적(방패 체력도 깎이지 않는다).
-        // 폭발 반경/장판 틱(ApplyAreaDamage/ApplyPrecomputedDamage)만 방패를 벗길 수 있다.
-        if (shieldModule != null && !shieldModule.IsBroken)
-            return false;
+        // 방패 몹: 직격 총알도 방패가 먼저 흡수한다(RouteDamageToHealth에서 처리).
+        // 방패가 남아 있는 동안엔 본체 체력은 깎이지 않지만, 피격 반응은 정상적으로 나오고
+        // 방패 체력이 0이 되면 그때부터 일반 몹처럼 본체가 피해를 받아 처치할 수 있다.
+        // (이전엔 여기서 완전 무적으로 return 해 피격 반응도 없고 방패도 안 깨지던 버그가 있었음.)
 
         float finalDamage = baseDamage;
 
