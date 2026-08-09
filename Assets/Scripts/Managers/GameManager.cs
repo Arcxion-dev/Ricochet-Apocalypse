@@ -237,8 +237,17 @@ public class GameManager : MonoBehaviour
         // 스테이지별 드랍테이블을 굴려 아이템을 지급하고, 클리어 UI에 표시한다.
         var drops = RollAndAwardDrops();
 
-        // 클리어 UI를 띄우고, [확인] 시 상점(또는 결과)으로 진행한다. UI가 없으면 바로 진행.
-        if (StageClearUI.Instance != null) StageClearUI.Instance.Show(result, drops, ProceedAfterClear);
+        // 마지막 스테이지 클리어면 상점/다음 대신 "게임 클리어" 화면 + [메인 메뉴] 버튼으로 타이틀 복귀한다.
+        bool isFinalStage = SceneLoader.CurrentStageIndex + 1 >= SceneLoader.StageCount;
+
+        // 클리어 UI를 띄우고, [확인] 시 상점(또는 마지막이면 메인 메뉴)으로 진행한다. UI가 없으면 바로 진행.
+        if (StageClearUI.Instance != null)
+        {
+            if (isFinalStage)
+                StageClearUI.Instance.Show(result, drops, ProceedAfterClear, "게임 클리어", "메인 메뉴");
+            else
+                StageClearUI.Instance.Show(result, drops, ProceedAfterClear);
+        }
         else ProceedAfterClear();
     }
 
@@ -263,13 +272,14 @@ public class GameManager : MonoBehaviour
         return results;
     }
 
-    /// <summary>클리어 UI [확인] 후: 스테이지 인덱스를 다음으로 올리고 상점을 경유한다(마지막이면 결과 씬).</summary>
+    /// <summary>클리어 UI [확인] 후: 스테이지 인덱스를 다음으로 올리고 상점을 경유한다(마지막이면 메인 메뉴로 복귀).</summary>
     private void ProceedAfterClear()
     {
         int next = SceneLoader.CurrentStageIndex + 1;
         if (next >= SceneLoader.StageCount)
         {
-            SceneLoader.LoadResult();
+            // 마지막 스테이지 클리어 → 메인 메뉴(타이틀)로 복귀. 진행 인덱스도 초기화된다.
+            SceneLoader.LoadTitle();
             return;
         }
 

@@ -44,6 +44,8 @@ public class StageClearUI : MonoBehaviour
     [SerializeField] private Button _confirmButton;
 
     private Action _onConfirm;
+    private TMP_Text _confirmLabel;      // 확인 버튼의 라벨(있으면).
+    private string _defaultConfirmLabel;  // 프리팹 기본 라벨(마지막 스테이지 외에는 이걸로 복원).
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
@@ -65,18 +67,32 @@ public class StageClearUI : MonoBehaviour
         DontDestroyOnLoad(gameObject);
 
         EnsureEventSystem();
-        if (_confirmButton != null) _confirmButton.onClick.AddListener(OnConfirmClicked);
+        if (_confirmButton != null)
+        {
+            _confirmButton.onClick.AddListener(OnConfirmClicked);
+            _confirmLabel = _confirmButton.GetComponentInChildren<TMP_Text>(true);
+            if (_confirmLabel != null) _defaultConfirmLabel = _confirmLabel.text;
+        }
         if (_group == null && _canvas != null) _group = UIAnim.GroupOf(_canvas);
         if (_canvas != null) _canvas.enabled = false; // 평소 숨김.
     }
 
-    /// <summary>클리어 결과와 드랍 목록을 표시하고, [확인] 시 onConfirm을 호출한다.</summary>
-    public void Show(StageResult result, IReadOnlyList<DropResult> drops, Action onConfirm)
+    /// <summary>
+    /// 클리어 결과와 드랍 목록을 표시하고, [확인] 시 onConfirm을 호출한다.
+    /// <paramref name="titleOverride"/>/<paramref name="confirmLabel"/>를 주면 타이틀 문구·확인 버튼 라벨을 바꾼다
+    /// (마지막 스테이지 클리어 시 "게임 클리어" + "메인 메뉴" 버튼으로 재사용).
+    /// </summary>
+    public void Show(StageResult result, IReadOnlyList<DropResult> drops, Action onConfirm,
+        string titleOverride = null, string confirmLabel = null)
     {
         _onConfirm = onConfirm;
         Time.timeScale = 1f; // 오버레이가 프리즈 뒤에 가려지지 않도록.
 
-        if (_title != null) _title.text = result.IsClear ? "STAGE CLEAR" : "STAGE FAILED";
+        if (_title != null)
+            _title.text = titleOverride ?? (result.IsClear ? "STAGE CLEAR" : "STAGE FAILED");
+        // 확인 버튼 라벨: 지정되면 그 문구, 아니면 프리팹 기본으로 복원(싱글턴 재사용 시 라벨이 남지 않도록).
+        if (_confirmLabel != null)
+            _confirmLabel.text = string.IsNullOrEmpty(confirmLabel) ? _defaultConfirmLabel : confirmLabel;
         if (_perfectPill != null) _perfectPill.SetActive(result.IsPerfect);
 
         PopulateDrops(drops);
