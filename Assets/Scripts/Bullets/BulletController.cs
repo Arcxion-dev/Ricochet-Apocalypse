@@ -355,10 +355,21 @@ public BulletController SpawnChildBullet(BulletSO childData, Vector2 direction)
     private enum EffectKind { Hit, Bounce, Explosion }
 
     /// <summary>
+    /// 같은 타격음이 아주 짧은 간격으로 겹쳐 재생되면(예: 분열탄 여러 발이 한 프레임에 같은 벽을 때릴 때)
+    /// 위상이 겹쳐 "뭉개진 기괴한 소리"로 들린다. 이 간격 안의 중복 재생은 1회로 합친다.
+    /// </summary>
+    private const float HitSfxMinInterval = 0.05f;
+    private static float _lastHitSfxTime = -999f;
+
+    /// <summary>
     /// EffectHandler가 씬에 있으면 해당 카테고리의 무작위 이펙트를 현재 위치에 재생한다.
     /// EffectHandler가 없거나 목록이 비어 있으면 조용히 무시(씬에 EffectHandler가 없어도 안전).
     /// </summary>
-    private void PlayHitEffect(EffectKind kind)
+    /// <param name="playSound">
+    /// 타격음을 함께 재생할지. 관통(벽을 뚫고 지나감)처럼 "부딪힌 게 아닌" 경우에는 false로 넘겨
+    /// 이펙트만 재생한다. 철갑탄이 벽을 연달아 통과할 때 거쳐간 모든 벽에서 튕김음이 나던 문제 방지.
+    /// </param>
+    private void PlayHitEffect(EffectKind kind, bool playSound = true)
     {
         var handler = EffectHandler.Instance;
         if (handler == null) return;
@@ -370,7 +381,14 @@ public BulletController SpawnChildBullet(BulletSO childData, Vector2 direction)
 
         if (names == null || names.Count == 0) return;
         handler.Play(names[Random.Range(0, names.Count)], transform.position);
+
+        if (!playSound) return;
         // 사운드는 있으면 재생하되, 없거나 예외가 나도 게임플레이(튕김 등)에는 영향 없게 한다.
+        // (Domain Reload OFF 프로젝트라 static 값이 이전 플레이 세션에서 남아 있을 수 있다.
+        //  Time.unscaledTime은 플레이 시작 시 0으로 돌아가므로 now < 기록값이면 낡은 값으로 보고 무시한다.)
+        float now = Time.unscaledTime;
+        if (now >= _lastHitSfxTime && now - _lastHitSfxTime < HitSfxMinInterval) return;
+        _lastHitSfxTime = now;
         if (SoundManager.Instance != null) SoundManager.Instance.PlaySfx("Hit");
     }
 
@@ -452,7 +470,9 @@ private void HandleObstacleHit(Collider2D obstacle, BulletTargetType targetType,
         if (result != BulletHitResult.Penetrate || isNewContact)
         {
             // 벽 충돌/튕김 이펙트 재생 (Effect 담당자 EffectHandler 연동)
-            PlayHitEffect(EffectKind.Bounce);
+            // 튕김음은 "실제로 튕겼을 때"만 낸다. 관통(철갑탄이 벽을 뚫고 지나감)은 이펙트만 재생 —
+            // 그렇지 않으면 연달아 통과한 벽마다 튕김음이 쌓여 뭉개진 소리가 난다.
+            PlayHitEffect(EffectKind.Bounce, playSound: result == BulletHitResult.Bounce);
 
             // 파괴 가능한 장애물(나무/바위) 처리
             var destructible = obstacle.GetComponent<DestructibleObstacle>();
