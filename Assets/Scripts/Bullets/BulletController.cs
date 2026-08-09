@@ -587,7 +587,14 @@ private void HandleObstacleHit(Collider2D obstacle, BulletTargetType targetType,
             : $"[BulletController] 벽 튕김 ({_bounceCount}/{EffectiveMaxBounceCount})");
     }
 
-private void Die()
+    /// <summary>
+    /// 외부(효과)에서 총알을 즉시 소멸시킨다. 폭발탄/중력탄처럼 "적/장애물에 닿는 순간 발동하고
+    /// 관통하지 않고 그 자리에서 사라져야 하는" 효과가 <see cref="BulletEffectSO.OnHitEnemy"/> 등에서 호출한다.
+    /// 내부적으로 <see cref="Die"/>를 부르므로 OnBulletDestroyed 훅도 함께 발동한다(중복 발동은 각 효과가 가드).
+    /// </summary>
+    public void Kill() => Die();
+
+    private void Die()
     {
         if (_isDead) return;
         _isDead = true;

@@ -265,11 +265,15 @@ public class PlayerShooter : MonoBehaviour
 
     private void Start()
     {
-        // 스테이지 시작 지급 로드아웃을 인벤토리에 넣는다.
+        // 스테이지 시작 지급 로드아웃(기본탄)은 첫 스테이지(진행 인덱스 0)에서만 지급한다.
+        // 이후 스테이지부터는 탄을 자동 지급하지 않고, 상점 구매/드랍/회수로만 보급한다.
         if (InventoryManager.Instance == null) return;
-        foreach (var bullet in _startingBullets)
+        if (SceneLoader.CurrentStageIndex == 0)
         {
-            if (bullet != null) InventoryManager.Instance.Add(bullet, 1);
+            foreach (var bullet in _startingBullets)
+            {
+                if (bullet != null) InventoryManager.Instance.Add(bullet, 1);
+            }
         }
 
         // 인벤토리 변경을 구독해 선택 가능한 탄환/아이템 목록을 항상 최신으로 유지한다.

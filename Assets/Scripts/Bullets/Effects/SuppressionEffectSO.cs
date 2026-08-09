@@ -15,7 +15,8 @@ public class SuppressionEffectSO : BulletEffectSO
 
 public override void OnHitEnemy(BulletController bullet, Collider2D enemy)
     {
-        var suppressible = enemy.GetComponent<ISuppressible>();
+        // 콜라이더가 자식(Visual 등)에 달린 적도 있으므로 부모까지 올라가며 ISuppressible을 찾는다.
+        var suppressible = enemy.GetComponentInParent<ISuppressible>();
         if (suppressible != null)
         {
             suppressible.ApplySuppression(suppressDuration, slowRatio);

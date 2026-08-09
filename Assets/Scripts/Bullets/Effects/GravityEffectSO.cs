@@ -18,8 +18,26 @@ public class GravityEffectSO : BulletEffectSO
     [Tooltip("최종 폭발 데미지")]
     public float finalExplosionDamage = 25f;
 
-public override void OnBulletDestroyed(BulletController bullet)
+    // 적을 직격한 순간 중력장을 열고 총알을 소멸시킨다(관통 후 뒤늦게 발동하던 문제 제거).
+    public override void OnHitEnemy(BulletController bullet, Collider2D enemy)
     {
+        SpawnWell(bullet);
+        bullet.Kill(); // 그 자리에서 소멸. Kill→Die→OnBulletDestroyed는 가드로 중복 생성 방지.
+    }
+
+    // 적을 맞히지 못하고 벽/수명으로 소멸할 때도 그 자리에서 중력장을 연다.
+    public override void OnBulletDestroyed(BulletController bullet)
+    {
+        SpawnWell(bullet);
+    }
+
+    /// <summary>현재 총알 위치에 중력장 러너를 1회 스폰한다. 한 총알에 대해 중복 발동하지 않는다.</summary>
+    private void SpawnWell(BulletController bullet)
+    {
+        var effectType = GetType();
+        if (bullet.HasTriggeredZoneEffect(effectType)) return; // 이미 발동함(중복 방지).
+        bullet.MarkZoneEffectTriggered(effectType);
+
         Vector2 pos = bullet.transform.position;
         var runnerGO = new GameObject("GravityWellRunner_Temp");
         runnerGO.transform.position = pos;

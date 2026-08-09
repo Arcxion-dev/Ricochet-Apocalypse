@@ -16,8 +16,27 @@ public class ExplosiveEffectSO : BulletEffectSO
     [Tooltip("바위 등 파괴 가능한 장애물을 부술 수 있는지")]
     public bool canDestroyRock = true;
 
-public override void OnBulletDestroyed(BulletController bullet)
+    // 적을 직격한 순간 즉시 폭발하고 총알을 소멸시킨다. 관통 후 수명이 다한 자리에서
+    // 뒤늦게 터지던(사실상 무효) 문제를 없애, "쏜 곳에서 바로 광역 폭발"하도록 한다.
+    public override void OnHitEnemy(BulletController bullet, Collider2D enemy)
     {
+        Detonate(bullet);
+        bullet.Kill(); // 그 자리에서 소멸(관통 금지). Kill→Die→OnBulletDestroyed는 가드로 재폭발 방지.
+    }
+
+    // 적을 맞히지 못하고 벽/수명으로 소멸할 때도 그 자리에서 폭발(바위 파괴 포함)한다.
+    public override void OnBulletDestroyed(BulletController bullet)
+    {
+        Detonate(bullet);
+    }
+
+    /// <summary>현재 총알 위치를 중심으로 광역 폭발을 1회 처리한다. 한 총알에 대해 중복 발동하지 않는다.</summary>
+    private void Detonate(BulletController bullet)
+    {
+        var effectType = GetType();
+        if (bullet.HasTriggeredZoneEffect(effectType)) return; // 이 총알은 이미 폭발함(중복 방지).
+        bullet.MarkZoneEffectTriggered(effectType);
+
         Vector2 pos = bullet.transform.position;
 
         bool hasArmorPiercing = bullet.Data.HasEffect<ArmorPiercingEffectSO>();
