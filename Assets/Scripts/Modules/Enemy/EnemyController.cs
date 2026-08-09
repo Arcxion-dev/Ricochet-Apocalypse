@@ -104,6 +104,11 @@ public bool OnBulletHit(float baseDamage, BulletSO bulletData, bool isArmorPierc
         if (defenseModule != null && defenseModule.TryBlockHit())
             return false; // 무적 판정으로 피해 무시
 
+        // 방패 몹: 방패가 깨지기 전까지는 직격 총알에 완전 무적(방패 체력도 깎이지 않는다).
+        // 폭발 반경/장판 틱(ApplyAreaDamage/ApplyPrecomputedDamage)만 방패를 벗길 수 있다.
+        if (shieldModule != null && !shieldModule.IsBroken)
+            return false;
+
         float finalDamage = baseDamage;
 
         bool isHeadshot = false;

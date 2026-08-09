@@ -16,4 +16,4 @@ MonoBehaviour:
   zonePrefab: {fileID: 0}
   zoneRadius: 5
   zoneDuration: 3
-  zoneTickDamage: 4
+  zoneTickDamage: 5

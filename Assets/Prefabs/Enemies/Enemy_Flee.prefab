@@ -56,11 +56,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ce81bfe3f62f1ad498878dd52d5c6f52, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AttributeModule
-  weaknessTable:
-  - attackerAttribute: 2
-    damageMultiplier: 0.5
-    zoneTickMultiplier: 1
-    oneShotZoneTick: 0
+  weaknessTable: []
   defaultMultiplier: 1
 --- !u!114 &6663321128759994005
 MonoBehaviour:

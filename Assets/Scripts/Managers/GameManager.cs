@@ -26,8 +26,12 @@ public class GameManager : MonoBehaviour
 
     [Header("보상 계산 (임시 밸런스)")]
     [SerializeField] private int _baseClearReward = 100;
-    [SerializeField] private int _rewardPerKill = 10;
-    [SerializeField] private int _rewardPerCombo = 25;
+    [Tooltip("특수 몹(도망/시체산/방패/소환)을 제외한 모든 적 처치 보상.")]
+    [SerializeField] private int _normalKillReward = 20;
+    [Tooltip("특수 몹(도망/시체산/방패/소환) 처치 보상.")]
+    [SerializeField] private int _specialKillReward = 25;
+    [Tooltip("최고 콤보 1당 지급되는 보상.")]
+    [SerializeField] private int _rewardPerCombo = 5;
     [SerializeField] private int _perfectBonus = 200;
 
     [Header("보물상자 보상")]
@@ -57,6 +61,7 @@ public class GameManager : MonoBehaviour
     private int _currentBulletKills; // 현재(마지막) 탄환이 처치한 수
     private int _bestCombo;          // 한 발로 처치한 최대 수
     private int _totalKills;
+    private int _killRewardTotal;    // 처치할 때마다 (특수/일반 구분해) 누적한 보상 골드
 
     private bool _stageEnded;        // 클리어/실패 중복 트리거 방지
 
@@ -114,6 +119,7 @@ public class GameManager : MonoBehaviour
         _currentBulletKills = 0;
         _bestCombo = 0;
         _totalKills = 0;
+        _killRewardTotal = 0;
         _stageEnded = false;
 
         // 새 스테이지는 "발사 전 정지" 상태로 시작한다(첫 발 전까지 적은 추격하지 않음).
@@ -199,7 +205,8 @@ public class GameManager : MonoBehaviour
     /// 적 1기 처치 시 호출 (Enemy 사망 이벤트에서 연결 — 팀원 협의).
     /// 현재 탄환 킬 수를 올리고, 그 값으로 최고 콤보를 갱신한다.
     /// </summary>
-    public void ReportEnemyKilled()
+    /// <param name="isSpecialEnemy">특수 몹(도망/시체산/방패/소환) 처치 여부 — 보상 단가가 다르다.</param>
+    public void ReportEnemyKilled(bool isSpecialEnemy = false)
     {
         _totalKills++;
         _currentBulletKills++;
@@ -207,6 +214,7 @@ public class GameManager : MonoBehaviour
         {
             _bestCombo = _currentBulletKills;
         }
+        _killRewardTotal += isSpecialEnemy ? _specialKillReward : _normalKillReward;
         Debug.Log($"[GameManager] 처치 (이번 탄환 {_currentBulletKills}킬 / 최고 콤보 {_bestCombo} / 누적 {_totalKills})");
     }
 
@@ -223,7 +231,7 @@ public class GameManager : MonoBehaviour
         bool isPerfect = _shotsFired == 1;
         int comboBonus = _rewardPerCombo * _bestCombo;
         int reward = _baseClearReward
-                     + _rewardPerKill * _totalKills
+                     + _killRewardTotal
                      + comboBonus
                      + (isPerfect ? _perfectBonus : 0);
 

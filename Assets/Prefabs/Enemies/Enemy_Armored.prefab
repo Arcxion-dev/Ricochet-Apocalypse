@@ -132,6 +132,7 @@ GameObject:
   - component: {fileID: 1783806031572121861}
   - component: {fileID: 278982588650612798}
   - component: {fileID: 1000000000000000005}
+  - component: {fileID: 7480266064175555952}
   m_Layer: 7
   m_Name: Enemy_Armored
   m_TagString: Enemy
@@ -333,3 +334,25 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 30369f070a2170e408b261d1f752e789, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &7480266064175555952
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8611839830574090688}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ce81bfe3f62f1ad498878dd52d5c6f52, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AttributeModule
+  weaknessTable:
+  - attackerAttribute: 8
+    damageMultiplier: 1
+    zoneTickMultiplier: 0.5
+    oneShotZoneTick: 0
+  - attackerAttribute: 9
+    damageMultiplier: 1
+    zoneTickMultiplier: 0.5
+    oneShotZoneTick: 0
+  defaultMultiplier: 1
